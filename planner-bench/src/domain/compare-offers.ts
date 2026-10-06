@@ -1,21 +1,11 @@
 import { findBriefGaps, findOfferGaps } from "./fitness";
-import type { MinorUnits } from "./minor-units";
+import type { ComparisonRow } from "./comparison-row";
 import { minorUnits } from "./minor-units";
 import type { PlannerBrief } from "./planner-brief";
 import { stayNeedsRooms } from "./planner-brief";
 import type { VenueOffer } from "./venue-offer";
 
-export type ComparisonRow = {
-  venueName: string;
-  currency: string;
-  roomsMinor: MinorUnits;
-  foodAndBeverageMinor: MinorUnits;
-  spaceMinor: MinorUnits;
-  extrasMinor: MinorUnits;
-  totalMinor: MinorUnits;
-  expiresAt: string | undefined;
-  gaps: string[];
-};
+export type { ComparisonRow } from "./comparison-row";
 
 export function compareOffers(
   brief: PlannerBrief,
