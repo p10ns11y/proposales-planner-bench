@@ -1,9 +1,9 @@
 # Control Card — planner bench
 
 - **goal:** A planner bench on Vercel. A planner turns one free-text brief into a structured brief, adds the venue proposals they received, and sees one comparison grid with what is missing against the brief. It runs fully on fixtures until a real Proposales API key exists, then switches to the real API with one environment variable.
-- **phase:** PLAN → EXECUTE (ready)
+- **phase:** EXECUTE (S6 done). S7 and D1 are not started.
 - **decision:** concordance proceed. Both judges say planner-bench, `p_dm` 0.42, `tau` 0.4 (caller). The pending `inbox_token` check cannot change the label.
-- **model_role now:** deep (plan). Next: coding.
+- **model_role now:** coding through S6. Next: S7 review, not this session.
 - **workflow:** [workflow.md](./workflow.md) maps each phase to plugins and sets the autonomous-run exit condition.
 
 ## Tech stack
@@ -71,16 +71,19 @@ S3 and S4 can run in parallel after S2.
 - Adding `PROPOSALES_API_KEY` or an LLM key (secrets). The user does this in a separate session.
 
 ## last progress
-- PLAN written. OpenAPI component schemas confirmed for fixtures.
-- Stack, layers, code rules, and plugin mapping fixed in [workflow.md](./workflow.md).
-- S1 is committed in `planner-bench/` as `14eb334`. Checks for that scaffold passed. The `braces` audit advisory is dev-only and has no patch.
-- The first build owner exited during the S2 Adaptate probe. No S2 files were written. Do not redo S1. Do not start a second builder. Continue at S2.
-- Lane split, 2026-10-06: the Cursor build owner keeps `src/contract/`, `src/domain/`, `src/flow/`, `src/view-models/`, `src/views/`, and `src/app/`. Grok owns `src/proposales/` and `tests/proposales-client.test.ts` (S4). Do not edit those two paths. S4 is in place: fixture and http clients, inbox when `inbox_token` is set, draft when it is null.
-- `typecheck` needs `next typegen` to run first, because `LayoutProps` is a generated type.
-- **Ownership:** the Grok build harness owns S2 onward. Cursor is the consultant: it answers questions and takes delegated tasks, and writes nothing in `planner-bench/` unless a task is handed to it.
+- S1 through S6 are committed on `main`. `pnpm typecheck`, `pnpm test`, and `pnpm build` pass in `planner-bench/`.
+- Fixture mode was driven in Chromium on `localhost:3456`: typed brief → inbox filing → Harbour House, Ridge Hall, and Canal Loft on the grid → history entry. Quiet Court filed a draft.
+- S7 and the design session were left alone.
+- `typecheck` still needs `next typegen` first, because `LayoutProps` is a generated type.
 
 ## open decisions
+- 2026-10-06: `getDereferencedOpenAPIDocument` loads `.firecrawl/openapi.json`. js-yaml accepts the JSON, so the component-schema fallback was not used. A company with `tax_mode: "nope"` fails, which shows `$ref` resolution is in effect.
+- `openAPISchemaToZod` drops `additionalProperties`. Known fields are still checked with the generated schemas. The HTTP adapter sends the original `Proposal.data` and inbox metadata so the brief is not stripped.
+- Offer totals use `value_without_tax` when present, otherwise `value_with_tax`, multiplied by block `quantity` (default 1). Minor units stay branded until the view model formats them.
+- No model key uses the scripted agent. A live model uses the AI SDK gateway when `AI_GATEWAY_API_KEY` is set. `PLANNER_MODEL` defaults to `openai/gpt-4.1-mini`. No provider package was added.
+- The spec is read from `../.firecrawl/openapi.json` relative to the planner-bench working directory. A deploy whose root is only `planner-bench/` would not see that file. Deploy stays a later human gate.
 - `pnpm audit` reports one high advisory in `braces@3.0.3`. It is reached only through `eslint-config-next`, used for linting in development. No patched version exists. Do not override it; re-run audit before deploy.
+- Web Speech still depends on the browser. Typed input is always available.
 
 ## compact context for any new agent
 - Read only: this card, `workflow.md`, `.firecrawl/openapi.json`, and the doc pages in `.firecrawl/docs/` named by a step.
@@ -94,4 +97,4 @@ S3 and S4 can run in parallel after S2.
 
 ## handoff
 - artifacts: `control-card.md`, `proposales-report.md`, `review.md`, `.firecrawl/openapi.json`
-- open_risks: the free account's `inbox_token` (handled by S4's two paths); LLM provider choice (AI SDK, provider-agnostic; decided in S5); whether `@adaptate/utils` loads a JSON spec and handles every Proposales schema (checked first in S2, with the fallback of parsing JSON and passing each component schema to `openAPISchemaToZod`); Web Speech support varies by browser (text input is always available)
+- open_risks: deploy root must include `.firecrawl/openapi.json` or the schema loader breaks; `additionalProperties` are not kept by the generated Zod schemas (the adapter sends the original metadata); Web Speech support varies by browser (text input is always available); `braces` audit advisory is dev-only and has no patch
