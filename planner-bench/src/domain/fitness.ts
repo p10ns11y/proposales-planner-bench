@@ -1,0 +1,90 @@
+import { makeConditionalSchemaTransformer } from "@adaptate/core";
+import type { ZodType } from "zod";
+import { plannerBriefSchema, stayNeedsRooms } from "./planner-brief";
+import { venueOfferSchema } from "./venue-offer";
+
+export const briefFitnessConsumers = ["brief:fileable", "brief:comparable"] as const;
+export type BriefFitnessConsumer = (typeof briefFitnessConsumers)[number];
+
+function roomsRequiredWhenTheStayContinues(data: unknown): boolean {
+  return stayNeedsRooms(plannerBriefSchema.parse(data));
+}
+
+export const briefFileableConfig = {
+  eventTitle: true,
+  contactEmail: true,
+  startDate: true,
+  endDate: true,
+  attendeeCount: true,
+  language: true,
+  roomCount: { requiredIf: roomsRequiredWhenTheStayContinues },
+} as const;
+
+export const briefComparableConfig = {
+  startDate: true,
+  endDate: true,
+  attendeeCount: true,
+  city: true,
+  meetingRoomCount: true,
+  foodRequired: true,
+  roomCount: { requiredIf: roomsRequiredWhenTheStayContinues },
+} as const;
+
+export const offerGridRowConfig = {
+  venueName: true,
+  currency: true,
+  totalMinor: true,
+} as const;
+
+const briefConfigByConsumer = {
+  "brief:fileable": briefFileableConfig,
+  "brief:comparable": briefComparableConfig,
+} as const;
+
+export function findBriefGaps(brief: unknown, consumer: BriefFitnessConsumer): string[] {
+  return findGaps(brief, plannerBriefSchema, briefConfigByConsumer[consumer]);
+}
+
+export function findOfferGaps(offer: unknown): string[] {
+  return findGaps(offer, venueOfferSchema, offerGridRowConfig);
+}
+
+export function findGaps(
+  value: unknown,
+  schema: ZodType,
+  config: Record<string, unknown>,
+): string[] {
+  const transformer = makeConditionalSchemaTransformer(value)(schema, config);
+  const parsed = transformer.schema.safeParse(value);
+  if (parsed.success) {
+    return [];
+  }
+  const missingFields = new Set<string>();
+  for (const issue of parsed.error.issues) {
+    const field = issue.path[0];
+    if (typeof field === "string") {
+      missingFields.add(field);
+    }
+  }
+  return Object.keys(config).filter((field) => missingFields.has(field));
+}
+
+const questionByField: Record<string, string> = {
+  eventTitle: "What should we call this event?",
+  contactEmail: "What email should receive the venue replies?",
+  startDate: "What is the start date? Use YYYY-MM-DD.",
+  endDate: "What is the end date? Use YYYY-MM-DD.",
+  attendeeCount: "How many people are coming?",
+  language: "Which two-letter language should the request use?",
+  roomCount: "The stay runs past the start date. How many rooms do you need?",
+  city: "Which city should the venues be in?",
+  meetingRoomCount: "How many meeting rooms do you need?",
+  foodRequired: "Do you need food and drink included? Say Food yes or Food no.",
+  venueName: "Which venue sent this offer?",
+  currency: "Which currency is this offer in?",
+  totalMinor: "What is the offer total in minor units?",
+};
+
+export function questionForGap(field: string): string {
+  return questionByField[field] ?? `What should we use for ${field}?`;
+}
