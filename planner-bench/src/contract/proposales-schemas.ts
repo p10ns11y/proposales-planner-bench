@@ -10,6 +10,7 @@ export type ProposalesSchemas = {
   createProposalRequest: ZodType;
   proposalMutationResponse: ZodType;
   createRfpResponse: ZodType;
+  proposalSearchResult: ZodType;
 };
 
 const componentNames = {
@@ -19,6 +20,7 @@ const componentNames = {
   createProposalRequest: "CreateProposalRequest",
   proposalMutationResponse: "ProposalMutationResponse",
   createRfpResponse: "CreateRfpResponse",
+  proposalSearchResult: "ProposalSearchResult",
 } as const;
 
 let cachedSchemas: Promise<ProposalesSchemas> | undefined;
@@ -56,6 +58,9 @@ async function loadProposalesSchemas(): Promise<ProposalesSchemas> {
     ),
     createRfpResponse: openAPISchemaToZod(
       requiredComponent(componentSchemas, componentNames.createRfpResponse),
+    ),
+    proposalSearchResult: openAPISchemaToZod(
+      requiredComponent(componentSchemas, componentNames.proposalSearchResult),
     ),
   };
 }

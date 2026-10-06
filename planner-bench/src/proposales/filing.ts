@@ -21,6 +21,24 @@ export function inboxBody(brief: BriefDraft): Record<string, string> {
   if (brief.endDate !== null) {
     body.end_date = brief.endDate;
   }
+  if (brief.eventTitle !== undefined) {
+    body.event_title = brief.eventTitle;
+  }
+  if (brief.city !== undefined) {
+    body.city = brief.city;
+  }
+  if (brief.attendeeCount !== undefined) {
+    body.attendee_count = String(brief.attendeeCount);
+  }
+  if (brief.roomCount !== undefined) {
+    body.room_count = String(brief.roomCount);
+  }
+  if (brief.meetingRoomCount !== undefined) {
+    body.meeting_room_count = String(brief.meetingRoomCount);
+  }
+  if (brief.foodRequired !== undefined) {
+    body.food_required = brief.foodRequired ? "yes" : "no";
+  }
   return body;
 }
 
@@ -30,22 +48,10 @@ export function draftBody(brief: BriefDraft): {
   title_md: string;
   data: Record<string, string>;
 } {
-  const data: Record<string, string> = {
-    email: brief.email,
-    company_name: brief.companyName,
-    message: brief.message,
-    language: brief.language,
-  };
-  if (brief.startDate !== null) {
-    data.start_date = brief.startDate;
-  }
-  if (brief.endDate !== null) {
-    data.end_date = brief.endDate;
-  }
   return {
     company_id: brief.companyId,
     language: brief.language,
-    title_md: brief.message,
-    data,
+    title_md: brief.eventTitle ?? brief.message,
+    data: inboxBody(brief),
   };
 }

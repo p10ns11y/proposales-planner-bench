@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { companyFixtures, harbourHouseProposal } from "../src/contract/fixtures";
 import { createClient, resolveMode } from "../src/proposales/client";
 import { draftBody, filingPath, inboxBody } from "../src/proposales/filing";
 import { createFixtureClient, sampleBrief } from "../src/proposales/fixture-client";
@@ -19,6 +20,16 @@ describe("proposales mode", () => {
     const client = createClient({});
     const companies = await client.listCompanies();
     expect(companies.map((company) => company.inboxToken)).toEqual(["inbox-harbour", null]);
+  });
+
+  it("does not call the network when the mode is unset", async () => {
+    const fetchImpl: typeof fetch = async () => {
+      throw new Error("fixture mode called the network");
+    };
+    const client = createClient({}, fetchImpl);
+    await client.listCompanies();
+    await client.fileBrief(sampleBrief(1));
+    await client.loadVenueProposals();
   });
 });
 
@@ -74,12 +85,7 @@ describe("http client", () => {
         body: init?.body === undefined ? null : JSON.parse(String(init.body)),
       });
       if (url.endsWith("/v3/companies")) {
-        return Response.json({
-          data: [
-            { id: 1, name: "Harbour House", inbox_token: "inbox-harbour" },
-            { id: 2, name: "Quiet Court", inbox_token: null },
-          ],
-        });
+        return Response.json({ data: companyFixtures });
       }
       if (url.includes("/v1/inbox/")) {
         return Response.json({ id: 55 });
@@ -92,9 +98,7 @@ describe("http client", () => {
           },
         });
       }
-      return Response.json({
-        data: { uuid: "11111111-1111-4111-8111-111111111111", blocks: [] },
-      });
+      return Response.json({ data: harbourHouseProposal });
     };
 
     const client = createHttpClient({
@@ -124,8 +128,14 @@ describe("http client", () => {
     });
 
     const proposal = await client.getProposal("11111111-1111-4111-8111-111111111111");
-    expect(proposal).toMatchObject({ blocks: [] });
+    expect(proposal).toMatchObject({ title: "Harbour House", blocks: harbourHouseProposal.blocks });
     const readCall = calls.find((call) => call.url.includes("/v3/proposals/11111111"));
     expect(readCall?.authorization).toBe("Bearer test-key");
+  });
+
+  it("rejects a company payload that misses the generated schema", async () => {
+    const fetchImpl: typeof fetch = async () => Response.json({ data: [{ id: 1, name: "Partial" }] });
+    const client = createHttpClient({ apiKey: "test-key", fetchImpl });
+    await expect(client.listCompanies()).rejects.toThrow();
   });
 });

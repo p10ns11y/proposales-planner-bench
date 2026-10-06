@@ -1,10 +1,12 @@
+import { companyFixtures, venueProposalFixtures } from "../contract/fixtures";
 import { draftBody, filingPath } from "./filing";
 import type { BriefDraft, CompanyRecord, FileBriefResult, ProposalesClient } from "./types";
 
-const fixtureCompanies: CompanyRecord[] = [
-  { id: 1, name: "Harbour House", inboxToken: "inbox-harbour" },
-  { id: 2, name: "Quiet Court", inboxToken: null },
-];
+const fixtureCompanies: CompanyRecord[] = companyFixtures.map((company) => ({
+  id: company.id,
+  name: company.name,
+  inboxToken: company.inbox_token,
+}));
 
 export function createFixtureClient(): ProposalesClient {
   const proposals = new Map<string, unknown>();
@@ -40,6 +42,9 @@ export function createFixtureClient(): ProposalesClient {
       }
       return stored;
     },
+    async loadVenueProposals() {
+      return venueProposalFixtures.map((proposal) => ({ ...proposal, blocks: proposal.blocks.map((block) => ({ ...block })) }));
+    },
   };
 }
 
@@ -50,7 +55,7 @@ export function sampleBrief(companyId: number): BriefDraft {
     companyName: "Northwind Events",
     message: "40 rooms, 12 to 14 April, one plenary.",
     language: "en",
-    startDate: "2026-04-12T00:00:00Z",
-    endDate: "2026-04-14T00:00:00Z",
+    startDate: "2026-04-12T00:00:00.000Z",
+    endDate: "2026-04-14T00:00:00.000Z",
   };
 }

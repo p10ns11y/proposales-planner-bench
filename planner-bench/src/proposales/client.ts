@@ -4,7 +4,27 @@ import type { ProposalesClient } from "./types";
 
 export type ProposalesMode = "fixture" | "live";
 
-export function resolveMode(env: NodeJS.ProcessEnv = process.env): ProposalesMode {
+export type ProposalesEnv = {
+  PROPOSALES_MODE?: string;
+  PROPOSALES_API_KEY?: string;
+};
+
+function envValue(name: string): string | undefined {
+  if (!Object.hasOwn(process.env, name)) {
+    return undefined;
+  }
+  const value: unknown = Reflect.get(process.env, name);
+  return typeof value === "string" ? value : undefined;
+}
+
+function currentProposalesEnv(): ProposalesEnv {
+  return {
+    PROPOSALES_MODE: envValue("PROPOSALES_MODE"),
+    PROPOSALES_API_KEY: envValue("PROPOSALES_API_KEY"),
+  };
+}
+
+export function resolveMode(env: ProposalesEnv = currentProposalesEnv()): ProposalesMode {
   if (env.PROPOSALES_MODE === "live") {
     return "live";
   }
@@ -12,7 +32,7 @@ export function resolveMode(env: NodeJS.ProcessEnv = process.env): ProposalesMod
 }
 
 export function createClient(
-  env: NodeJS.ProcessEnv = process.env,
+  env: ProposalesEnv = currentProposalesEnv(),
   fetchImpl?: typeof fetch,
 ): ProposalesClient {
   if (resolveMode(env) === "fixture") {

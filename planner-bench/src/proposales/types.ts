@@ -14,6 +14,12 @@ export type BriefDraft = {
   language: string;
   startDate: string | null;
   endDate: string | null;
+  eventTitle?: string;
+  attendeeCount?: number;
+  roomCount?: number;
+  meetingRoomCount?: number;
+  city?: string;
+  foodRequired?: boolean;
 };
 
 export type FileBriefResult =
@@ -24,4 +30,5 @@ export type ProposalesClient = {
   listCompanies(): Promise<CompanyRecord[]>;
   fileBrief(brief: BriefDraft): Promise<FileBriefResult>;
   getProposal(uuid: string): Promise<unknown>;
+  loadVenueProposals(): Promise<unknown[]>;
 };
