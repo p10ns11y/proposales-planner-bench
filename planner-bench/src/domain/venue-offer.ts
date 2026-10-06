@@ -4,6 +4,8 @@ import { minorUnitsSchema } from "./minor-units";
 export const venueOfferSchema = z.object({
   venueName: z.string().optional(),
   proposalUuid: z.string().optional(),
+  companyId: z.number().int().optional(),
+  city: z.string().optional(),
   currency: z.string().optional(),
   expiresAt: z.string().optional(),
   roomsMinor: minorUnitsSchema.optional(),

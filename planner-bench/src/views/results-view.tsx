@@ -1,53 +1,119 @@
-import { Badge } from "../design/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../design/ui/table";
-import type { ResultsViewModel } from "../view-models/view-model";
+"use client";
 
-export function ResultsView({ viewModel }: { viewModel: ResultsViewModel }) {
+import { Button } from "../design/ui/button";
+import type { PlannerViewEvent, ResultsViewModel } from "../view-models/view-model";
+
+type ResultsViewProps = {
+  viewModel: ResultsViewModel;
+  onEvent: (event: PlannerViewEvent) => void;
+};
+
+export function ResultsView({ viewModel, onEvent }: ResultsViewProps) {
   return (
-    <section className="flex flex-col gap-3 rounded-md border border-border bg-card p-4" aria-label="Results">
-      <h2 className="text-lg">Results</h2>
-      {viewModel.rows.length === 0 ? (
-        <p className="text-muted">Offers show up here after you add venue proposals.</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Venue</TableHead>
-              <TableHead>Rooms</TableHead>
-              <TableHead>Food</TableHead>
-              <TableHead>Space</TableHead>
-              <TableHead>Extras</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Expires</TableHead>
-              <TableHead>Gaps</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+    <section className="planner-results" aria-label="Results">
+      <div className="mb-4 flex items-baseline justify-between gap-3">
+        <h2 className="text-lg">Matches</h2>
+        {viewModel.phase === "results" ? (
+          <p className="text-sm text-muted">{viewModel.rows.length} shown</p>
+        ) : null}
+      </div>
+      <div className="planner-scroll">
+        {viewModel.phase !== "results" || viewModel.rows.length === 0 ? (
+          <p className="text-sm text-muted">
+            Ranked venues appear here after the brief is confirmed.
+          </p>
+        ) : (
+          <ul className="flex flex-col">
             {viewModel.rows.map((row) => (
-              <TableRow key={row.venueName} data-venue={row.venueName} data-gap={row.gaps.length > 0 ? "missing" : "clear"}>
-                <TableCell>{row.venueName}</TableCell>
-                <TableCell>{row.rooms}</TableCell>
-                <TableCell>{row.foodAndBeverage}</TableCell>
-                <TableCell>{row.space}</TableCell>
-                <TableCell>{row.extras}</TableCell>
-                <TableCell>{row.total}</TableCell>
-                <TableCell>{row.expires}</TableCell>
-                <TableCell>
-                  {row.gaps.length === 0 ? (
-                    <Badge tone="clear">Clear</Badge>
-                  ) : (
-                    row.gaps.map((gap) => (
-                      <Badge key={gap} tone="missing">
-                        {gap}
-                      </Badge>
-                    ))
-                  )}
-                </TableCell>
-              </TableRow>
+              <li key={row.venueName}>
+                <button
+                  type="button"
+                  className="flex w-full items-start justify-between gap-4 border-b border-border py-3 text-left"
+                  data-venue={row.venueName}
+                  data-gap={row.gaps.length > 0 ? "missing" : "clear"}
+                  data-favorite={row.favorite ? "yes" : "no"}
+                  onClick={() => onEvent({ type: "rowOpened", venueName: row.venueName })}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-base">
+                      {row.venueName}
+                      {row.favorite ? <span className="ml-2 text-sm text-muted">Favorite</span> : null}
+                    </span>
+                    {row.heldByCompanyName ? (
+                      <span className="mt-0.5 block text-sm text-muted">
+                        Held by {row.heldByCompanyName}
+                      </span>
+                    ) : null}
+                    {row.gaps.length > 0 ? (
+                      <span className="mt-1 block text-sm text-muted">{row.gaps.join(", ")}</span>
+                    ) : null}
+                  </span>
+                  <span className="shrink-0 text-sm tabular-nums">{row.total}</span>
+                </button>
+              </li>
             ))}
-          </TableBody>
-        </Table>
-      )}
+          </ul>
+        )}
+        {viewModel.hiddenCount > 0 ? (
+          <div className="pt-4">
+            <Button type="button" variant="ghost" onClick={() => onEvent({ type: "showMore" })}>
+              More
+            </Button>
+          </div>
+        ) : null}
+      </div>
+      {viewModel.openRow ? (
+        <div
+          className="fixed inset-0 z-20 flex items-end justify-center bg-foreground/20 p-4 sm:items-center"
+          role="presentation"
+          onClick={() => onEvent({ type: "rowClosed" })}
+        >
+          <div
+            className="w-full max-w-md border border-border bg-card p-5 shadow-none"
+            role="dialog"
+            aria-label={viewModel.openRow.venueName}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-xl">{viewModel.openRow.venueName}</h3>
+                {viewModel.openRow.heldByCompanyName ? (
+                  <p className="mt-1 text-sm text-muted">
+                    Held by {viewModel.openRow.heldByCompanyName}
+                  </p>
+                ) : null}
+                {viewModel.openRow.favorite ? (
+                  <p className="mt-1 text-sm text-muted">Favorite</p>
+                ) : null}
+              </div>
+              <Button type="button" variant="ghost" onClick={() => onEvent({ type: "rowClosed" })}>
+                Close
+              </Button>
+            </div>
+            <dl className="grid gap-2 text-sm">
+              <DetailLine label="Rooms" value={viewModel.openRow.rooms} />
+              <DetailLine label="Food" value={viewModel.openRow.foodAndBeverage} />
+              <DetailLine label="Space" value={viewModel.openRow.space} />
+              <DetailLine label="Extras" value={viewModel.openRow.extras} />
+              <DetailLine label="Total" value={viewModel.openRow.total} />
+              <DetailLine label="Expires" value={viewModel.openRow.expires} />
+              <DetailLine
+                label="Gaps"
+                value={viewModel.openRow.gaps.length === 0 ? "None" : viewModel.openRow.gaps.join(", ")}
+              />
+            </dl>
+          </div>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function DetailLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[6rem_1fr] gap-2">
+      <dt className="text-muted">{label}</dt>
+      <dd>{value}</dd>
+    </div>
   );
 }

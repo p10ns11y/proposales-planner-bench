@@ -1,43 +1,24 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type UIMessage } from "ai";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { readHistoryLog, historyStorageKey, upsertHistory, type HistoryEntry } from "../flow/history-log";
 import { plannerSnapshotSchema, type PlannerSnapshot } from "../flow/planner-snapshot";
-import { chatViewModel, resultsViewModel } from "../view-models/selectors";
+import type { ViewportAction } from "../flow/viewport-turn";
+import { captureViewModel, resultsViewModel } from "../view-models/selectors";
 import type { PlannerViewEvent } from "../view-models/view-model";
-import { ChatView, speechInputAvailable } from "../views/chat-view";
+import { CaptureView, speechInputAvailable } from "../views/capture-view";
 import { HistoryView } from "../views/history-view";
 import { ResultsView } from "../views/results-view";
-
-type PlannerUIMessage = UIMessage<unknown, { snapshot: PlannerSnapshot }>;
 
 export function PlannerSession() {
   const [snapshot, setSnapshot] = useState<PlannerSnapshot | null>(null);
   const [historyOverride, setHistoryOverride] = useState<HistoryEntry[] | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [errorText, setErrorText] = useState<string | null>(null);
   const speechAvailable = useSpeechAvailable();
   const storedHistory = useStoredHistory();
   const history = historyOverride ?? storedHistory;
-
-  const transport = useMemo(
-    () => new DefaultChatTransport<PlannerUIMessage>({ api: "/api/chat" }),
-    [],
-  );
-
-  const chat = useChat<PlannerUIMessage>({
-    transport,
-    onData: (part) => {
-      if (part.type !== "data-snapshot") {
-        return;
-      }
-      const parsed = plannerSnapshotSchema.safeParse(part.data);
-      if (parsed.success) {
-        rememberSnapshot(parsed.data);
-      }
-    },
-  });
 
   useEffect(() => {
     let cancelled = false;
@@ -68,83 +49,123 @@ export function PlannerSession() {
     });
   }
 
+  async function sendAction(action: ViewportAction) {
+    if (busy) {
+      return;
+    }
+    setBusy(true);
+    setErrorText(null);
+    try {
+      const response = await fetch("/api/turn", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action, snapshot: snapshot ?? undefined }),
+      });
+      const payload: unknown = await response.json();
+      if (!response.ok) {
+        setErrorText("Something went wrong. Try again.");
+        return;
+      }
+      if (typeof payload !== "object" || payload === null) {
+        setErrorText("Something went wrong. Try again.");
+        return;
+      }
+      const parsed = plannerSnapshotSchema.safeParse(Reflect.get(payload, "snapshot"));
+      if (!parsed.success) {
+        setErrorText("Something went wrong. Try again.");
+        return;
+      }
+      rememberSnapshot(parsed.data);
+    } catch {
+      setErrorText("Something went wrong. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function onEvent(event: PlannerViewEvent) {
-    if (event.type === "messageSubmitted") {
-      void chat.sendMessage(
-        { text: event.text },
-        { body: { snapshot: snapshot ?? undefined } },
-      );
-      return;
-    }
-    if (event.type === "companySelected") {
-      setSnapshot((current) =>
-        current === null ? current : { ...current, selectedCompanyId: event.companyId },
-      );
-      return;
-    }
     if (event.type === "historyToggled") {
       setHistoryOpen(event.open);
       return;
     }
-    const entry = history.find((item) => item.id === event.entryId);
-    if (entry) {
-      setSnapshot(entry.snapshot);
-      setHistoryOpen(false);
+    if (event.type === "historyEntryChosen") {
+      const entry = history.find((item) => item.id === event.entryId);
+      if (entry) {
+        setSnapshot(entry.snapshot);
+        setHistoryOpen(false);
+      }
+      return;
+    }
+    if (event.type === "briefEdited") {
+      void sendAction({ type: "briefEdited", brief: event.brief });
+      return;
+    }
+    if (event.type === "captureSubmitted") {
+      void sendAction({ type: "captureSubmitted", text: event.text });
+      return;
+    }
+    if (event.type === "gapAnswered") {
+      void sendAction({ type: "gapAnswered", text: event.text });
+      return;
+    }
+    if (event.type === "briefConfirmed") {
+      void sendAction(
+        event.brief === undefined
+          ? { type: "briefConfirmed" }
+          : { type: "briefConfirmed", brief: event.brief },
+      );
+      return;
+    }
+    if (event.type === "favoritesSubmitted") {
+      void sendAction({ type: "favoritesSubmitted", text: event.text });
+      return;
+    }
+    if (event.type === "showMore") {
+      void sendAction({ type: "showMore" });
+      return;
+    }
+    if (event.type === "rowOpened") {
+      void sendAction({ type: "rowOpened", venueName: event.venueName });
+      return;
+    }
+    if (event.type === "rowClosed") {
+      void sendAction({ type: "rowClosed" });
     }
   }
 
-  const messages = chat.messages.map((message) => ({
-    id: message.id,
-    role: message.role,
-    text: textFromParts(message.parts),
-  }));
-
   return (
-    <main className="min-h-dvh bg-background text-foreground" data-brief-stage={snapshot?.stage ?? "collecting"}>
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl">Planner bench</h1>
-            <p className="text-sm text-muted">One brief, the offers you received, one grid.</p>
-          </div>
-          <HistoryView
-            viewModel={{
-              open: historyOpen,
-              entries: history.map((entry) => ({
-                id: entry.id,
-                title: entry.title,
-                stage: entry.stage,
-                savedAt: entry.savedAt,
-                venueCount: entry.venueCount,
-              })),
-            }}
+    <main className="planner-shell" data-brief-stage={snapshot?.stage ?? "collecting"}>
+      <div className="planner-layout">
+        <div className="planner-panes">
+          <CaptureView
+            viewModel={captureViewModel({
+              snapshot,
+              busy,
+              errorText,
+              speechAvailable,
+            })}
             onEvent={onEvent}
+            historyControl={
+              <HistoryView
+                viewModel={{
+                  open: historyOpen,
+                  entries: history.map((entry) => ({
+                    id: entry.id,
+                    title: entry.title,
+                    stage: entry.stage,
+                    savedAt: entry.savedAt,
+                    venueCount: entry.venueCount,
+                  })),
+                }}
+                onEvent={onEvent}
+              />
+            }
           />
-        </header>
-        <ChatView
-          viewModel={chatViewModel({
-            snapshot,
-            messages,
-            busy: chat.status === "submitted" || chat.status === "streaming",
-            errorText: chat.error === undefined ? null : chat.error.message,
-            speechAvailable,
-          })}
-          onEvent={onEvent}
-        />
-        <ResultsView viewModel={resultsViewModel(snapshot)} />
+          <ResultsView viewModel={resultsViewModel(snapshot)} onEvent={onEvent} />
+        </div>
       </div>
     </main>
   );
-}
-
-function textFromParts(parts: PlannerUIMessage["parts"]): string {
-  const chunks: string[] = [];
-  for (const part of parts) {
-    if (part.type === "text") {
-      chunks.push(part.text);
-    }
-  }
-  return chunks.join("");
 }
 
 function useSpeechAvailable(): boolean {

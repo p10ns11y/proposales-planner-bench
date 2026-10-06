@@ -1,18 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   lumenOvernightTranscript,
+  northwindDayBrief,
   northwindDayTranscript,
 } from "../src/contract/fixtures";
-import { handlePlannerChat } from "../src/flow/planner-chat";
 import { openingSnapshot } from "../src/flow/chat-request";
-import { extractBriefPatch } from "../src/flow/fixture-extractor";
-import { runFixtureTurn } from "../src/flow/scripted-turn";
+import { extractBriefPatch, matchFavoriteVenues } from "../src/flow/fixture-extractor";
+import { handlePlannerTurn } from "../src/flow/planner-turn";
+import { runViewportAction } from "../src/flow/viewport-turn";
 import { createFixtureClient } from "../src/proposales/fixture-client";
 
 const today = "2026-10-06";
 
-describe("scripted agent without a model key", () => {
-  it("extracts a fileable day brief and an overnight brief", () => {
+const plainEnglishBrief =
+  "I need a place in Stockholm for 40 people on 12 November 2026, with dinner and a meeting room.";
+
+describe("viewport flow without a model key", () => {
+  it("extracts structured transcripts and plain English into brief fields", () => {
     expect(extractBriefPatch(northwindDayTranscript)).toMatchObject({
       eventTitle: "Northwind offsite",
       contactEmail: "ada@northwind.example",
@@ -21,120 +25,142 @@ describe("scripted agent without a model key", () => {
     });
     expect(extractBriefPatch(northwindDayTranscript).roomCount).toBeUndefined();
     expect(extractBriefPatch(lumenOvernightTranscript).roomCount).toBe(10);
+    expect(extractBriefPatch(plainEnglishBrief)).toMatchObject({
+      city: "Stockholm",
+      attendeeCount: 40,
+      startDate: "2026-11-12",
+      endDate: "2026-11-12",
+      foodRequired: true,
+      meetingRoomCount: 1,
+    });
   });
 
-  it("files through the inbox for the company with a token", async () => {
+  it("matches favorite venue names from free text", () => {
+    expect(matchFavoriteVenues("Harbour House and Canal Loft")).toEqual([
+      "Harbour House",
+      "Canal Loft",
+    ]);
+    expect(matchFavoriteVenues("skip")).toEqual([]);
+  });
+
+  it("files through the first company after confirm and ranks fixture venues", async () => {
     const client = createFixtureClient();
     const snapshot = openingSnapshot(await client.listCompanies());
-    const collected = await runFixtureTurn({
-      text: northwindDayTranscript,
+    const captured = await runViewportAction({
+      action: { type: "captureSubmitted", text: northwindDayTranscript },
       snapshot,
       client,
       today,
     });
-    expect(collected.snapshot.stage).toBe("fileable");
-    const filed = await runFixtureTurn({
-      text: "file the brief",
-      snapshot: collected.snapshot,
+    expect(captured.snapshot.phase).toBe("confirm");
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: captured.snapshot,
       client,
       today,
     });
-    expect(filed.snapshot.filing).toEqual({ path: "inbox", id: 100 });
-    expect(filed.reply).toContain("inbox");
+    expect(confirmed.snapshot.filing).toEqual({ path: "inbox", id: 100 });
+    expect(confirmed.snapshot.phase).toBe("favorites");
+    const ranked = await runViewportAction({
+      action: { type: "favoritesSubmitted", text: "Ridge Hall" },
+      snapshot: confirmed.snapshot,
+      client,
+      today,
+    });
+    expect(ranked.snapshot.phase).toBe("results");
+    expect(ranked.snapshot.grid.map((row) => row.venueName)).toEqual([
+      "Harbour House",
+      "Canal Loft",
+      "Ridge Hall",
+    ]);
+    expect(ranked.snapshot.grid[0]?.favorite).toBe(false);
+    expect(ranked.snapshot.grid[2]?.favorite).toBe(true);
+    expect(ranked.snapshot.grid[1]?.heldByCompanyName).toBe("Quiet Court");
+    expect(ranked.snapshot.grid[2]?.heldByCompanyName).toBe("Harbour House");
+    expect(ranked.snapshot.grid[0]?.heldByCompanyName).toBeUndefined();
   });
 
   it("files a draft when the selected company has no inbox token", async () => {
     const client = createFixtureClient();
     const snapshot = openingSnapshot(await client.listCompanies());
-    const collected = await runFixtureTurn({
-      text: northwindDayTranscript,
+    const captured = await runViewportAction({
+      action: { type: "captureSubmitted", text: northwindDayTranscript },
       snapshot: { ...snapshot, selectedCompanyId: 2 },
       client,
       today,
     });
-    const filed = await runFixtureTurn({
-      text: "file the brief",
-      snapshot: collected.snapshot,
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: captured.snapshot,
       client,
       today,
     });
-    expect(filed.snapshot.filing?.path).toBe("draft");
-    if (filed.snapshot.filing?.path !== "draft") {
+    expect(confirmed.snapshot.filing?.path).toBe("draft");
+    if (confirmed.snapshot.filing?.path !== "draft") {
       return;
     }
-    const stored = await client.getProposal(filed.snapshot.filing.uuid);
+    const stored = await client.getProposal(confirmed.snapshot.filing.uuid);
     expect(stored).toMatchObject({
       company_id: 2,
       data: { message: "One plenary and dinner." },
     });
   });
 
-  it("refuses to file when the overnight brief has no room count", async () => {
+  it("refuses to leave confirm when an overnight brief has no room count", async () => {
     const client = createFixtureClient();
     const snapshot = openingSnapshot(await client.listCompanies());
-    const collected = await runFixtureTurn({
-      text: lumenOvernightTranscript.replace("Rooms 10. ", ""),
+    const captured = await runViewportAction({
+      action: {
+        type: "captureSubmitted",
+        text: lumenOvernightTranscript.replace("Rooms 10. ", ""),
+      },
       snapshot,
       client,
       today,
     });
-    const filed = await runFixtureTurn({
-      text: "file the brief",
-      snapshot: collected.snapshot,
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: captured.snapshot,
       client,
       today,
     });
-    expect(filed.snapshot.filing).toBeNull();
-    expect(filed.reply).toContain("rooms");
+    expect(confirmed.snapshot.filing).toBeNull();
+    expect(confirmed.snapshot.phase).toBe("confirm");
+    expect(confirmed.snapshot.nextQuestion.toLowerCase()).toContain("rooms");
   });
 
-  it("adds fixture proposals and builds a comparison grid", async () => {
+  it("asks one missing fact after plain English capture", async () => {
     const client = createFixtureClient();
     const snapshot = openingSnapshot(await client.listCompanies());
-    const collected = await runFixtureTurn({
-      text: northwindDayTranscript,
+    const captured = await runViewportAction({
+      action: { type: "captureSubmitted", text: plainEnglishBrief },
       snapshot,
       client,
       today,
     });
-    const filed = await runFixtureTurn({
-      text: "file the brief",
-      snapshot: collected.snapshot,
-      client,
-      today,
-    });
-    const compared = await runFixtureTurn({
-      text: "add the venue proposals",
-      snapshot: filed.snapshot,
-      client,
-      today,
-    });
-    expect(compared.snapshot.stage).toBe("comparing");
-    expect(compared.snapshot.offers.map((offer) => offer.venueName)).toEqual([
-      "Harbour House",
-      "Ridge Hall",
-      "Canal Loft",
-    ]);
-    expect(compared.snapshot.offers[0]?.roomsMinor).toEqual({ unit: "minor", amount: 20_000 });
-    expect(compared.snapshot.grid).toHaveLength(3);
-    expect(compared.snapshot.grid[2]?.gaps).toContain("expired");
-    expect(compared.reply).toContain("comparison grid");
+    expect(captured.snapshot.phase).toBe("confirm");
+    expect(captured.snapshot.brief.city).toBe("Stockholm");
+    expect(captured.snapshot.gaps.length).toBeGreaterThan(0);
+    expect(captured.snapshot.nextQuestion.length).toBeGreaterThan(0);
   });
 
-  it("answers a chat request with no model key", async () => {
-    const response = await handlePlannerChat(
-      new Request("http://planner-bench.test/api/chat", {
+  it("answers a turn request with no model key", async () => {
+    const response = await handlePlannerTurn(
+      new Request("http://planner-bench.test/api/turn", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", parts: [{ type: "text", text: northwindDayTranscript }] }],
+          action: { type: "captureSubmitted", text: northwindDayTranscript },
         }),
       }),
-      {},
     );
-    const body = await response.text();
+    const body: unknown = await response.json();
     expect(response.status).toBe(200);
-    expect(body).toContain("file the brief");
-    expect(body).toContain("data-snapshot");
+    expect(body).toMatchObject({
+      snapshot: {
+        phase: "confirm",
+        brief: { eventTitle: northwindDayBrief.eventTitle },
+      },
+    });
   });
 });

@@ -16,6 +16,7 @@ type OfferBucket = (typeof bucketByPackageSplitType)[keyof typeof bucketByPackag
 const proposalForOfferSchema = z.object({
   uuid: z.string(),
   title: z.string().nullable().optional(),
+  company_id: z.number().int().optional(),
   company_name: z.string().optional(),
   currency: z.string().optional(),
   expires_at: z.number().nullable().optional(),
@@ -62,6 +63,7 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
   return {
     venueName,
     proposalUuid: parsed.uuid,
+    companyId: parsed.company_id,
     currency: parsed.currency,
     expiresAt:
       parsed.expires_at === undefined || parsed.expires_at === null
