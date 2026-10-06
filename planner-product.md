@@ -1,5 +1,7 @@
 # Product — planner bench
 
+This file is the planner definition. Impeccable's own product record is `product.md`, so this note stays under another name.
+
 One screen. A planner says what they want. The bench turns that into a short brief, finds the best-fitting venues from Proposales, and shows them ranked. Favorites they already have in mind sit on that same list, marked.
 
 The first viewport is the product. Overlays open only where someone asks for more. Images, hotel photos, and a dedicated page per venue wait for the next hydration.
@@ -52,17 +54,29 @@ Input to result, few beats, same page. Extra views (overlays, dialogs, popovers)
 - Expand and hide to keep the rest on the same screen.
 - Details open in place.
 
+## Look
+
+The screen is humble and simple. The craft is extreme. Beauty comes from proportion, type, spacing, and the golden split. Decoration does not stand in for hierarchy.
+
+Mode is Operate: a person finishes a task. The first viewport starts at what they want to say. Company is not the first control.
+
+Impeccable owns the visual pass. Tailwind and shadcn are the materials. Type, color, and imagery are chosen in that pass.
+
+Wrong even if polished: a dashboard of labels, a loud marketing page, or a chat transcript that makes them guess the next sentence.
+
 ## This pass
 
-Tailwind and shadcn stay. The work is the one-viewport flow and the layout split. How far CSS is pushed on this pass is still open.
+The flow, the one-viewport split, and a humble screen that already feels considered. CSS goes as far as that screen needs. The visual world itself (type, color, photos) is the impeccable pass.
 
 ## Next hydration
 
 - Images and hotel views.
 - Whether a ranked row opens a dedicated page for one venue.
+- The collab-finder decision model in place of the fetch stand-in.
+- A System 1 + System 2 mix on rank, if System 2 alone is not enough.
 
 ## Open
 
-- Fetch: LLM stand-in vs ordinary code, once the filter map is visible.
-- Rank: System 2 only, or a System 1 + System 2 mix.
-- Top five vs top ten.
+- Fetch: ordinary code when the filter map is a known list. An LLM fills only those known filters. The named decision model waits.
+- Rank: System 2 for this pass. A mix with System 1 is not settled.
+- Show the top five in the viewport. Further matches wait behind one control.
