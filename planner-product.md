@@ -1,10 +1,10 @@
 # Product — planner bench
 
-This file is the planner definition. Impeccable's own product record is `product.md`, so this note stays under another name.
+This file is the planner definition: the flow, the names, and fetch and rank. The shell, the hold, and the later extensions are in [PRODUCT.md](./PRODUCT.md). Voice is in [TASTE.md](./TASTE.md). Visual materials are in [DESIGN.md](./DESIGN.md).
 
-One screen. A planner says what they want. The bench turns that into a short brief, finds the best-fitting venues from Proposales, and shows them ranked. Favorites they already have in mind sit on that same list, marked.
+One screen. A planner says what they want into one sticky input. The bench turns that into a short brief, finds the best-fitting venues from Proposales, and shows them ranked in the thread. Favorites they already have in mind sit on that same list, marked.
 
-The first viewport is the product. Overlays open only where someone asks for more. Images, hotel photos, and a dedicated page per venue wait for the next hydration.
+Overlays and modals open only where someone asks for more. Images, hotel photos, and a dedicated page per venue wait for the next hydration.
 
 UX evidence: [ux-findings.md](./ux-findings.md). Terms: [ontology.md](./ontology.md). Build contract: [control-card.md](./control-card.md).
 
@@ -49,24 +49,25 @@ Input to result, few beats, same page. Extra views (overlays, dialogs, popovers)
 
 ## Page
 
-- One viewport on desktop and on mobile. No scroll to use the product.
-- If there are columns, golden ratio: the large pane is the important content (the results).
-- Expand and hide to keep the rest on the same screen.
-- Details open in place.
+- One sticky input at the bottom. They type or talk. The input stays put.
+- The thread above it shows the current step, and it is the part that may move.
+- A step renders an element in the thread only when they need to see it. AG-UI is an allowed shape for that element. Ordinary React is enough for this pass.
+- Detail for a result opens in an overlay or a modal.
+- Company is not the first control.
 
 ## Look
 
-The screen is humble and simple. The craft is extreme. Beauty comes from proportion, type, spacing, and the golden split. Decoration does not stand in for hierarchy.
+The screen is humble and simple. The craft is extreme. Beauty comes from the one input, the quiet thread, and elements that appear only when needed.
 
-Mode is Operate: a person finishes a task. The first viewport starts at what they want to say. Company is not the first control.
+Mode is Operate: a person finishes a task. The first thing they meet is the input.
 
-Impeccable owns the visual pass. Tailwind and shadcn are the materials. Type, color, and imagery are chosen in that pass.
+Tailwind and shadcn stay the materials. The recorded materials are in [DESIGN.md](./DESIGN.md).
 
-Wrong even if polished: a dashboard of labels, a loud marketing page, or a chat transcript that makes them guess the next sentence.
+Wrong even if polished: a dashboard of labels, a loud marketing page, a form of every brief field, or a thread that makes them guess a magic phrase.
 
 ## This pass
 
-The flow, the one-viewport split, and a humble screen that already feels considered. CSS goes as far as that screen needs. The visual world itself (type, color, photos) is the impeccable pass.
+Make the defined flow work behind the sticky input. Simple on the surface. The cleaning, the fetch, and the rank stay the hard work. Off-topic asks stop at the hold in [TASTE.md](./TASTE.md).
 
 ## Next hydration
 
@@ -74,6 +75,7 @@ The flow, the one-viewport split, and a humble screen that already feels conside
 - Whether a ranked row opens a dedicated page for one venue.
 - The collab-finder decision model in place of the fetch stand-in.
 - A System 1 + System 2 mix on rank, if System 2 alone is not enough.
+- From the same input, later: a faster path, the inner working when they ask to see it, and other jobs.
 
 ## Open
 
