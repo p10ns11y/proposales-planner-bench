@@ -41,7 +41,7 @@ body {
 .planner-layout {
   display: grid;
   height: 100%;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .planner-panes {
@@ -78,7 +78,15 @@ body {
 @media (max-width: 900px) {
   .planner-panes {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 38%) minmax(0, 62%);
+    grid-template-rows: minmax(0, 42%) minmax(0, 58%);
+  }
+
+  .planner-capture {
+    padding: 1rem 1rem 0.75rem;
+  }
+
+  .planner-capture textarea {
+    min-height: 4.5rem;
   }
 
   .planner-capture {

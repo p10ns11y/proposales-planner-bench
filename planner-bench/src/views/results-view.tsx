@@ -45,7 +45,7 @@ export function ResultsView({ viewModel, onEvent }: ResultsViewProps) {
                       </span>
                     ) : null}
                     {row.gaps.length > 0 ? (
-                      <span className="mt-1 block text-sm text-muted">{row.gaps.join(", ")}</span>
+                      <span className="mt-1 block text-sm text-muted">{row.gaps.map(gapLabel).join(", ")}</span>
                     ) : null}
                   </span>
                   <span className="shrink-0 text-sm tabular-nums">{row.total}</span>
@@ -99,7 +99,7 @@ export function ResultsView({ viewModel, onEvent }: ResultsViewProps) {
               <DetailLine label="Expires" value={viewModel.openRow.expires} />
               <DetailLine
                 label="Gaps"
-                value={viewModel.openRow.gaps.length === 0 ? "None" : viewModel.openRow.gaps.join(", ")}
+                value={viewModel.openRow.gaps.length === 0 ? "None" : viewModel.openRow.gaps.map(gapLabel).join(", ")}
               />
             </dl>
           </div>
@@ -107,6 +107,22 @@ export function ResultsView({ viewModel, onEvent }: ResultsViewProps) {
       ) : null}
     </section>
   );
+}
+
+function gapLabel(gap: string): string {
+  if (gap === "foodAndBeverage") {
+    return "No food";
+  }
+  if (gap === "expired") {
+    return "Expired";
+  }
+  if (gap === "space") {
+    return "No meeting space";
+  }
+  if (gap === "rooms") {
+    return "No rooms";
+  }
+  return gap;
 }
 
 function DetailLine({ label, value }: { label: string; value: string }) {
