@@ -25,10 +25,22 @@
   --font-sans: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
 }
 
+html,
 body {
+  max-width: 100%;
+  overflow: hidden;
   background: var(--background);
   color: var(--foreground);
+}
+
+body {
   font-family: var(--font-sans);
+  caret-color: var(--foreground);
+}
+
+::selection {
+  background: var(--foreground);
+  color: var(--background);
 }
 
 .planner-shell {
@@ -62,17 +74,32 @@ body {
 
 .planner-capture {
   border-right: 1px solid var(--border);
-  padding: 1.5rem 1.25rem 1.25rem;
+  padding: 1.5rem 1.25rem 4.5rem;
 }
 
 .planner-results {
   padding: 1.5rem 1.5rem 1.25rem;
 }
 
-.planner-scroll {
+.planner-step,
+.planner-matches {
   min-height: 0;
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
+}
+
+.planner-shell :focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+.planner-field {
+  font-size: 1rem;
+}
+
+.planner-field::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 @media (max-width: 900px) {
@@ -87,6 +114,7 @@ body {
 
   .planner-capture textarea {
     min-height: 4.5rem;
+    max-height: 7rem;
   }
 
   .planner-capture {

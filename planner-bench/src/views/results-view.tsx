@@ -17,7 +17,7 @@ export function ResultsView({ viewModel, onEvent }: ResultsViewProps) {
           <p className="text-sm text-muted">{viewModel.rows.length} shown</p>
         ) : null}
       </div>
-      <div className="planner-scroll">
+      <div className="planner-matches">
         {viewModel.phase !== "results" || viewModel.rows.length === 0 ? (
           <p className="text-sm text-muted">
             Ranked venues appear here after the brief is confirmed.
@@ -54,14 +54,14 @@ export function ResultsView({ viewModel, onEvent }: ResultsViewProps) {
             ))}
           </ul>
         )}
-        {viewModel.hiddenCount > 0 ? (
-          <div className="pt-4">
-            <Button type="button" variant="ghost" onClick={() => onEvent({ type: "showMore" })}>
-              More
-            </Button>
-          </div>
-        ) : null}
       </div>
+      {viewModel.hiddenCount > 0 ? (
+        <div className="pt-4">
+          <Button type="button" variant="ghost" className="min-h-12 px-4" onClick={() => onEvent({ type: "showMore" })}>
+            More
+          </Button>
+        </div>
+      ) : null}
       {viewModel.openRow ? (
         <div
           className="fixed inset-0 z-20 flex items-end justify-center bg-foreground/20 p-4 sm:items-center"
