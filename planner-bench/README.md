@@ -66,3 +66,5 @@ Keys stay in server environment variables. Do not commit `.env` files.
 - tldraw: https://tldraw.com/
 - Mermaid: https://mermaid.js.org/
 - AG-UI: https://github.com/ag-ui-protocol/ag-ui
+- [@adaptate/core](https://www.npmjs.com/package/@adaptate/core): conditional schemas for the brief and offer fitness checks
+- [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils): OpenAPI to Zod in the contract tests
