@@ -2,6 +2,10 @@
 
 One line names a city, a date and time, and how many people. The bench confirms those facts, then ranks venues. More stays closed until it is opened. The fields inside it edit the rest of the brief.
 
+## Architecture
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
 ## Fixture mode
 
 This is the default. It needs no keys and makes no network calls. The ranked rows come from the fixture.
@@ -59,3 +63,6 @@ Keys stay in server environment variables. Do not commit `.env` files.
 - Method notes live with the reference pack in `docs/design-refs/REFERENCE-PACK.md`.
 - Refero and Mobbin were connected but paywalled at the time of writing; no content from them is included.
 - No brand is copied wholesale. Coral and greys are adapted roles, and no Grok or xAI logo or wordmark is used in the app.
+- tldraw: https://tldraw.com/
+- Mermaid: https://mermaid.js.org/
+- AG-UI: https://github.com/ag-ui-protocol/ag-ui
