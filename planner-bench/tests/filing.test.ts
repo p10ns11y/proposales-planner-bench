@@ -207,6 +207,7 @@ describe("filing turns", () => {
     });
     expect(view.filed).toBe(true);
     expect(view.filingMessage).toBe(briefFiledNotice);
+    expect(view.notice).toBe(briefFiledNotice);
     const again = await runViewportAction({
       action: { type: "composerSubmitted", text: "file" },
       snapshot: confirmed.snapshot,
@@ -215,5 +216,41 @@ describe("filing turns", () => {
     });
     expect(watched.filings).toHaveLength(1);
     expect(again.snapshot.filing).toEqual(confirmed.snapshot.filing);
+  });
+
+  it("asks for a missing language at Yes and does not file", async () => {
+    const watched = countingClient();
+    const snapshot = openingSnapshot(await watched.client.listCompanies());
+    const captured = await runViewportAction({
+      action: {
+        type: "captureSubmitted",
+        text: "City Stockholm. Attendees 25. Start 2026-12-03. End 2026-12-03. Start time 09:00. End time 17:00. Email planner@northwind.example.",
+      },
+      snapshot,
+      client: watched.client,
+      today,
+    });
+    expect(captured.snapshot.brief.language).toBeUndefined();
+    expect(captured.snapshot.brief.contactEmail).toBe("planner@northwind.example");
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: captured.snapshot,
+      client: watched.client,
+      today,
+    });
+    expect(confirmed.snapshot.phase).toBe("favorites");
+    expect(confirmed.snapshot.filing).toBeNull();
+    expect(confirmed.snapshot.gaps).toEqual(["language"]);
+    expect(confirmed.snapshot.notice).toBe(questionForGap("language"));
+    expect(confirmed.snapshot.nextQuestion).toBe(questionForGap("language"));
+    expect(watched.filings).toHaveLength(0);
+    const view = shellViewModel({
+      snapshot: confirmed.snapshot,
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(view.ask).toBe(questionForGap("language"));
+    expect(view.notice).toBe(questionForGap("language"));
   });
 });

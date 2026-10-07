@@ -175,6 +175,118 @@ describe("offer detail", () => {
     const email = screen.getByLabelText("Email");
     expect(email).toBe(document.activeElement);
     expect(email.getAttribute("id")).toBe("more-contactEmail");
+    expect(email.getAttribute("aria-required")).toBe("true");
+    expect(screen.getByText("Venues reply to this address")).toBeTruthy();
+    const detailStatus = document.querySelector(".planner-detail-sheet [role=status]");
+    expect(detailStatus?.textContent).toBe("More opened so venues reply to this address.");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(screen.getByRole("dialog", { name: "Refine the brief" })).toBeTruthy();
+    expect(email.getAttribute("aria-invalid")).toBe("true");
+    expect(events.some((event) => event.type === "moreEdited")).toBe(false);
+  });
+
+  it("keeps Email optional when More opens from the header", async () => {
+    installDomShims();
+    const user = userEvent.setup();
+    render(
+      <PlannerShell
+        viewModel={model({ phase: "confirm", rows: [], offerSummary: null, showConfirm: true })}
+        onEvent={() => undefined}
+        historyControl={null}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "More" }));
+    const email = screen.getByLabelText("Email");
+    expect(email.getAttribute("aria-required")).toBeNull();
+    expect(screen.queryByText("Venues reply to this address")).toBeNull();
+  });
+
+  it("shows one File control on the results and hides it while the detail is open", async () => {
+    installDomShims();
+    const user = userEvent.setup();
+    const events: PlannerViewEvent[] = [];
+    const view = render(
+      <PlannerShell viewModel={model()} onEvent={(event) => events.push(event)} historyControl={null} />,
+    );
+    const resultsFile = screen.getByRole("button", { name: "File this brief" });
+    expect(resultsFile.getAttribute("data-lcv-event")).toBe("file-brief");
+    await user.click(resultsFile);
+    expect(events.some((event) => event.type === "composerSubmitted")).toBe(false);
+    expect(screen.getByText("Venues reply to this address")).toBeTruthy();
+    view.rerender(
+      <PlannerShell
+        viewModel={model({ openRow: canalLoft })}
+        onEvent={(event) => events.push(event)}
+        historyControl={null}
+      />,
+    );
+    expect(screen.getAllByRole("button", { name: "File this brief" })).toHaveLength(1);
+  });
+
+  it("shows a transport error in the open detail and keeps File pressable", async () => {
+    installDomShims();
+    const user = userEvent.setup();
+    const events: PlannerViewEvent[] = [];
+    const error = "Couldn't reach Proposales. Your brief is saved.";
+    render(
+      <PlannerShell
+        viewModel={model({
+          openRow: canalLoft,
+          errorText: error,
+          more: { ...emptyMore, contactEmail: "planner@northwind.example" },
+        })}
+        onEvent={(event) => events.push(event)}
+        historyControl={null}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Canal Loft" });
+    expect(within(dialog).getByRole("status").textContent).toBe(error);
+    const file = within(dialog).getByRole("button", { name: "File this brief" });
+    expect(file).toHaveProperty("disabled", false);
+    await user.click(file);
+    expect(events.at(-1)).toEqual({ type: "composerSubmitted", text: "file" });
+  });
+
+  it("asks the missing email once and still offers Skip", () => {
+    installDomShims();
+    const ask = "Add an email under More so venues reply to this address.";
+    render(
+      <PlannerShell
+        viewModel={model({
+          phase: "favorites",
+          rows: [],
+          offerSummary: null,
+          ask,
+          notice: ask,
+          showFavorites: true,
+        })}
+        onEvent={() => undefined}
+        historyControl={null}
+      />,
+    );
+    expect(screen.getAllByText(ask)).toHaveLength(1);
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("button", { name: "Skip" })).toBeTruthy();
+  });
+
+  it("confirms a filing in the chat when the sentence differs from the question", () => {
+    installDomShims();
+    render(
+      <PlannerShell
+        viewModel={model({
+          phase: "favorites",
+          rows: [],
+          offerSummary: null,
+          ask: "Which places do you already have in mind? You can skip.",
+          notice: "The brief is filed.",
+          showFavorites: true,
+        })}
+        onEvent={() => undefined}
+        historyControl={null}
+      />,
+    );
+    expect(screen.getByRole("status").textContent).toBe("The brief is filed.");
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toContain("Which places do you already have in mind?");
   });
 });
 

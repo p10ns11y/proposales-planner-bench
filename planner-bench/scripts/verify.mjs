@@ -148,7 +148,9 @@ async function main() {
   if (!build.ok) {
     steps.push({ name: "e2e", ok: false, durationMs: build.durationMs, detail: build.detail ?? "build failed" });
   } else {
-    steps.push(stepFrom("e2e", run("pnpm", ["exec", "playwright", "test", "e2e/critical-path.spec.ts"], env)));
+    steps.push(
+      stepFrom("e2e", run("pnpm", ["exec", "playwright", "test", "e2e/critical-path.spec.ts", "e2e/filing-email.spec.ts"], env)),
+    );
   }
   if (steps.at(-1)?.ok) {
     steps.push(await layoutStep(env));
