@@ -20,7 +20,7 @@ import { fileBriefChoice, fileBriefLabel, fileBriefPressable, moreOpenedForEmail
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
 import { OfferDetail } from "./offer-detail";
-import { startSpeechCapture } from "./speech-input";
+import { speechButtonState, toggleSpeechCapture, type SpeechListener, type SpeechRecognitionLike } from "./speech-input";
 
 type PlannerShellProps = {
   viewModel: ShellViewModel;
@@ -65,6 +65,9 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const moreOpener = useRef<HTMLButtonElement | null>(null);
+  const speechSession = useRef<SpeechRecognitionLike | null>(null);
+  const [listening, setListening] = useState(false);
+  const [speechReason, setSpeechReason] = useState<string | null>(null);
   const stick = useRef(true);
   const scrollLock = useRef<number | null>(null);
   const previousOpen = useRef<string | null>(null);
@@ -287,6 +290,22 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
 
   const showLive = !holdEmpty && (pending || (!empty && liveIsNew(lines, viewModel.ask, viewModel)));
   const labelled = empty || (showLive && !pending && viewModel.askLabelsComposer);
+  const speech = speechButtonState({
+    supported: viewModel.speechAvailable,
+    listening,
+    unavailable: speechReason,
+    busy: viewModel.busy,
+    ready: viewModel.ready,
+  });
+  const speechListener: SpeechListener = {
+    onTranscript: (transcript) => setDraft(transcript),
+    onListening: setListening,
+    onUnavailable: setSpeechReason,
+  };
+
+  function onSpeech() {
+    speechSession.current = toggleSpeechCapture(speechSession.current, listening, speechListener);
+  }
   const filePressable = fileBriefPressable({
     busy: viewModel.busy,
     filed: viewModel.filed,
@@ -448,6 +467,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             </button>
           ) : null}
           <div className="planner-dock">
+            {speech.shown === false && speech.reason !== null ? (
+              <p className="planner-speech-status" role="status" aria-label={speech.reason} data-speech-state="unavailable">
+                {speech.reason}
+              </p>
+            ) : null}
             <form
               className="planner-composer"
               data-must-show="composer"
@@ -475,22 +499,26 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={onComposerKey}
               />
-              <button
-                type="button"
-                className="planner-icon-button"
-                aria-label="Speak"
-                disabled={!viewModel.speechAvailable || viewModel.busy || !viewModel.ready}
-                {...lcvInteract({
-                  event: "dictate",
-                  from: chatState(viewModel.phase),
-                  success: "composer:dictate",
-                  fail: chatState(viewModel.phase),
-                  interrupted: chatState(viewModel.phase),
-                })}
-                onClick={() => startSpeechCapture((transcript) => setDraft(transcript))}
-              >
-                <Mic aria-hidden="true" />
-              </button>
+              {speech.shown ? (
+                <button
+                  type="button"
+                  className="planner-icon-button"
+                  aria-label={speech.name}
+                  aria-pressed={speech.pressed}
+                  disabled={speech.disabled}
+                  data-speech-state={speech.pressed ? "listening" : "ready"}
+                  {...lcvInteract({
+                    event: "dictate",
+                    from: chatState(viewModel.phase),
+                    success: "composer:dictate",
+                    fail: chatState(viewModel.phase),
+                    interrupted: chatState(viewModel.phase),
+                  })}
+                  onClick={onSpeech}
+                >
+                  <Mic aria-hidden="true" />
+                </button>
+              ) : null}
               <button
                 type="submit"
                 className="planner-send"

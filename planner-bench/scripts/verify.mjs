@@ -149,7 +149,10 @@ async function main() {
     steps.push({ name: "e2e", ok: false, durationMs: build.durationMs, detail: build.detail ?? "build failed" });
   } else {
     steps.push(
-      stepFrom("e2e", run("pnpm", ["exec", "playwright", "test", "e2e/critical-path.spec.ts", "e2e/filing-email.spec.ts"], env)),
+      stepFrom(
+        "e2e",
+        run("pnpm", ["exec", "playwright", "test", "e2e/critical-path.spec.ts", "e2e/filing-email.spec.ts", "e2e/composer-mic.spec.ts"], env),
+      ),
     );
   }
   if (steps.at(-1)?.ok) {
