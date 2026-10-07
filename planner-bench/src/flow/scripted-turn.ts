@@ -8,6 +8,7 @@ import { briefDraftFromPlanner } from "./brief-draft";
 import { projectBriefFlow } from "./brief-flow";
 import { extractBriefPatch, extractPastedOffer, turnIntent } from "./fixture-extractor";
 import type { PlannerSnapshot } from "./planner-snapshot";
+import { rankComparisonRows } from "../domain/compare-offers";
 
 export async function runFixtureTurn(input: {
   text: string;
@@ -21,6 +22,7 @@ export async function runFixtureTurn(input: {
   let offers = input.snapshot.offers;
   const notes: string[] = [];
   const selectedCompanyId = input.snapshot.selectedCompanyId;
+  let favoriteVenueNames = input.snapshot.favoriteVenueNames;
 
   if (intent === "file") {
     const fileableGaps = findBriefGaps(brief, "brief:fileable");
@@ -31,11 +33,7 @@ export async function runFixtureTurn(input: {
       notes.push("Which company should receive the brief?");
     } else {
       filing = await input.client.fileBrief(briefDraftFromPlanner(brief, selectedCompanyId));
-      notes.push(
-        filing.path === "inbox"
-          ? `Filed to the inbox as request ${filing.id}.`
-          : `Filed a draft proposal ${filing.uuid}.`,
-      );
+      notes.push("The brief is filed.");
     }
   }
 
@@ -62,17 +60,34 @@ export async function runFixtureTurn(input: {
   const projected = projectBriefFlow({ brief, filing, offers });
   const gaps = briefGapsForStage(brief, projected.stage);
   const grid =
-    projected.offers.length === 0 ? [] : compareOffers(brief, projected.offers, input.today);
+    projected.offers.length === 0
+      ? []
+      : rankComparisonRows(
+          compareOffers(brief, projected.offers, input.today, {
+            favoriteVenueNames,
+            companies: input.snapshot.companies,
+          }),
+        );
   const nextQuestion = questionForStage(projected.stage, gaps, grid.length, gridHasGaps(grid));
   if (nextQuestion !== "" && !notes.includes(nextQuestion)) {
     notes.push(nextQuestion);
   }
+
+  const phase =
+    projected.stage === "comparing"
+      ? ("results" as const)
+      : projected.filing !== null
+        ? ("favorites" as const)
+        : gaps.length === 0 && Object.keys(brief).length > 0
+          ? ("confirm" as const)
+          : input.snapshot.phase;
 
   return {
     reply: notes.join(" "),
     snapshot: {
       brief,
       stage: projected.stage,
+      phase,
       offers: projected.offers,
       filing: projected.filing,
       gaps,
@@ -80,6 +95,9 @@ export async function runFixtureTurn(input: {
       companies: input.snapshot.companies,
       selectedCompanyId,
       grid,
+      favoriteVenueNames,
+      visibleRowCount: input.snapshot.visibleRowCount,
+      openVenueName: null,
     },
   };
 }
@@ -95,15 +113,15 @@ function questionForStage(
     return questionForGap(firstGap);
   }
   if (stage === "fileable") {
-    return "The brief is ready to file. Say file the brief when you want it sent.";
+    return "The brief is ready. Confirm it when you want it filed.";
   }
   if (stage === "filed" && offerCount === 0) {
-    return "Say add the venue proposals when you have the offers.";
+    return "Which places do you already have in mind? You can skip.";
   }
   if (stage === "comparing") {
     return gridShowsGaps
-      ? "The comparison grid is ready. Some venues are missing items from the brief."
-      : "The comparison grid is ready.";
+      ? "The ranked venues are ready. Some are missing items from the brief."
+      : "The ranked venues are ready.";
   }
   if (firstGap !== undefined) {
     return questionForGap(firstGap);

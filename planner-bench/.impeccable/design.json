@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-06T00:00:00Z",
+  "title": "Design System: Planner bench",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "primary",
+        "displayName": "Ink",
+        "canonical": "#1c1915"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#f4f1ea"
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card",
+        "canonical": "#fffdf8"
+      },
+      "clay": {
+        "role": "neutral",
+        "displayName": "Clay",
+        "canonical": "#5e584e"
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#d8d0c4"
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The current question, when the thread needs a heading." },
+      "body": { "displayName": "Body", "purpose": "The brief sentence, the rows, and the composer." },
+      "label": { "displayName": "Label", "purpose": "Secondary facts on a row." }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [
+      { "name": "phone", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The step's main action.",
+      "html": "<button class=\"ds-btn-primary\">Continue</button>",
+      "css": ".ds-btn-primary { background: #1c1915; color: #f4f1ea; border: 1px solid #d8d0c4; border-radius: 0.375rem; min-height: 48px; padding: 8px 16px; font: 400 0.875rem/1.4 \"Iowan Old Style\", Palatino, Georgia, serif; } .ds-btn-primary:hover { background: #1c1915; } .ds-btn-primary:focus-visible { outline: 2px solid #1c1915; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "History, skip, and dismiss.",
+      "html": "<button class=\"ds-btn-ghost\">Skip</button>",
+      "css": ".ds-btn-ghost { background: #fffdf8; color: #1c1915; border: 1px solid #d8d0c4; border-radius: 0.375rem; min-height: 48px; padding: 8px 16px; font: 400 0.875rem/1.4 \"Iowan Old Style\", Palatino, Georgia, serif; } .ds-btn-ghost:hover { background: #fffdf8; } .ds-btn-ghost:focus-visible { outline: 2px solid #1c1915; outline-offset: 2px; }"
+    },
+    {
+      "name": "Composer",
+      "kind": "input",
+      "refersTo": "input-line",
+      "description": "The sticky line at the bottom of the page.",
+      "html": "<input class=\"ds-input-line\" placeholder=\"I need a place in Stockholm for 40 people on 12 November 2026, with dinner and a meeting room.\" />",
+      "css": ".ds-input-line { background: #fffdf8; color: #1c1915; border: 1px solid #d8d0c4; border-radius: 0.375rem; min-height: 48px; padding: 12px; width: 100%; font: 400 1rem/1.5 \"Iowan Old Style\", Palatino, Georgia, serif; caret-color: #1c1915; } .ds-input-line::placeholder { color: #5e584e; opacity: 1; } .ds-input-line:focus-visible { outline: 2px solid #1c1915; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The sticky line",
+    "overview": "Taken from the brief that the bench should feel like a regular chat, close to Grok: one input, fixed, and the work appearing behind it. The north star is that line. Everything else is paper, type, and the few elements the thread is allowed to show. The material already in the app is warm paper and old-style serif. Density stays low. The page is one column. The composer sits on the bottom edge and does not move. The thread above it is the only region that moves. A result's detail leaves the thread and opens as an overlay or a modal. The split pane and the full brief form in the current branch are the previous pass. They are not the layout to copy.",
+    "keyCharacteristics": [
+      "One composer, stuck to the bottom.",
+      "Paper and ink, no second accent.",
+      "Serif throughout, including the input.",
+      "Elements appear in the thread only for the current step.",
+      "Flat surfaces. A border is the edge."
+    ],
+    "rules": [
+      { "name": "The One Ink Rule", "body": "Ink is the only strong color. Status is said in words, not in a new hue.", "section": "colors" },
+      { "name": "The Same Face Rule", "body": "Do not introduce a sans for UI chrome.", "section": "typography" },
+      { "name": "The Sticky Line Rule", "body": "The input remains in place. If something must move, it is the thread.", "section": "layout" },
+      { "name": "The Flat Paper Rule", "body": "Do not add a shadow to make a control look clickable. The fill and the border do that.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the composer on screen and the current action reachable.",
+      "Do use ink, paper, card, clay, and rule as they are tokenised above.",
+      "Do open detail in an overlay or a modal."
+    ],
+    "donts": [
+      "Don't rebuild the brief as a field grid.",
+      "Don't put Company before the input.",
+      "Don't add a second accent, a gradient, or a shadow to create hierarchy."
+    ]
+  }
+}

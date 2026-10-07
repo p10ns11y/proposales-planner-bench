@@ -1,5 +1,7 @@
 # Control Card — planner bench
 
+The next session uses [control-card-productize.md](./control-card-productize.md). This card stays the record of S1–S6.
+
 - **goal:** A planner bench on Vercel. A planner turns one free-text brief into a structured brief, adds the venue proposals they received, and sees one comparison grid with what is missing against the brief. It runs fully on fixtures until a real Proposales API key exists, then switches to the real API with one environment variable.
 - **phase:** EXECUTE (S6 done). S7 and D1 are not started.
 - **decision:** concordance proceed. Both judges say planner-bench, `p_dm` 0.42, `tau` 0.4 (caller). The pending `inbox_token` check cannot change the label.

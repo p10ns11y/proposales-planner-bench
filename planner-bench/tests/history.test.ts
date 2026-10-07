@@ -28,6 +28,7 @@ describe("history and results view model", () => {
           totalMinor: minorUnits(36_500),
           expiresAt: "2026-12-01T00:00:00.000Z",
           gaps: [],
+          favorite: false,
         },
       ],
     };
@@ -39,6 +40,7 @@ describe("history and results view model", () => {
       rooms: "200.00 EUR",
       total: "365.00 EUR",
       expires: "2026-12-01",
+      favorite: false,
     });
   });
 });

@@ -4,6 +4,23 @@ import type { VenueOffer } from "../domain/venue-offer";
 
 export type TurnIntent = "file" | "addOffers" | "compare" | "update";
 
+const monthIndexByName: Record<string, string> = {
+  january: "01",
+  february: "02",
+  march: "03",
+  april: "04",
+  may: "05",
+  june: "06",
+  july: "07",
+  august: "08",
+  september: "09",
+  october: "10",
+  november: "11",
+  december: "12",
+};
+
+const fixtureVenueNames = ["Harbour House", "Ridge Hall", "Canal Loft"] as const;
+
 export function turnIntent(text: string): TurnIntent {
   const normalised = text.toLowerCase();
   if (normalised.includes("file the brief") || normalised.trim() === "file") {
@@ -73,7 +90,15 @@ export function extractBriefPatch(text: string): PlannerBrief {
   if (notes?.[1]) {
     patch.notes = notes[1].trim();
   }
-  return patch;
+  return mergePlainEnglish(patch, text);
+}
+
+export function matchFavoriteVenues(text: string): string[] {
+  const normalised = text.toLowerCase();
+  if (normalised.trim() === "" || /\bskip\b/i.test(text)) {
+    return [];
+  }
+  return fixtureVenueNames.filter((venueName) => normalised.includes(venueName.toLowerCase()));
 }
 
 export function extractPastedOffer(text: string): VenueOffer | null {
@@ -103,4 +128,70 @@ export function extractPastedOffer(text: string): VenueOffer | null {
       roomsMinor.amount + foodAndBeverageMinor.amount + spaceMinor.amount + extrasMinor.amount,
     ),
   };
+}
+
+function mergePlainEnglish(patch: PlannerBrief, text: string): PlannerBrief {
+  const next: PlannerBrief = { ...patch };
+  if (next.city === undefined) {
+    const cityMatch =
+      /\bin\s+([A-Za-z][A-Za-z-]+(?:\s+[A-Za-z][A-Za-z-]+)?)\s+(?:for|on|with|,)/i.exec(text) ??
+      /\bcity\s+(?:is\s+)?([A-Za-z][A-Za-z-]+)/i.exec(text);
+    if (cityMatch?.[1]) {
+      next.city = cityMatch[1].trim();
+    }
+  }
+  if (next.attendeeCount === undefined) {
+    const peopleMatch = /(?:for\s+)?(\d+)\s+people/i.exec(text) ?? /(?:about|around)\s+(\d+)/i.exec(text);
+    if (peopleMatch?.[1]) {
+      next.attendeeCount = Number(peopleMatch[1]);
+    }
+  }
+  if (next.startDate === undefined) {
+    const isoDate = /\b(\d{4}-\d{2}-\d{2})\b/.exec(text);
+    const dayMonthYear =
+      /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i.exec(
+        text,
+      );
+    const monthDayYear =
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/i.exec(
+        text,
+      );
+    if (isoDate?.[1]) {
+      next.startDate = isoDate[1];
+    } else if (dayMonthYear?.[1] && dayMonthYear[2] && dayMonthYear[3]) {
+      next.startDate = toIsoDate(dayMonthYear[3], dayMonthYear[2], dayMonthYear[1]);
+    } else if (monthDayYear?.[1] && monthDayYear[2] && monthDayYear[3]) {
+      next.startDate = toIsoDate(monthDayYear[3], monthDayYear[1], monthDayYear[2]);
+    }
+  }
+  if (next.endDate === undefined && next.startDate !== undefined) {
+    next.endDate = next.startDate;
+  }
+  if (next.foodRequired === undefined && /\b(dinner|lunch|breakfast|catering|food)\b/i.test(text)) {
+    next.foodRequired = true;
+  }
+  if (next.meetingRoomCount === undefined) {
+    const numberedRooms = /(\d+)\s+meeting\s+rooms?\b/i.exec(text);
+    if (numberedRooms?.[1]) {
+      next.meetingRoomCount = Number(numberedRooms[1]);
+    } else if (/\ba\s+meeting\s+room\b/i.test(text) || /\bmeeting\s+room\b/i.test(text)) {
+      next.meetingRoomCount = 1;
+    }
+  }
+  if (next.roomCount === undefined) {
+    const strippedMeeting = text.replace(/\d*\s*meeting\s+rooms?/gi, "");
+    const overnightRooms = /(\d+)\s+rooms?\b/i.exec(strippedMeeting);
+    if (overnightRooms?.[1]) {
+      next.roomCount = Number(overnightRooms[1]);
+    }
+  }
+  return next;
+}
+
+function toIsoDate(year: string, monthName: string, day: string): string {
+  const month = monthIndexByName[monthName.toLowerCase()];
+  if (month === undefined) {
+    return `${year}-01-01`;
+  }
+  return `${year}-${month}-${day.padStart(2, "0")}`;
 }

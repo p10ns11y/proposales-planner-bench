@@ -11,6 +11,8 @@ export const comparisonRowSchema = z.object({
   totalMinor: minorUnitsSchema,
   expiresAt: z.string().optional(),
   gaps: z.array(z.string()),
+  favorite: z.boolean(),
+  heldByCompanyName: z.string().optional(),
 });
 
 export type ComparisonRow = z.infer<typeof comparisonRowSchema>;

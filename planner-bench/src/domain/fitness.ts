@@ -79,7 +79,7 @@ const questionByField: Record<string, string> = {
   roomCount: "The stay runs past the start date. How many rooms do you need?",
   city: "Which city should the venues be in?",
   meetingRoomCount: "How many meeting rooms do you need?",
-  foodRequired: "Do you need food and drink included? Say Food yes or Food no.",
+  foodRequired: "Do you need food and drink included?",
   venueName: "Which venue sent this offer?",
   currency: "Which currency is this offer in?",
   totalMinor: "What is the offer total in minor units?",
