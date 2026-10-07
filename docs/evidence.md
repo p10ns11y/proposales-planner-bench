@@ -8,54 +8,54 @@ A file is inside the band when the later count is between 40% and 60% of the ear
 
 | Before | After | Share | File |
 | ---: | ---: | ---: | --- |
-| 3930 | 2140 | 54.5% | notes/design-refs/REFERENCE-PACK.md |
+| 3930 | 2148 | 54.7% | notes/design-refs/REFERENCE-PACK.md |
 | 3414 | 1366 | 40.0% | notes/proposales-report.md |
-| 2510 | 1505 | 60.0% | docs/ARCHITECTURE.md |
-| 1518 | 908 | 59.8% | DESIGN.md |
+| 2510 | 1567 | 62.4% | docs/ARCHITECTURE.md |
+| 1518 | 917 | 60.4% | DESIGN.md |
 | 1437 | 725 | 50.5% | notes/workflow.md |
-| 1419 | 782 | 55.1% | PRODUCT.md |
+| 1419 | 809 | 57.0% | PRODUCT.md |
 | 1391 | 832 | 59.8% | notes/control-card.md |
-| 1297 | 774 | 59.7% | notes/control-card-productize.md |
+| 1297 | 781 | 60.2% | notes/control-card-productize.md |
 | 988 | 592 | 59.9% | notes/ontology.md |
-| 966 | 539 | 55.8% | notes/planner-product.md |
-| 845 | 139 | rebuilt | README.md |
+| 966 | 540 | 55.9% | notes/planner-product.md |
+| 845 | 113 | rebuilt | README.md |
 | 832 | 492 | 59.1% | notes/ux-findings.md |
 | 729 | 292 | 40.1% | notes/journey.md |
 | 681 | 316 | 46.4% | notes/review.md |
 | 559 | 332 | 59.4% | docs/FINDINGS.md |
-| 425 | 255 | 60.0% | TASTE.md |
+| 425 | 256 | 60.2% | TASTE.md |
 | 253 | 150 | 59.3% | notes/worklog.md |
-| 240 | 96 | 40.0% | notes/README.md |
+| 240 | 97 | 40.4% | notes/README.md |
 | 115 | 69 | 60.0% | notes/tech-case.md |
 | 103 | 61 | 59.2% | scripts/INDEX.md |
 | 95 | 95 | kept | AGENTS.md |
 | 58 | 33 | 56.9% | qa/critical-path.md |
-| 20 | 20 | kept | e2e/features/planner.md |
+| 20 | 21 | kept | e2e/features/planner.md |
 | 1 | 1 | kept | CLAUDE.md |
-| 23826 | 12514 |  | Total, 24 files |
+| 23826 | 12605 |  | Total, 24 files |
 
-`e2e/features/critical-path.feature` stays at 645 words. It is the Gherkin spec, so this pass did not cut it.
+`e2e/features/critical-path.feature` is 1105 words after main added scenarios. `qa/composer-mic.md` is 91 words and `qa/filing-email.md` is 74. Those three arrived with `db1324d`.
 
-The README is a new front page, so the 40–60% band does not apply. It has 139 words in all, and 104 words outside fenced blocks.
+The README is a new front page, so the 40–60% band does not apply. It has 113 words in all, and 78 words outside fenced blocks. A few rows sit a little over 60% after the drawer, currency, and filing sentences from main.
 
 ## Walkthrough
 
-Recorded on production at https://proposales-planner-bench.vercel.app. The brief is made up: a team offsite for 25 people in Stockholm on 3 December, half day, meeting room and lunch. The clip opens on the ranked venues, then the venue detail, then File with no email, which opens Add details with Email focused and empty. No draft is filed.
+Recorded on production at https://proposales-planner-bench.vercel.app after `db1324d`. The brief is made up: a team offsite for 25 people in Stockholm on 3 December, half day, meeting room and lunch. The clip opens on the ranked venues, then the Canal Loft detail, then File with no email, which opens Add details with Email empty. Apply is not pressed. No draft is filed.
 
-The computer-use tool was blocked by a model quota, so the capture is headed Chrome driven by Playwright, then cropped to the page.
+The capture is the page in Chromium.
 
 | File | What |
 | --- | --- |
-| docs/media/walkthrough.mp4 | 31.8 s, 416968 bytes, 1244×772, H.264, 30 fps, no audio |
-| docs/media/walkthrough.gif | 31.76 s, 1000504 bytes, 720×447, 254 frames |
-| docs/media/hero-desktop.png | 1280×800, 66343 bytes |
-| docs/media/hero-phone.png | 390×844, 44873 bytes |
-| docs/media/poster.png | 1244×772, 122443 bytes, still of the results |
+| docs/media/walkthrough.mp4 | 32.6 s, 294412 bytes, 1280×800, H.264, 30 fps, no audio |
+| docs/media/walkthrough.gif | 32.63 s, 658174 bytes, 720×450, 261 frames |
+| docs/media/hero-desktop.png | 1280×800, 56730 bytes |
+| docs/media/hero-phone.png | 390×844, 45022 bytes |
+| docs/media/poster.png | 1280×800, 130683 bytes, still of Add details |
 
 The README embed is the GIF, linked to the mp4:
 
 ```markdown
-[![Walkthrough of the live bench: a Stockholm offsite, three venues, then File asks for an email](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
+[![Walkthrough: ranked venues for a Stockholm offsite, then File opens Add details](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
 ```
 
 ## Privacy
@@ -65,7 +65,7 @@ Docs and the new media were checked before and after the cut.
 - Markdown has no email address, no home path, no loopback address, no machine name, and no secret.
 - `AI` remains only inside proper names: Vercel AI SDK, xAI, `@ai-sdk/xai`, and `AI_GATEWAY_API_KEY`.
 - Frames of the walkthrough and both hero shots show the made-up Stockholm offsite, an empty Email field, and no address bar, account name, or key.
-- Tests and the verify script still contain fictional example addresses and a loopback bind. This pass did not edit application code.
+- Tests and the verify script still contain fictional example addresses and a loopback bind. The merge kept those in the application.
 
 ## Links
 
