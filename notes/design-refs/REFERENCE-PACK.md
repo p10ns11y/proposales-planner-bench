@@ -1,6 +1,8 @@
 # Proposales planner redesign: reference pack
 
-This pack locks the visual direction before code: a reference lock, the tokens, a decision ledger, and an anti-slop check.
+This pack locked the visual direction before code: a reference lock, the tokens, a decision ledger, and an anti-slop check. The verdicts are the app on main at `346363e`.
+
+**19 shipped, 12 changed, 1 dropped, out of 32.** The [ledger](#verdicts) is the full list. The [before and after](#before-and-after) pairs the shots.
 
 ---
 
@@ -30,10 +32,12 @@ Role rules:
   - Status flags (Held, Expired, No food) stay monochrome chips with an icon. Meaning comes from icon + word, not hue.
 Media strategy: no photography in v1 (the API has no venue photos). Use no fake venue images and no gradient blobs. Optionally
   show a 1:1 monogram tile (first letter, #EEEEEE, 40px, radius 10) as the card's leading slot.
-Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm editorial" AI slop); a <details> "More"
+Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm editorial" SI slop); a <details> "More"
   accordion; a boxed Send/Speak/History button row; full-width table rows inside the chat; indigo/violet; emoji
   icons; decorative left stripes; a shadow on every card; a rainbow of status colours; Inter; "transition: all".
 ```
+
+**Shipped** for the greys, the hairline, the black send, coral on the mark and one Best match, and the rejects (no cream canvas, no serif, no `<details>`, no Inter). **Changed:** the ranked rows sit under the reply, in their own grey block, rather than inside the assistant bubble. See the ledger.
 
 ## 2. Tokens (commit these before coding)
 
@@ -121,6 +125,8 @@ Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm edit
 - Press: `scale(0.98)` 90ms. Never `transition: all`; animate transform/opacity only.
 - `prefers-reduced-motion`: replace slides and morphs with a 150ms opacity fade.
 
+**Shipped** for Instrument Sans, the colour tokens other than the placeholder, the type scale other than the drawer title, the 720 column, the 400 drawer from 640px up, the elevation values, and the duration tokens. **Changed:** placeholder is `#6e6e6e`; the drawer title is 22/28; the user bubble keeps a 2px tail; the drawer does not slide in. See the ledger.
+
 ---
 
 ## 3. What to borrow
@@ -139,6 +145,8 @@ Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm edit
 - Empty state: one centred question, one wide pill composer, and nothing else.
 - Before comparison: the previous shell, with its cream canvas, serif type, disclosure for More, and boxed buttons.
 
+**Shipped** for the composer icons, the jump-to-latest control, the history clock in the header, and the sheet anatomy. **Dropped:** a four-state tool header (Pending / Running / Completed / Error). The search step is one sentence. See the ledger.
+
 ---
 
 ## 4. Decision ledger
@@ -151,6 +159,8 @@ Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm edit
 | Full-screen detail with morph | Dialog primitive | Esc/✕ return to the same scroll spot | a result opens full screen and closes back to the chat |
 | Black send, coral only for brand + Best match | Grok Bot chat column | coral never a fill | keeps the one accent meaningful |
 | Instrument Sans | craft (typography), not Inter | one family | neutral grotesque with tnum for prices |
+
+**Shipped** for the canvas, the nested-card colours, the black send, and Instrument Sans. **Changed:** More is a right drawer, and its fields are the extras below, not the city and guest controls. The detail sheet opens over a scrim; the shared move is the title and the price.
 
 ---
 
@@ -166,41 +176,93 @@ Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm edit
 - Faking venue photos with gradients. No image until real media exists.
 - Any personal data in demo fixtures. Use made-up venues only (Harbour House, Ridge Hall, Canal Loft are fine).
 
+**Shipped.** Fixtures stay on those three venues. Status uses an icon, a word, and a struck price. There is no venue photography.
+
 ---
 
 ## 6. Build checklist (map to surfaces)
 
 **Composer**
-- [ ] Pill (999 radius) at 1 line, grows to radius 24, max 6 lines then scrolls; #FAFAFA + hairline + e2; floats 16px above bottom.
-- [ ] Left `+` (opens drawer / attachments), right mic icon button + 32px black round send (disabled = #D4D4D4).
-- [ ] Enter sends, Shift+Enter newline, Cmd/Ctrl+K focuses; placeholder "Describe the event: place, people, date, time".
+- [x] Pill (999 radius) at 1 line, grows to radius 24, max 6 lines then scrolls; #FAFAFA + hairline + e2; floats 16px above bottom. **Shipped.** [globals.css](../../src/app/globals.css) lines 378–407. The field stops at six lines in [planner-shell.tsx](../../src/views/planner-shell.tsx) lines 153–161.
+- [x] Left `+` (opens drawer / attachments), right mic icon button + 32px black round send (disabled = #D4D4D4). **Shipped.** The plus, the mic, and the send face are in [planner-shell.tsx](../../src/views/planner-shell.tsx) lines 414–457. The 32px face and the disabled grey are in [globals.css](../../src/app/globals.css) lines 454–486. History is a clock in the header, not in this row: [history-view.tsx](../../src/views/history-view.tsx) lines 22–36.
+- [x] Enter sends, Shift+Enter newline, Cmd/Ctrl+K focuses; placeholder "Describe the event: place, people, date, time". **Shipped.** [planner-shell.tsx](../../src/views/planner-shell.tsx) lines 86–88 and 223–227. The placeholder string is in [selectors.ts](../../src/view-models/selectors.ts) line 23.
 
 **In-chat result cards**
-- [ ] Assistant bubble #ECECEC r16, padding 14/16; one summary sentence, then a group header row: "3 offers · Stockholm · Thu 12 Nov · 40 guests" + Compare + Open-all icons.
-- [ ] Each offer = #FAFAFA r12 hairline row: monogram tile 40 / name (17/600) / meta line "Held by Quiet Court" (13/500 #666) / chips (Held = Lucide lock icon, Expired, No food) / price right-aligned tabular 600.
-- [ ] At most one coral "Best match" dot+label per reply. Hover e1, press scale .98, whole card is one button with an aria-label.
-- [ ] Stagger in at 40ms; keyboard ↑/↓ moves between cards, Enter opens detail.
+- [ ] Assistant bubble #ECECEC r16, padding 14/16; one summary sentence, then a group header row: "3 offers · Stockholm · Thu 12 Nov · 40 guests" + Compare + Open-all icons. **Changed.** The bubble and the summary line landed ([globals.css](../../src/app/globals.css) lines 284–291, [selectors.ts](../../src/view-models/selectors.ts) lines 182–200). The rows are a block under the bubble, not inside it ([planner-shell.tsx](../../src/views/planner-shell.tsx) lines 345–380, [offer-group.tsx](../../src/views/offer-group.tsx) lines 73–124). Compare and Open all keep their words beside the icons.
+- [ ] Each offer = #FAFAFA r12 hairline row: monogram tile 40 / name (17/600) / meta line "Held by Quiet Court" (13/500 #666) / chips (Held = Lucide lock icon, Expired, No food) / price right-aligned tabular 600. **Changed.** The tile, the name, the "Held by" line, and the price landed ([offer-group.tsx](../../src/views/offer-group.tsx) lines 226–251, [globals.css](../../src/app/globals.css) lines 793–850). There is no Held chip and no lock icon. Expired and No food use a clock and a utensils icon ([offer-copy.ts](../../src/views/offer-copy.ts) lines 11–16, [offer-group.tsx](../../src/views/offer-group.tsx) lines 354–367).
+- [x] At most one coral "Best match" dot+label per reply. Hover e1, press scale .98, whole card is one button with an aria-label. **Shipped.** [offer-group.tsx](../../src/views/offer-group.tsx) lines 211–224 and 326–330. Hover and press are in [globals.css](../../src/app/globals.css) lines 808–813. The dot is [globals.css](../../src/app/globals.css) lines 905–909.
+- [x] Stagger in at 40ms; keyboard ↑/↓ moves between cards, Enter opens detail. **Shipped.** The stagger is [globals.css](../../src/app/globals.css) lines 587–605. Arrow keys are [offer-group.tsx](../../src/views/offer-group.tsx) lines 224 and 386–396. Enter opens the card because the row is a button. The compare grid does not use those arrow keys.
 
 **Right drawer (More)**
-- [ ] 400px, #FFFFFF, e3, slides from the right in 320ms emph; scrim 0.32; Esc / ✕ / scrim click closes; focus trapped and returned to trigger.
-- [ ] Title "Refine the brief" + one-line description; fields: city, guests (stepper), date, start/end time, budget, food required (switch), currency (segmented pill).
-- [ ] Sticky footer: secondary "Reset", primary black "Apply". Applying posts a user-style chip message into the chat ("Updated: 40 guests, with food").
+- [ ] 400px, #FFFFFF, e3, slides from the right in 320ms emph; scrim 0.32; Esc / ✕ / scrim click closes; focus trapped and returned to trigger. **Changed.** The width, the white panel, the shadow, the scrim, Escape, the close control, the scrim click, and the focus return landed ([globals.css](../../src/app/globals.css) lines 973–999 and 1481–1483, [sheet.tsx](../../src/design/ui/sheet.tsx) lines 67–86, [planner-shell.tsx](../../src/views/planner-shell.tsx) lines 468–471). The enter slide did not. On main the open state is `animation: none` ([globals.css](../../src/app/globals.css) lines 1002–1004). The exit still runs for 220ms (lines 1006–1007). The 320ms enter frames are still declared (lines 1570–1577) and this drawer does not use them. Open pull request #13 keeps that same open rule.
+- [ ] Title "Refine the brief" + one-line description; fields: city, guests (stepper), date, start/end time, budget, food required (switch), currency (segmented pill). **Changed.** The title and the one-line description landed ([more-drawer.tsx](../../src/views/more-drawer.tsx) lines 89–90). City, guests, date, and the two times stay in the thread. The drawer fields are event name, organisation, email, language, rooms, meeting rooms, food, budget, and notes (lines 123–212).
+- [ ] Sticky footer: secondary "Reset", primary black "Apply". Applying posts a user-style chip message into the chat ("Updated: 40 guests, with food"). **Changed.** Reset and black Apply landed ([more-drawer.tsx](../../src/views/more-drawer.tsx) lines 101–119). Apply does post a line that starts with "Updated:" (line 358) into a user bubble ([planner-shell.tsx](../../src/views/planner-shell.tsx) lines 473–475). The line names only the fields that changed, so it is not "40 guests, with food". Food reads "food on" or "food off" (lines 349–350).
 
 **Full-screen detail**
-- [ ] Opens from a card with a shared-element morph; desktop is an inset 12px sheet r20 e4 over the scrim; mobile is true full-screen r0.
-- [ ] Header: round ✕ left, share/copy right; title 22/600, price large tabular; flags; sections: Overview, Includes, Terms/validity, Held by; sticky bottom bar with primary black "File this brief" (draft path) + confirmation.
-- [ ] Close (✕, Esc, back gesture, browser Back via URL `?offer=id`) returns to the same chat scroll position with the card focused.
+- [ ] Opens from a card with a shared-element morph; desktop is an inset 12px sheet r20 e4 over the scrim; mobile is true full-screen r0. **Changed.** The inset, the radius, the shadow, and the full-bleed phone sheet landed ([globals.css](../../src/app/globals.css) lines 1268–1276, 1490–1493, and 1525–1528). Title and price share a spring layout id, stiffness 380 and damping 34 ([offer-detail.tsx](../../src/views/offer-detail.tsx) lines 16 and 118–166). The sheet does not share the card's layout id ([offer-group.tsx](../../src/views/offer-group.tsx) lines 211–214), so the card does not grow into the sheet.
+- [ ] Header: round ✕ left, share/copy right; title 22/600, price large tabular; flags; sections: Overview, Includes, Terms/validity, Held by; sticky bottom bar with primary black "File this brief" (draft path) + confirmation. **Changed.** Close, share, copy, the 22/600 title, the price, the flags, and "File this brief" landed ([offer-detail.tsx](../../src/views/offer-detail.tsx) lines 71–105 and 214–227, [globals.css](../../src/app/globals.css) lines 1315–1334). The sections are Overview, the price split, Validity, and Gaps (lines 180–211). Held by stays on the title row. There is no Includes section and no Terms section.
+- [x] Close (✕, Esc, back gesture, browser Back via URL `?offer=id`) returns to the same chat scroll position with the card focused. **Shipped.** Opening writes `offer` on the query string; Back removes it and closes the sheet ([planner-shell.tsx](../../src/views/planner-shell.tsx) lines 110–151 and 729–744). Closing focuses the same card (lines 164–170) and keeps the thread scroll (lines 173–189).
 
 **States**
-- [ ] Empty: centred 28/500 "What are you planning?" + composer + 3 suggestion pills. No logo wall.
-- [ ] Loading: a status row ("Searching Proposales…") then 2–3 skeleton cards of the final height.
-- [ ] Sample-data mode: a quiet neutral chip in the group header, "Sample offers", with a tooltip explaining why. Never coral.
-- [ ] No results: assistant bubble with one sentence + 2 refine pills ("Widen date", "Fewer guests").
-- [ ] Error: assistant bubble with a `--danger-text` line + icon + "Try again" secondary button; keep the person's brief in the composer.
-- [ ] Reduced motion, `:focus-visible` rings, 44px targets, a 390px phone, and desktop frames for the before/after.
+- [x] Empty: centred 28/500 "What are you planning?" + composer + 3 suggestion pills. No logo wall. **Shipped.** [planner-shell.tsx](../../src/views/planner-shell.tsx) lines 37–50 and 301–325. The question and the type are [selectors.ts](../../src/view-models/selectors.ts) lines 167–168 and [globals.css](../../src/app/globals.css) lines 322–329.
+- [ ] Loading: a status row ("Searching Proposales…") then 2–3 skeleton cards of the final height. **Changed.** The sentence and three skeletons landed ([planner-shell.tsx](../../src/views/planner-shell.tsx) lines 615–632). Each skeleton is 56px ([globals.css](../../src/app/globals.css) lines 950–956). A card with chips is taller than that.
+- [x] Sample-data mode: a quiet neutral chip in the group header, "Sample offers", with a tooltip explaining why. Never coral. **Shipped.** [selectors.ts](../../src/view-models/selectors.ts) lines 126–136 and [offer-group.tsx](../../src/views/offer-group.tsx) lines 80–88.
+- [ ] No results: assistant bubble with one sentence + 2 refine pills ("Widen date", "Fewer guests"). **Changed.** The sentence is "No places fit that brief yet." ([offer-group.ts](../../src/contract/offer-group.ts) lines 111–113). The pills are "Widen the date" and "Fewer people" ([planner-shell.tsx](../../src/views/planner-shell.tsx) lines 588–596).
+- [x] Error: assistant bubble with a `--danger-text` line + icon + "Try again" secondary button; keep the person's brief in the composer. **Shipped.** [planner-shell.tsx](../../src/views/planner-shell.tsx) lines 103–108 and 598–608. The colour is [globals.css](../../src/app/globals.css) lines 927–932.
+- [x] Reduced motion, `:focus-visible` rings, 44px targets, a 390px phone, and desktop frames for the before/after. **Shipped.** Rings are [globals.css](../../src/app/globals.css) lines 100–103. Reduced motion is a 150ms fade (lines 1621–1632) and a short opacity move when motion is reduced ([offer-group.tsx](../../src/views/offer-group.tsx) lines 44 and 214). The phone shots below are 390px wide.
 
----
+## Before and after
+
+The first six shots are the shell this plan replaced. The after shots are production of main at `346363e`, desktop and phone, at first open, results, detail, and More. They match the screens in the code. Detail had no before shot.
+
+| View | Before | After |
+|---|---|---|
+| First, desktop | [00-before-desktop-first.png](00-before-desktop-first.png) | [01-after-desktop-first.png](01-after-desktop-first.png) |
+| Results, desktop | [00-before-desktop-results.png](00-before-desktop-results.png) | [01-after-desktop-results.png](01-after-desktop-results.png) |
+| Detail, desktop | — | [01-after-desktop-detail.png](01-after-desktop-detail.png) |
+| More, desktop | [00-before-desktop-more.png](00-before-desktop-more.png) | [01-after-desktop-more.png](01-after-desktop-more.png) |
+| First, phone | [00-before-phone-first.png](00-before-phone-first.png) | [01-after-phone-first.png](01-after-phone-first.png) |
+| Results, phone | [00-before-phone-results.png](00-before-phone-results.png) | [01-after-phone-results.png](01-after-phone-results.png) |
+| Detail, phone | — | [01-after-phone-detail.png](01-after-phone-detail.png) |
+| More, phone | [00-before-phone-more.png](00-before-phone-more.png) | [01-after-phone-more.png](01-after-phone-more.png) |
+
+## Verdicts
+
+| # | Item | Verdict | Where |
+|---|---|---|---|
+| 1 | Composer pill, six lines, floating 16px | Shipped | [globals.css](../../src/app/globals.css) 378–407, [planner-shell.tsx](../../src/views/planner-shell.tsx) 153–161 |
+| 2 | Plus, mic, 32px send | Shipped | [planner-shell.tsx](../../src/views/planner-shell.tsx) 414–457 |
+| 3 | Enter, Shift+Enter, Cmd/Ctrl+K, placeholder | Shipped | [planner-shell.tsx](../../src/views/planner-shell.tsx) 86–88, 223–227 |
+| 4 | Rows inside the assistant bubble | Changed | [planner-shell.tsx](../../src/views/planner-shell.tsx) 345–380 |
+| 5 | Held lock chip | Changed | [offer-group.tsx](../../src/views/offer-group.tsx) 354–367 |
+| 6 | One Best match, hover, press, aria-label | Shipped | [offer-group.tsx](../../src/views/offer-group.tsx) 211–224 |
+| 7 | 40ms stagger and arrow keys | Shipped | [globals.css](../../src/app/globals.css) 587–605, [offer-group.tsx](../../src/views/offer-group.tsx) 386–396 |
+| 8 | Drawer enter slide | Changed | [globals.css](../../src/app/globals.css) 1002–1004 |
+| 9 | Drawer fields | Changed | [more-drawer.tsx](../../src/views/more-drawer.tsx) 123–212 |
+| 10 | "Updated:" chip after Apply | Changed | [more-drawer.tsx](../../src/views/more-drawer.tsx) 327–358 |
+| 11 | Card grows into the detail sheet | Changed | [offer-detail.tsx](../../src/views/offer-detail.tsx) 118–166 |
+| 12 | Detail sections | Changed | [offer-detail.tsx](../../src/views/offer-detail.tsx) 180–211 |
+| 13 | `?offer=` and return to the same card | Shipped | [planner-shell.tsx](../../src/views/planner-shell.tsx) 110–170 |
+| 14 | Empty state | Shipped | [planner-shell.tsx](../../src/views/planner-shell.tsx) 301–325 |
+| 15 | Skeleton height | Changed | [globals.css](../../src/app/globals.css) 950–956 |
+| 16 | Sample offers chip | Shipped | [offer-group.tsx](../../src/views/offer-group.tsx) 80–88 |
+| 17 | No-results pills | Changed | [planner-shell.tsx](../../src/views/planner-shell.tsx) 588–596 |
+| 18 | Error line and Try again | Shipped | [planner-shell.tsx](../../src/views/planner-shell.tsx) 598–608 |
+| 19 | Reduced motion, focus, 44px, 390px frames | Shipped | [globals.css](../../src/app/globals.css) 100–103, 1621–1632 |
+| 20 | Colour tokens other than the placeholder | Shipped | [globals.css](../../src/app/globals.css) 4–22 |
+| 21 | Placeholder `#8A8A8A` | Changed | [globals.css](../../src/app/globals.css) 15 is `#6e6e6e` |
+| 22 | Instrument Sans | Shipped | [layout.tsx](../../src/app/layout.tsx) 6–14 |
+| 23 | Type scale other than the drawer title | Shipped | [globals.css](../../src/app/globals.css) 322–329, 845–850, 1315–1320 |
+| 24 | Drawer title 17/24 | Changed | [globals.css](../../src/app/globals.css) 1041–1050 is 22/28 |
+| 25 | Column 720 and drawer 400 | Shipped | [globals.css](../../src/app/globals.css) 252, 1481–1483 |
+| 26 | Bubble radius 16 | Changed | [globals.css](../../src/app/globals.css) 276–281, one corner is 2px |
+| 27 | Elevation e0–e4 | Shipped | [globals.css](../../src/app/globals.css) 23–26 |
+| 28 | Duration tokens, press, reduced motion | Shipped | [globals.css](../../src/app/globals.css) 27–32, 350–375 |
+| 29 | Coral, black, monochrome status | Shipped | [globals.css](../../src/app/globals.css) 163, 905–925 |
+| 30 | No photos, no Inter, no `transition: all` | Shipped | [layout.tsx](../../src/app/layout.tsx) 6–14, [globals.css](../../src/app/globals.css) 51–52 |
+| 31 | History clock and jump to latest | Shipped | [history-view.tsx](../../src/views/history-view.tsx) 22–36, [planner-shell.tsx](../../src/views/planner-shell.tsx) 387–402 |
+| 32 | Tool header Pending / Running / Completed / Error | Dropped | [planner-shell.tsx](../../src/views/planner-shell.tsx) 615–624 |
 
 ## References and credits
 
-The reference list lives in the bench README under References.
+The reference list lives in the [README](../../README.md) under References. These notes are indexed in [Notes](../README.md).

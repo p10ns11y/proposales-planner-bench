@@ -86,7 +86,7 @@ Keys stay in server environment variables. Do not commit `.env` files.
 - shadcn/ui: https://ui.shadcn.com/docs/components/sheet, /dialog, and /skeleton, captured 2026-10-07.
 - grok.com public logged-out landing, captured 2026-10-07.
 - Instrument Sans: https://fonts.google.com/specimen/Instrument+Sans (OFL).
-- Method notes live with the reference pack in `docs/design-refs/REFERENCE-PACK.md`.
+- Method notes live with the reference pack in [notes/design-refs/REFERENCE-PACK.md](notes/design-refs/REFERENCE-PACK.md).
 - Refero and Mobbin were connected but paywalled at the time of writing; no content from them is included.
 - No brand is copied wholesale. Coral and greys are adapted roles, and no Grok or xAI logo or wordmark is used in the app.
 - Playwright: https://playwright.dev/docs/intro

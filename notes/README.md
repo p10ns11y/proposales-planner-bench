@@ -21,3 +21,8 @@ These pages are the research, the findings, and the plans. The app is described 
 - [control-card.md](control-card.md). The record of the first build, from the contract through the shell.
 - [control-card-productize.md](control-card-productize.md). The record of the shell: one sticky input, a confirm step, and More kept closed.
 - [workflow.md](workflow.md). What each pass of the build owned, and what done meant.
+
+## Design history
+
+- [design-refs/REFERENCE-PACK.md](design-refs/REFERENCE-PACK.md). The pre-build visual plan, checked against the app. Each item is marked shipped, changed, or dropped.
+- [Before and after](design-refs/REFERENCE-PACK.md#before-and-after). The earlier shell beside the later shots of the same views.
