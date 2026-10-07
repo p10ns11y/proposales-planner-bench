@@ -37,5 +37,5 @@ Run from `planner-bench`.
 - `pnpm crap` passed. `crap_max=6.00`. Worst function is `briefWrittenInEnglish`. In `src/views/more-update.ts`, `moreUpdateLine` is 2.00, `countPart` and `foodPart` are 4.00, and the other functions in that file are at or below 3.00.
 - Drawer unit tests passed: `tests/more-update.test.ts`, `tests/more-details.test.ts`, `tests/offer-detail.test.tsx`, `tests/critical-path-titles.test.ts`.
 - `pnpm exec playwright test e2e/critical-path.spec.ts` covered the new scenarios at 390×844 and 1280×800: drawer fit, one pressed language, and the headcount line.
-
-Mutation scores are filled in after `pnpm mutation` on this branch.
+- `pnpm verify` passed. That run includes unit tests, the contract test, the production build, the critical-path e2e, the layout probe, CRAP, and mutation.
+- Mutation on `src/views/more-update.ts` is 1.00 (107 killed of 107). The rest of the scored set stays at or above 0.9924, above the 0.95 line.
