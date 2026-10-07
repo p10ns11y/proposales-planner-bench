@@ -10,6 +10,7 @@ import {
   plannerBriefSchema,
   type PlannerBrief,
 } from "../domain/planner-brief";
+import { addEnglishLanguage } from "./brief-language";
 import { extractBriefPatch } from "./fixture-extractor";
 import type { PlannerChatEnv } from "./planner-chat";
 
@@ -52,19 +53,23 @@ export async function resolveBriefPatch(input: {
   extractWithModel?: (text: string, brief: PlannerBrief) => Promise<PlannerBrief>;
 }): Promise<{ brief: PlannerBrief; planner: PlannerPath }> {
   const scripted = extractBriefPatch(input.text);
+  const finish = (extracted: PlannerBrief, planner: PlannerPath) => ({
+    brief: addEnglishLanguage(input.text, input.brief, extracted),
+    planner,
+  });
   if (!modelIsUsable(input.env)) {
-    return { brief: scripted, planner: "scripted" };
+    return finish(scripted, "scripted");
   }
   const extract = input.extractWithModel ?? ((text, brief) => extractBriefWithModel(text, brief, input.env));
   try {
     const modelPatch = await extract(input.text, input.brief);
     const parsed = plannerBriefSchema.safeParse(modelPatch);
     if (!parsed.success) {
-      return { brief: scripted, planner: "scripted" };
+      return finish(scripted, "scripted");
     }
-    return { brief: mergeBrief(parsed.data, scripted), planner: "model" };
+    return finish(mergeBrief(parsed.data, scripted), "model");
   } catch {
-    return { brief: scripted, planner: "scripted" };
+    return finish(scripted, "scripted");
   }
 }
 

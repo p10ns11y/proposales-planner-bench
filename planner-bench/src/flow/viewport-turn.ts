@@ -9,9 +9,10 @@ import { minorUnits } from "../domain/minor-units";
 import { mergeBrief, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import type { ProposalesClient } from "../proposales/types";
+import { addEnglishLanguage } from "./brief-language";
 import { briefDraftFromPlanner } from "./brief-draft";
 import { loadComparableProposals, sampleProposalRecords } from "../proposales/comparable-proposals";
-import { draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
+import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
@@ -178,7 +179,8 @@ async function editMore(
   }
   const next = { ...snapshot, brief, notice: null };
   if (snapshot.phase === "results") {
-    return rerank(next, client, today);
+    const ranked = await rerank(next, client, today);
+    return snapshot.openVenueName === null ? ranked : { ...ranked, openVenueName: snapshot.openVenueName };
   }
   if (snapshot.phase === "confirm") {
     return withConfirmState(snapshot, brief);
@@ -197,7 +199,8 @@ async function confirmBrief(
   let selectedCompanyId = snapshot.selectedCompanyId;
   let filingAvailable = snapshot.filingAvailable;
   let notice: string | null = null;
-  if (filing === null && findBriefGaps(snapshot.brief, "brief:fileable").length === 0) {
+  const fileableGaps = findBriefGaps(snapshot.brief, "brief:fileable");
+  if (filing === null && fileableGaps.length === 0) {
     selectedCompanyId = selectedCompanyId ?? snapshot.companies[0]?.id ?? null;
     if (selectedCompanyId === null) {
       notice = filingAvailable ? null : filingUnavailableNotice;
@@ -209,6 +212,8 @@ async function confirmBrief(
         notice = filingUnavailableNotice;
       }
     }
+  } else if (filing === null && fileableGaps.includes("contactEmail")) {
+    notice = questionForGap("contactEmail");
   }
   const projected = projectBriefFlow({
     brief: snapshot.brief,
@@ -230,6 +235,13 @@ async function confirmBrief(
 }
 
 async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Promise<PlannerSnapshot> {
+  if (snapshot.filing !== null) {
+    return {
+      ...snapshot,
+      filingAvailable: true,
+      notice: snapshot.filing.path === "draft" ? draftCreatedNotice : briefFiledNotice,
+    };
+  }
   const gaps = findBriefGaps(snapshot.brief, "brief:fileable");
   if (gaps.length > 0) {
     const firstGap = gaps[0];
@@ -258,7 +270,7 @@ async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Pro
       stage: projected.stage,
       selectedCompanyId,
       filingAvailable: true,
-      notice: filing.path === "draft" ? draftCreatedNotice : "The brief is filed.",
+      notice: filing.path === "draft" ? draftCreatedNotice : briefFiledNotice,
     };
   } catch {
     return {
@@ -397,10 +409,8 @@ async function readIncomingPatch(
   brief: PlannerBrief,
   readPatch: BriefPatchReader | undefined,
 ): Promise<PlannerBrief> {
-  if (readPatch) {
-    return readPatch(text, brief);
-  }
-  return extractBriefPatch(text);
+  const extracted = readPatch ? await readPatch(text, brief) : extractBriefPatch(text);
+  return addEnglishLanguage(text, brief, extracted);
 }
 
 function patchForGap(field: string | undefined, text: string, incoming: PlannerBrief): PlannerBrief {

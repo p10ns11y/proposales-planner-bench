@@ -989,7 +989,7 @@ h2.planner-text {
   position: fixed;
   top: 0;
   right: 0;
-  z-index: 40;
+  z-index: 60;
   display: flex;
   height: 100dvh;
   width: 100vw;
@@ -1393,8 +1393,15 @@ h2.planner-text {
 
 .planner-detail-file {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
+  min-width: 0;
+}
+
+.planner-detail-file .planner-meta {
+  min-width: 0;
 }
 
 .planner-lines {
@@ -1424,6 +1431,7 @@ h2.planner-text {
 
 .planner-detail-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;

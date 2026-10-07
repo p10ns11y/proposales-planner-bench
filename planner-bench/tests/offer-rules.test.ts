@@ -285,6 +285,8 @@ function resultsModel(rows: ShellRow[]): ShellViewModel {
     askLabelsComposer: true,
     notice: null,
     draftConfirmation: null,
+    filingMessage: null,
+    filed: false,
     offerLabel: null,
     factsSentence: "",
     confirmRuns: [],

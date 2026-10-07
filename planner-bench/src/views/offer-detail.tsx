@@ -27,7 +27,9 @@ type OfferDetailProps = {
   offer: OfferPart | null;
   includeExtras: boolean;
   contextChips: string[];
-  confirmation: string | null;
+  filingMessage: string | null;
+  filed: boolean;
+  active: boolean;
   busy: boolean;
   onClose: () => void;
   onFile: () => void;
@@ -37,7 +39,9 @@ export function OfferDetail({
   offer,
   includeExtras,
   contextChips,
-  confirmation,
+  filingMessage,
+  filed,
+  active,
   busy,
   onClose,
   onFile,
@@ -51,6 +55,7 @@ export function OfferDetail({
   const expired = offer?.gaps.includes("expired") === true;
   return (
     <Dialog.Root
+      modal={active}
       open={open}
       onOpenChange={(next) => {
         if (!next) {
@@ -66,6 +71,21 @@ export function OfferDetail({
             {...lcvMachine("detail", "detail:open", "detail:closed detail:open")}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
+            }}
+            onInteractOutside={(event) => {
+              if (!active) {
+                event.preventDefault();
+              }
+            }}
+            onFocusOutside={(event) => {
+              if (!active) {
+                event.preventDefault();
+              }
+            }}
+            onPointerDownOutside={(event) => {
+              if (!active) {
+                event.preventDefault();
+              }
             }}
           >
             <div className="planner-detail-top">
@@ -216,13 +236,19 @@ export function OfferDetail({
                 Back to chat
               </button>
               <div className="planner-detail-file">
-                {confirmation ? (
+                {filingMessage ? (
                   <p className="planner-meta" role="status">
-                    {confirmation}
+                    {filingMessage}
                   </p>
                 ) : null}
-                <button type="button" className="planner-apply" disabled={busy} {...lcvStay("file-brief", "detail:open")} onClick={onFile}>
-                  File this brief
+                <button
+                  type="button"
+                  className="planner-apply"
+                  disabled={busy || filed}
+                  {...lcvStay("file-brief", "detail:open")}
+                  onClick={onFile}
+                >
+                  {filed ? "Filed" : "File this brief"}
                 </button>
               </div>
             </div>

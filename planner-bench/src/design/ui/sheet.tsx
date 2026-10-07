@@ -15,6 +15,7 @@ type SheetProps = {
   footer?: ReactNode;
   side?: "left" | "right";
   onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
+  onOpenAutoFocus?: (event: Event) => void;
   onCloseAutoFocus?: (event: Event) => void;
   contentAttributes?: {
     "data-lcv-machine": string;
@@ -40,6 +41,7 @@ export function Sheet({
   footer,
   side = "right",
   onSubmit,
+  onOpenAutoFocus,
   onCloseAutoFocus,
   contentAttributes,
   closeAttributes,
@@ -71,6 +73,7 @@ export function Sheet({
         <Dialog.Overlay className="planner-scrim" />
         <Dialog.Content
           className={cn("planner-drawer", side === "left" && "planner-drawer-left")}
+          onOpenAutoFocus={onOpenAutoFocus}
           onCloseAutoFocus={onCloseAutoFocus}
           {...contentAttributes}
         >

@@ -57,6 +57,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const [pendingTick, setPendingTick] = useState(0);
   const [slowTick, setSlowTick] = useState(-1);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [focusEmail, setFocusEmail] = useState(false);
   const [holdEmpty, setHoldEmpty] = useState(false);
   const idRef = useRef(1);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -239,7 +240,29 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
 
   function openMore(event: MouseEvent<HTMLButtonElement>) {
     moreOpener.current = event.currentTarget;
+    setFocusEmail(false);
     setMoreOpen(true);
+  }
+
+  function setMore(open: boolean) {
+    setMoreOpen(open);
+    if (!open) {
+      setFocusEmail(false);
+    }
+  }
+
+  function fileBrief() {
+    if (viewModel.filed || viewModel.busy || !viewModel.ready) {
+      return;
+    }
+    if (viewModel.more.contactEmail.trim() === "") {
+      setFocusEmail(true);
+      setMoreOpen(true);
+      return;
+    }
+    setFocusEmail(false);
+    setLines((current) => [...current, { id: idRef.current++, role: "user", text: "File this brief" }]);
+    onEvent({ type: "composerSubmitted", text: "file" });
   }
 
   function newChat() {
@@ -463,10 +486,15 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           more={viewModel.more}
           moreStamp={viewModel.moreStamp}
           open={moreOpen}
+          focusEmail={focusEmail}
           disabled={viewModel.busy || !viewModel.ready}
-          onOpenChange={setMoreOpen}
+          onOpenChange={setMore}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
+            if (viewModel.openRow !== null) {
+              document.querySelector<HTMLElement>("[data-lcv-event=file-brief]")?.focus();
+              return;
+            }
             moreOpener.current?.focus();
           }}
           onEvent={onEvent}
@@ -478,13 +506,12 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           offer={holdEmpty ? null : openOffer}
           includeExtras={includeExtras}
           contextChips={viewModel.contextChips}
-          confirmation={viewModel.draftConfirmation}
+          filingMessage={viewModel.filingMessage}
+          filed={viewModel.filed}
+          active={!moreOpen}
           busy={viewModel.busy || !viewModel.ready}
           onClose={() => onEvent({ type: "rowClosed" })}
-          onFile={() => {
-            setLines((current) => [...current, { id: idRef.current++, role: "user", text: "File this brief" }]);
-            onEvent({ type: "composerSubmitted", text: "file" });
-          }}
+          onFile={fileBrief}
         />
         <div
           hidden

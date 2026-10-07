@@ -66,6 +66,8 @@ export type ShellViewModel = {
   askLabelsComposer: boolean;
   notice: string | null;
   draftConfirmation: string | null;
+  filingMessage: string | null;
+  filed: boolean;
   offerLabel: string | null;
   factsSentence: string;
   confirmRuns: ConfirmRun[];

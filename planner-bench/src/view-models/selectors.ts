@@ -1,7 +1,8 @@
+import { questionForGap } from "../domain/fitness";
 import { formatBudgetMajor, type MinorUnits } from "../domain/minor-units";
 import type { PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
-import { draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
+import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import { placesSentence } from "../contract/offer-group";
 import type { ConfirmFactName, ConfirmRun, MoreFieldValues, ResultsViewModel, ShellViewModel } from "./view-model";
 
@@ -67,6 +68,8 @@ export function shellViewModel(input: {
     askLabelsComposer: phase === "capture" || askingGap || phase === "favorites" || phase === "results",
     notice: visibleNotice(snapshot),
     draftConfirmation: snapshot?.filing?.path === "draft" ? draftCreatedNotice : null,
+    filingMessage: filingMessage(snapshot),
+    filed: snapshot !== null && snapshot.filing !== null,
     offerLabel: offerLabel(snapshot, phase),
     factsSentence: presented.sentence,
     confirmRuns: presented.runs,
@@ -143,6 +146,33 @@ function visibleNotice(snapshot: PlannerSnapshot | null): string | null {
   }
   if (snapshot?.filingAvailable === false) {
     return filingUnavailableNotice;
+  }
+  return null;
+}
+
+const filingNotices = new Set<string>([
+  questionForGap("contactEmail"),
+  questionForGap("startDate"),
+  questionForGap("endDate"),
+  questionForGap("attendeeCount"),
+  questionForGap("language"),
+  questionForGap("roomCount"),
+  "Which company should receive the brief?",
+  filingUnavailableNotice,
+  draftCreatedNotice,
+  briefFiledNotice,
+]);
+
+function filingMessage(snapshot: PlannerSnapshot | null): string | null {
+  if (snapshot?.filing?.path === "draft") {
+    return draftCreatedNotice;
+  }
+  if (snapshot?.filing?.path === "inbox") {
+    return briefFiledNotice;
+  }
+  const notice = snapshot?.notice ?? null;
+  if (notice !== null && filingNotices.has(notice)) {
+    return notice;
   }
   return null;
 }
