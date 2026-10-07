@@ -29,18 +29,36 @@ export function compareOffers(
 }
 
 export function rankComparisonRows(rows: ComparisonRow[], referenceCurrency?: string): ComparisonRow[] {
-  const home = homeCurrency(rows, referenceCurrency);
-  return [...rows].sort((left, right) => compareRankedRows(left, right, home));
+  const lead = leadCurrency(rows, referenceCurrency);
+  return [...rows].sort((left, right) => compareRankedRows(left, right, lead));
 }
 
-function compareRankedRows(left: ComparisonRow, right: ComparisonRow, home: string): number {
+function compareRankedRows(left: ComparisonRow, right: ComparisonRow, lead: string): number {
+  const leftLead = currencyMatches(left.currency, lead);
+  const rightLead = currencyMatches(right.currency, lead);
+  if (leftLead !== rightLead) {
+    return leftLead ? -1 : 1;
+  }
+  const leftCurrency = normaliseCurrency(left.currency);
+  const rightCurrency = normaliseCurrency(right.currency);
+  if (leftCurrency !== rightCurrency) {
+    return leftCurrency < rightCurrency ? -1 : 1;
+  }
+  return compareWithinCurrency(left, right);
+}
+
+function leadCurrency(rows: ComparisonRow[], referenceCurrency: string | undefined): string {
+  const stated = normaliseCurrency(referenceCurrency);
+  if (stated !== "") {
+    return stated;
+  }
+  const top = [...rows].sort(compareForLead)[0];
+  return normaliseCurrency(top?.currency);
+}
+
+function compareForLead(left: ComparisonRow, right: ComparisonRow): number {
   if (left.gaps.length !== right.gaps.length) {
     return left.gaps.length - right.gaps.length;
-  }
-  const leftHome = currencyMatches(left.currency, home);
-  const rightHome = currencyMatches(right.currency, home);
-  if (leftHome !== rightHome) {
-    return leftHome ? -1 : 1;
   }
   const leftCurrency = normaliseCurrency(left.currency);
   const rightCurrency = normaliseCurrency(right.currency);
@@ -50,35 +68,15 @@ function compareRankedRows(left: ComparisonRow, right: ComparisonRow, home: stri
   return left.totalMinor.amount - right.totalMinor.amount;
 }
 
-function homeCurrency(rows: ComparisonRow[], referenceCurrency: string | undefined): string {
-  const stated = normaliseCurrency(referenceCurrency);
-  if (stated !== "") {
-    return stated;
+function compareWithinCurrency(left: ComparisonRow, right: ComparisonRow): number {
+  if (left.gaps.length !== right.gaps.length) {
+    return left.gaps.length - right.gaps.length;
   }
-  const counts = new Map<string, number>();
-  const pool = rows.some((row) => !row.gaps.includes("expired"))
-    ? rows.filter((row) => !row.gaps.includes("expired"))
-    : rows;
-  for (const row of pool) {
-    const currency = normaliseCurrency(row.currency);
-    if (currency === "") {
-      continue;
-    }
-    counts.set(currency, (counts.get(currency) ?? 0) + 1);
-  }
-  let home = "";
-  let best = 0;
-  for (const [currency, count] of counts) {
-    if (count > best || (count === best && (home === "" || currency < home))) {
-      home = currency;
-      best = count;
-    }
-  }
-  return home;
+  return left.totalMinor.amount - right.totalMinor.amount;
 }
 
-function currencyMatches(currency: string, home: string): boolean {
-  return home !== "" && normaliseCurrency(currency) === home;
+function currencyMatches(currency: string, lead: string): boolean {
+  return lead !== "" && normaliseCurrency(currency) === lead;
 }
 
 function normaliseCurrency(value: string | undefined): string {
@@ -215,12 +213,16 @@ export function offersMatchingCity(brief: PlannerBrief, offers: VenueOffer[]): V
 }
 
 function citiesAgree(brief: PlannerBrief, offer: VenueOffer): boolean {
-  const briefCity = brief.city?.trim().toLowerCase() ?? "";
-  const offerCity = offer.city?.trim().toLowerCase() ?? "";
+  const briefCity = foldCity(brief.city ?? "");
+  const offerCity = foldCity(offer.city ?? "");
   if (briefCity === "" || offerCity === "") {
     return true;
   }
   return briefCity === offerCity;
+}
+
+function foldCity(value: string): string {
+  return value.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }
 
 function capacityAllows(brief: PlannerBrief, offer: VenueOffer): boolean {

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { offersForBrief, rankComparisonRows } from "../src/domain/compare-offers";
+import { bestNonExpiredIndex } from "../src/contract/offer-group";
+import { compareOffers, offersForBrief, rankComparisonRows } from "../src/domain/compare-offers";
 import type { ComparisonRow } from "../src/domain/comparison-row";
 import { minorUnits } from "../src/domain/minor-units";
 import { normaliseProposal } from "../src/domain/normalise-proposal";
 import type { VenueOffer } from "../src/domain/venue-offer";
+import { extractBriefPatch } from "../src/flow/fixture-extractor";
 
 describe("offer city and capacity", () => {
   it("reads city, capacity bounds, day part, and event type from proposal data", () => {
@@ -58,6 +60,13 @@ describe("offer city and capacity", () => {
       "Stockholm House",
       "Unset Place",
     ]);
+  });
+
+  it("matches Malmo and Malmö as the same city", () => {
+    const marked = [offer("Lime Court", { city: "Malmö" }), offer("Other Hall", { city: "Uppsala" })];
+    const plain = [offer("Lime Court", { city: "Malmo" }), offer("Other Hall", { city: "Uppsala" })];
+    expect(names(offersForBrief({ city: "Malmo" }, marked))).toEqual(["Lime Court"]);
+    expect(names(offersForBrief({ city: "MALMÖ" }, plain))).toEqual(["Lime Court"]);
   });
 
   it("keeps an offer only inside the capacity bounds that are known", () => {
@@ -164,9 +173,9 @@ describe("mixed currency ranking", () => {
     );
     expect(ranked.map((row) => row.venueName)).toEqual([
       "Large Euro",
+      "Expired Euro",
       "Small Kronor",
       "Other Kronor",
-      "Expired Euro",
     ]);
     expect(ranked.find((row) => !row.gaps.includes("expired"))?.venueName).toBe("Large Euro");
     expect(ranked[0]?.venueName).toBe("Large Euro");
@@ -188,6 +197,62 @@ describe("mixed currency ranking", () => {
     ]);
     expect(ranked.map((row) => row.venueName)).toEqual(["Dear Euro", "Cheap Kronor"]);
     expect(ranked.find((row) => !row.gaps.includes("expired"))?.venueName).toBe("Dear Euro");
+  });
+
+  it("keeps every euro offer ahead of kronor when the brief budget is euro", () => {
+    const brief = extractBriefPatch(
+      "Team offsite in Stockholm for 25 people on 3 Dec 2026, a full day with breakout space and vegetarian lunch. Budget around EUR 300.",
+    );
+    const offers: VenueOffer[] = [
+      {
+        venueName: "Archipelago Room",
+        currency: "EUR",
+        city: "Stockholm",
+        totalMinor: minorUnits(141_000),
+      },
+      {
+        venueName: "Birchwood Salon",
+        currency: "SEK",
+        city: "Stockholm",
+        totalMinor: minorUnits(9_350_000),
+      },
+      {
+        venueName: "Canal Loft",
+        currency: "EUR",
+        city: "Stockholm",
+        totalMinor: minorUnits(21_000),
+      },
+    ];
+    expect(brief.budget).toEqual({ amount: 300, currency: "EUR", approximate: true });
+    const ranked = rankComparisonRows(compareOffers(brief, offers, "2026-10-07"), brief.budget?.currency);
+    expect(ranked.map((row) => row.venueName)).toEqual([
+      "Canal Loft",
+      "Archipelago Room",
+      "Birchwood Salon",
+    ]);
+    expect(ranked.find((row) => row.venueName === "Archipelago Room")?.gaps).toContain("budget");
+    expect(ranked.find((row) => row.venueName === "Canal Loft")?.gaps).not.toContain("budget");
+    expect(ranked.find((row) => row.venueName === "Birchwood Salon")?.gaps).not.toContain("budget");
+    const currencies = ranked.map((row) => row.currency);
+    const lastEuro = currencies.lastIndexOf("EUR");
+    const firstKrona = currencies.indexOf("SEK");
+    expect(lastEuro).toBeGreaterThanOrEqual(0);
+    expect(firstKrona).toBeGreaterThan(lastEuro);
+    expect(currencies.slice(0, lastEuro + 1).every((currency) => currency === "EUR")).toBe(true);
+    expect(currencies.slice(firstKrona).every((currency) => currency === "SEK")).toBe(true);
+    const best = ranked[bestNonExpiredIndex(ranked)];
+    expect(best?.venueName).toBe("Canal Loft");
+    expect(best?.currency).toBe("EUR");
+  });
+
+  it("leads with the currency of the offer that has fewer gaps when the brief has no budget", () => {
+    const ranked = rankComparisonRows([
+      priced("Euro One", "EUR", 100, ["space"]),
+      priced("Euro Two", "EUR", 200, ["space"]),
+      priced("Krona Fit", "SEK", 9_000_000),
+    ]);
+    expect(ranked.map((row) => row.venueName)).toEqual(["Krona Fit", "Euro One", "Euro Two"]);
+    expect(ranked[bestNonExpiredIndex(ranked)]?.currency).toBe("SEK");
   });
 });
 
