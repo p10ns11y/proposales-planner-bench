@@ -14,6 +14,7 @@ Observations for the planner bench. Rows are clustered before a fix. A pointer t
 | A null or empty inbox token is rejected again after `filingPath`, which already returns `draft` for those values | `planner-bench/src/proposales/http-client.ts` | 2026-10-07 | `filingPath` returns `inbox` only for a non-empty token. |
 | `@stryker-mutator/vitest-runner` 10.0.0 selects no Vitest 5 tests when coverage is per test | StrykerJS issue 6210, against Vitest 5.0.3 in this bench | 2026-10-07 | Vitest 5 matches the full name chain joined with ` > `. That runner joins with a space, so covered mutants are reported as survived. |
 | The CRAP scorer parses every file as TypeScript, so JSX branches in a `.tsx` function are left out of the complexity count | `planner-bench/scripts/crap-score.mjs` | 2026-10-07 | `ts.createSourceFile` is called with `ScriptKind.TS`. The Filed control in `offer-detail.tsx` is scored from `file-brief-state.ts`, which has no JSX. |
+| Covered CRAP max is 6.00 and the lowest mutation score is 0.9924 | scoped files in `scripts/crap-score.mjs` and `scripts/mutation-score.mjs` | 2026-10-07 | `pnpm verify` exited 0 on this branch after the rebase onto `6676cc7`. Worst CRAP is `briefWrittenInEnglish` at 6.00 with full statement coverage. Mutation: fitness 58/58, compare-offers 315/316, brief-flow 130/131, day-part 70/70, http-client 136/137, brief-language 129/129, filing-guard 28/28, file-brief-state 24/24. |
 
 ## Clusters
 
