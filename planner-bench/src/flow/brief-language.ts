@@ -58,11 +58,23 @@ const otherLanguageWords = new Set([
   "personen",
 ]);
 
+function textWords(text: string): Set<string> {
+  const matched = text.toLowerCase().match(/[a-z]+/g);
+  const words = new Set<string>();
+  if (matched === null) {
+    return words;
+  }
+  for (const word of matched) {
+    words.add(word);
+  }
+  return words;
+}
+
 export function briefWrittenInEnglish(text: string): boolean {
   if (/[À-ÖØ-öø-ÿ]/.test(text)) {
     return false;
   }
-  const words = new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
+  const words = textWords(text);
   for (const word of otherLanguageWords) {
     if (words.has(word)) {
       return false;
@@ -88,7 +100,7 @@ function hasLanguage(brief: PlannerBrief): boolean {
   return brief.language !== undefined && brief.language.trim() !== "";
 }
 
-function statesOtherLanguage(text: string): boolean {
+export function statesOtherLanguage(text: string): boolean {
   if (/\b(?:in\s+swedish|på\s+svenska)\b/i.test(text)) {
     return true;
   }

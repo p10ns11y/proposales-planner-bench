@@ -182,6 +182,18 @@ async function fileEnglishBrief(page: Page, viewport: { width: number; height: n
   const filedButton = detail.getByRole("button", { name: "Filed" });
   await expect(filedButton).toBeDisabled();
   await expect(filedButton).toHaveAttribute("data-lcv-event", "file-brief");
+  await expectNoTurn(page, () => filedButton.click({ force: true }));
+}
+
+async function expectNoTurn(page: Page, act: () => Promise<unknown>) {
+  const sent = page
+    .waitForRequest((request) => request.method() === "POST" && request.url().includes("/api/turn"), { timeout: 600 })
+    .then(
+      () => true,
+      () => false,
+    );
+  await act().catch(() => undefined);
+  expect(await sent).toBe(false);
 }
 
 async function reachBasisQuestion(page: Page) {

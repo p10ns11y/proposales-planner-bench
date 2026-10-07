@@ -15,17 +15,7 @@ function needsClockEnd(data: unknown): boolean {
   if (brief.durationMinutes !== undefined) {
     return false;
   }
-  if (brief.endTime !== undefined) {
-    return false;
-  }
-  if (
-    brief.endDate !== undefined &&
-    brief.startDate !== undefined &&
-    brief.endDate > brief.startDate
-  ) {
-    return false;
-  }
-  return true;
+  return !((brief.endDate as string) > (brief.startDate as string));
 }
 
 export const briefFileableConfig = {
@@ -74,12 +64,9 @@ export function findGaps(
   if (parsed.success) {
     return [];
   }
-  const missingFields = new Set<string>();
+  const missingFields = new Set<unknown>();
   for (const issue of parsed.error.issues) {
-    const field = issue.path[0];
-    if (typeof field === "string") {
-      missingFields.add(field);
-    }
+    missingFields.add(issue.path[0]);
   }
   return Object.keys(config).filter((field) => missingFields.has(field));
 }

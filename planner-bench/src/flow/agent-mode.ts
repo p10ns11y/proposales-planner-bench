@@ -1,6 +1,7 @@
 import { createXai, type XaiLanguageModelResponsesOptions } from "@ai-sdk/xai";
 import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
+import { completeDayPart } from "../domain/day-part";
 import {
   assumedSpan,
   budgetScopeSchema,
@@ -181,35 +182,6 @@ function partialFromExtraction(extracted: z.infer<typeof briefExtractionSchema>)
     partial.timeAssumption = { dayPart, statement: assumedSpan(dayPart).timeAssumption.statement };
   }
   return partial;
-}
-
-function completeDayPart(brief: PlannerBrief): PlannerBrief {
-  const dayPart = brief.timeAssumption?.dayPart;
-  if (dayPart === undefined) {
-    return brief;
-  }
-  const assumed = assumedSpan(dayPart);
-  const clocksAreExplicit =
-    brief.startTime !== undefined && (brief.endTime !== undefined || brief.durationMinutes !== undefined);
-  if (clocksAreExplicit) {
-    const matchesSpan =
-      brief.durationMinutes === undefined &&
-      brief.startTime === assumed.startTime &&
-      brief.endTime === assumed.endTime;
-    if (!matchesSpan) {
-      const next = { ...brief };
-      delete next.timeAssumption;
-      return next;
-    }
-    return { ...brief, timeAssumption: assumed.timeAssumption };
-  }
-  const endTime = brief.endTime ?? (brief.durationMinutes === undefined ? assumed.endTime : undefined);
-  return {
-    ...brief,
-    startTime: brief.startTime ?? assumed.startTime,
-    ...(endTime !== undefined ? { endTime } : {}),
-    timeAssumption: assumed.timeAssumption,
-  };
 }
 
 function foodFromExtraction(
