@@ -73,12 +73,12 @@ export function findGaps(
 
 const questionByField: Record<string, string> = {
   eventTitle: "What should we call this event?",
-  contactEmail: "What email should receive the venue replies?",
-  startDate: "What is the start date? Use YYYY-MM-DD.",
-  endDate: "What is the end date? Use YYYY-MM-DD.",
-  attendeeCount: "How many people are coming?",
-  language: "Which two-letter language should the request use?",
-  roomCount: "The stay runs past the start date. How many rooms do you need?",
+  contactEmail: "Add an email under More so venues reply to this address.",
+  startDate: "Add the start date in the message, as YYYY-MM-DD.",
+  endDate: "Add the end date in the message, as YYYY-MM-DD.",
+  attendeeCount: "Add how many people are coming in the message.",
+  language: "Add a language under More.",
+  roomCount: "Add how many rooms you need under More for this multi-day stay.",
   city: "Which city is the event in?",
   startTime: "What time does it start?",
   endTime: "When does it end, or how long does it run?",
@@ -93,6 +93,10 @@ const questionByField: Record<string, string> = {
 
 export function questionForGap(field: string): string {
   return questionByField[field] ?? `What should we use for ${field}?`;
+}
+
+export function isFileableGap(field: string | undefined): boolean {
+  return Object.hasOwn(briefFileableConfig, field ?? "");
 }
 
 export function briefConfirmHold(brief: PlannerBrief): { gaps: string[]; question: string } | null {

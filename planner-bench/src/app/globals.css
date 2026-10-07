@@ -1118,6 +1118,32 @@ h2.planner-text {
   resize: vertical;
 }
 
+.planner-field-block {
+  display: grid;
+  gap: 8px;
+}
+
+.planner-required,
+.planner-field-note {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.planner-required {
+  color: var(--danger-text);
+}
+
+.planner-field-note {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.planner-field-block[data-invalid="true"] input {
+  border-color: var(--danger-text);
+}
+
 .planner-segment {
   display: flex;
   gap: 4px;

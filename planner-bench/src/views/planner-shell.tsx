@@ -16,7 +16,7 @@ import { renderPart } from "../transport/render-part";
 import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
 import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
-import { fileBriefChoice } from "./file-brief-state";
+import { fileBriefChoice, fileBriefLabel, fileBriefPressable, moreOpenedForEmail } from "./file-brief-state";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
 import { OfferDetail } from "./offer-detail";
@@ -59,6 +59,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const [slowTick, setSlowTick] = useState(-1);
   const [moreOpen, setMoreOpen] = useState(false);
   const [focusEmail, setFocusEmail] = useState(false);
+  const [detailNote, setDetailNote] = useState<string | null>(null);
   const [holdEmpty, setHoldEmpty] = useState(false);
   const idRef = useRef(1);
   const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -267,10 +268,12 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     }
     if (choice === "ask-email") {
       setFocusEmail(true);
+      setDetailNote(moreOpenedForEmail);
       setMoreOpen(true);
       return;
     }
     setFocusEmail(false);
+    setDetailNote(null);
     setLines((current) => [...current, { id: idRef.current++, role: "user", text: "File this brief" }]);
     onEvent({ type: "composerSubmitted", text: "file" });
   }
@@ -280,6 +283,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     setDraft("");
     setHoldEmpty(true);
     setMoreOpen(false);
+    setFocusEmail(false);
+    setDetailNote(null);
     onEvent({ type: "sessionReset" });
   }
 
@@ -301,6 +306,12 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   function onSpeech() {
     speechSession.current = toggleSpeechCapture(speechSession.current, listening, speechListener);
   }
+  const filePressable = fileBriefPressable({
+    busy: viewModel.busy,
+    filed: viewModel.filed,
+    ready: viewModel.ready,
+  });
+  const showResultsFile = viewModel.phase === "results" && viewModel.rows.length > 0;
 
   return (
     <LayoutGroup>
@@ -398,6 +409,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                         ) : (
                           <LiveCopy
                             viewModel={viewModel}
+                            showFile={showResultsFile}
+                            concealFile={viewModel.openRow !== null}
+                            fileLabel={fileBriefLabel(viewModel.filed)}
+                            filePressable={filePressable}
+                            onFile={fileBrief}
                             onConfirm={() => {
                               pushTurn("Yes");
                               lastKind.current = "search";
@@ -535,6 +551,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           onEvent={onEvent}
           onApplied={(line) => {
             setLines((current) => [...current, { id: idRef.current++, role: "user", text: line }]);
+            setDetailNote(null);
           }}
         />
         <OfferDetail
@@ -542,9 +559,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           includeExtras={includeExtras}
           contextChips={viewModel.contextChips}
           filingMessage={viewModel.filingMessage}
+          errorText={viewModel.errorText}
+          whyMore={detailNote}
           filed={viewModel.filed}
           active={!moreOpen}
-          busy={viewModel.busy || !viewModel.ready}
+          pressable={filePressable}
           onClose={() => onEvent({ type: "rowClosed" })}
           onFile={fileBrief}
         />
@@ -565,23 +584,34 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
 
 function LiveCopy({
   viewModel,
+  showFile,
+  concealFile,
+  fileLabel,
+  filePressable,
+  onFile,
   onConfirm,
   onSkip,
   onRefine,
   onRetry,
 }: {
   viewModel: ShellViewModel;
+  showFile: boolean;
+  concealFile: boolean;
+  fileLabel: string;
+  filePressable: boolean;
+  onFile: () => void;
   onConfirm: () => void;
   onSkip: () => void;
   onRefine: (text: string) => void;
   onRetry: () => void;
 }) {
   const factsMarked = viewModel.phase === "results" || viewModel.showFacts;
+  const notice = viewModel.notice !== null && viewModel.notice !== viewModel.ask ? viewModel.notice : null;
   return (
     <>
-      {viewModel.notice ? (
+      {notice ? (
         <p className="planner-meta" role="status">
-          {viewModel.notice}
+          {notice}
         </p>
       ) : null}
       {viewModel.draftConfirmation ? (
@@ -644,6 +674,24 @@ function LiveCopy({
             onClick={onSkip}
           >
             Skip
+          </button>
+        </div>
+      ) : null}
+      {showFile ? (
+        <div
+          className="planner-actions"
+          aria-hidden={concealFile ? true : undefined}
+          style={concealFile ? { visibility: "hidden" } : undefined}
+        >
+          <button
+            type="button"
+            className="planner-secondary"
+            disabled={!filePressable || concealFile}
+            tabIndex={concealFile ? -1 : undefined}
+            {...lcvStay("file-brief", "chat:results")}
+            onClick={onFile}
+          >
+            {fileLabel}
           </button>
         </div>
       ) : null}
