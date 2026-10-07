@@ -173,7 +173,7 @@ function MoreForm({
         <TextField
           label="Budget (EUR)"
           name="budget"
-          inputMode="numeric"
+          inputMode="decimal"
           value={values.budget}
           onChange={(budget) => setValues({ ...values, budget })}
         />
@@ -242,7 +242,7 @@ function TextField({
   value: string;
   onChange: (value: string) => void;
   type?: "text" | "email";
-  inputMode?: "numeric" | "text" | "email";
+  inputMode?: "numeric" | "decimal" | "text" | "email";
   autoComplete?: string;
 }) {
   const id = `more-${name}`;

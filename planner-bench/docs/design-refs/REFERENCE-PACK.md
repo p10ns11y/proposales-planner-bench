@@ -1,35 +1,26 @@
 # Proposales planner redesign: reference pack
 
-Method: the refero-design skill (research, then a reference lock, a decision ledger and an anti-slop check). Source: github.com/referodesign/refero_skill.
-
-> **Source caveat.** The Refero and Mobbin connectors are both connected, but every call returned a paywall:
-> Refero said `NO_SUBSCRIPTION` ("subscription is not active", refero.design/mcp/upgrade), and Mobbin said "Mobbin MCP requires a paid plan" (mobbin.com/pricing).
-> That means this pack contains **no Refero style tokens and no Refero or Mobbin screens**. As the refero-design skill prescribes when its MCP is unavailable, it uses
-> (a) the user's own Grok Bot screenshots as the primary visual source, with colours and geometry measured from the pixels,
-> (b) public component references (Vercel AI Elements and shadcn/ui), captured headlessly, and
-> (c) the skill's bundled craft rules (motion, colour, anti-AI-slop).
-> If a Refero Pro or Mobbin paid plan is turned on later, re-run steps 1 to 3 of the brief and replace section 3.
+This pack locks the visual direction before code: a reference lock, the tokens, a decision ledger, and an anti-slop check.
 
 ---
 
 ## 1. Reference lock
 
 ```
-Primary reference / direction: the Grok Bot desktop app's chat column (screens 11, 12, 13). This is a user-provided
-  visual source and the explicit target ("Grok Bot inspired").
+Primary reference / direction: the Grok Bot desktop chat column.
 Preserve:
   1. Cool neutral greys, no warmth: canvas #F9F9F9, rail #F4F4F4, assistant bubble #ECECEC. No cream, no beige.
   2. Tone-on-tone surfaces separated by hairlines (#E2E2E2), not shadows. The UI is almost flat.
-  3. Soft rounded assistant bubbles with an inner lighter "answer card" nested inside (screen 12). That nesting IS the
+  3. Soft rounded assistant bubbles with an inner lighter answer card nested inside. That nesting is the
      in-chat generative-UI card pattern.
   4. Black (#070707) circular send button. Primary actions are black, not coloured.
   5. Coral (#FB3D50) is identity only: brand mark and avatar. It appears rarely, so it means something.
 Borrow only:
-  A. Vercel AI Elements "Tool"/"Artifact" header row (screens 02, 05): a structured block inside an assistant
-     message with a one-line header (label + status badge) and a collapsible body. This becomes the offer group's header row
+  A. A structured block inside an assistant message with a one-line header (label + status badge) and a
+     collapsible body. This becomes the offer group's header row
      ("3 offers · Stockholm · Thu 12 Nov · 40 guests").
-  B. shadcn/ui Sheet anatomy (screen 03): right edge, title + one-line description, stacked labelled fields,
-     sticky footer with one primary action. This becomes the "More" drawer.
+  B. Right-edge sheet anatomy: title + one-line description, stacked labelled fields,
+     sticky footer with one primary action. This becomes the More drawer.
 Role rules:
   - Coral = brand mark + the single "Best match" marker on at most ONE card per reply. Never a button fill, never a
     background wash, never an error colour, never body text (#FB3D50 is only 3.4:1; coral text, where it exists at all, uses
@@ -49,21 +40,21 @@ Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm edit
 ### Colour roles (light, the only mode for v1)
 | Token | Hex | Role | Source |
 |---|---|---|---|
-| `--bg-canvas` | `#F9F9F9` | Chat canvas, detail-view backdrop | measured, Grok Bot chat column |
-| `--bg-rail` | `#F4F4F4` | Left rail / app chrome, drawer body | measured, Grok Bot sidebar |
+| `--bg-canvas` | `#F9F9F9` | Chat canvas, detail-view backdrop | Grok Bot chat column |
+| `--bg-rail` | `#F4F4F4` | Left rail / app chrome, drawer body | Grok Bot sidebar |
 | `--surface-assistant` | `#ECECEC` | Assistant bubble | measured (#ECECEC/#EBEBEC) |
-| `--surface-card` | `#FAFAFA` | Inline offer card inside a bubble, user bubble, composer | measured, inner answer card / composer |
-| `--surface-raised` | `#FFFFFF` | Drawer panel, full-screen detail sheet | craft: one step above canvas |
-| `--surface-selected` | `#DEDEDE` | Selected/pressed chip, active list item | measured, selected tile |
-| `--surface-chip` | `#EEEEEE` | Neutral chip, segmented tab pill | measured, tab pill |
+| `--surface-card` | `#FAFAFA` | Inline offer card inside a bubble, user bubble, composer | inner answer card / composer |
+| `--surface-raised` | `#FFFFFF` | Drawer panel, full-screen detail sheet | one step above canvas |
+| `--surface-selected` | `#DEDEDE` | Selected/pressed chip, active list item | selected tile |
+| `--surface-chip` | `#EEEEEE` | Neutral chip, segmented tab pill | tab pill |
 | `--border-hairline` | `#E2E2E2` | 1px separators, card + composer outline | measured |
 | `--border-strong` | `#D4D4D4` | Input borders in the drawer, hover outline | derived |
 | `--text-primary` | `#151515` | Body, titles (17.3:1 on canvas) | measured |
 | `--text-secondary` | `#666666` | Meta lines, "Held by…", captions (4.9:1 on #ECECEC) | measured #707070, darkened for AA |
 | `--text-placeholder` | `#8A8A8A` | Composer placeholder only (3.3:1) | derived from #B5B5B5 for legibility |
-| `--action-primary` | `#070707` | Send, primary buttons; text on it `#FFFFFF` (20:1) | measured send button |
+| `--action-primary` | `#070707` | Send, primary buttons; text on it `#FFFFFF` (20:1) | send button |
 | `--action-primary-hover` | `#2A2A2A` | Hover/pressed on primary | derived |
-| `--accent-coral` | `#FB3D50` | Brand mark, single "Best match" dot/badge (graphics ≥3:1 only) | measured brand mark |
+| `--accent-coral` | `#FB3D50` | Brand mark, single "Best match" dot/badge (graphics ≥3:1 only) | brand mark |
 | `--accent-coral-text` | `#D92D3F` | Coral used as text, if ever (4.5:1) | derived for AA |
 | `--danger-text` | `#B3261E` | Inline error copy (6.3:1); paired with an icon, never a fill | craft |
 | `--scrim` | `rgba(10,10,10,0.32)` | Behind drawer / detail | craft |
@@ -83,7 +74,7 @@ Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm edit
 | Meta (held by, date line, labels) | 13 / 18 | 500 | 0 |
 | Caption / chip | 12 / 16 | 500 | 0.01em; no ALL CAPS |
 
-(Measured: Grok Bot bubble text runs about 15px with an about 21px line pitch.)
+(Grok Bot bubble text runs about 15px with an about 21px line pitch.)
 
 ### Spacing (4pt grid)
 `4, 8, 12, 16, 20, 24, 32, 40, 56`.
@@ -96,7 +87,7 @@ Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm edit
 ### Radius
 | Element | Radius |
 |---|---|
-| Assistant / user bubble | **16** (measured about 14; rounded up for the brief's "soft") |
+| Assistant / user bubble | **16** (measured about 14; rounded up for a soft corner) |
 | Inline offer card inside bubble | **12** |
 | Inner fields, chips' container rows | 10 |
 | Chips, segmented tabs, composer (single-line) | **999** (pill) |
@@ -132,38 +123,33 @@ Reject: the current cream canvas (#F3F0EA-ish) + serif body (textbook "calm edit
 
 ---
 
-## 3. Per-screen references (what to borrow, one line each)
+## 3. What to borrow
 
-| # | File | Source | Borrow |
-|---|---|---|---|
-| 11 | `11-grokbot-chat-column-primary.png` | Grok Bot desktop app (user screenshot, Oct 2026) | Bubble shape, padding, tone; floating composer with hairline, `+` left, mic + black round send right; "scroll to latest" round button. |
-| 12 | `12-grokbot-inline-answer-card-primary.png` | Grok Bot desktop app (user screenshot) | **Card-inside-bubble**: a lighter #FAFAFA row with hairline inside the #ECECEC bubble, a leading letter tile and a trailing check. This is the template for each offer row. |
-| 13 | `13-grokbot-right-panel-primary.png` | Grok Bot desktop app (user screenshot, cropped above personal content) | Right-panel header: round icon buttons (share, close) at top, centred identity, pill segmented tabs (#EEEEEE active). Use it for the detail view header and the drawer close button. |
-| 01 | `01-ai-elements-conversation.png` | Vercel AI Elements, Conversation: https://ai-sdk.dev/elements/components/conversation | Auto-stick-to-bottom scroll + "jump to latest" button; user right / assistant left alignment rhythm. |
-| 02 | `02-ai-elements-tool.png` | Vercel AI Elements, Tool: https://ai-sdk.dev/elements/components/tool | Header row + status badge (Pending / Running / Completed / Error) for the planner's "Searching Proposales…" step inside the reply. |
-| 05 | `05-ai-elements-artifact.png` | Vercel AI Elements, Artifact: https://ai-sdk.dev/elements/components/artifact | Structured block with title, sub-line and right-aligned icon actions. This is the offer group's header ("3 offers…" + Compare / Open). |
-| 06 | `06-ai-elements-prompt-input.png` | Vercel AI Elements, Prompt Input: https://ai-sdk.dev/elements/components/prompt-input | Composer anatomy: textarea + footer toolbar (attach, model/mode, submit). Use it to fold Speak/History into icon buttons. |
-| 08 | `08-ai-elements-shimmer.png` | Vercel AI Elements, Shimmer: https://ai-sdk.dev/elements/components/shimmer | Text shimmer for the loading line ("Finding venues for 40 guests…") instead of a spinner. |
-| 09 | `09-ai-elements-suggestion.png` | Vercel AI Elements, Suggestion: https://ai-sdk.dev/elements/components/suggestion | Pill suggestion chips for the empty state and the "refine" follow-ups (e.g. "Only with food", "Under 500 EUR"). |
-| 03 | `03-shadcn-sheet-open.png` | shadcn/ui Sheet: https://ui.shadcn.com/docs/components/sheet | Right drawer anatomy: title + description, labelled stacked fields, sticky footer actions, ✕ top-right, scrim. |
-| 04 | `04-shadcn-dialog-open.png` | shadcn/ui Dialog: https://ui.shadcn.com/docs/components/dialog | Focus trap, Esc to close, aria labelling. Use the Dialog primitive for the full-screen detail and restyle it to full-bleed. |
-| 07 | `07-shadcn-skeleton.png` | shadcn/ui Skeleton: https://ui.shadcn.com/docs/components/skeleton | Skeleton geometry for 2–3 placeholder offer cards (same height as real cards to avoid layout shift). |
-| 10 | `10-grok-empty-state.png` | grok.com public landing (logged out) | Empty state: one centred question + a single wide pill composer + nothing else. |
-| 00 | `00-before-*.png` | current live app | **Before** shots for the before/after comparison (cream + serif + `<details>` More + boxed buttons). |
-
-Mobbin finds: none, because of the paywall described above. Planned queries, ready to run once it's unlocked: "AI chat reply with inline result cards", "right side sheet with form fields", "full-screen listing detail modal", "quote/offer comparison table".
+- Chat column: bubble shape, padding, and tone; a floating composer with a hairline, a plus on the left, and a mic plus a black round send on the right; a round control that jumps to the latest message.
+- Nested answer card: a lighter `#FAFAFA` row with a hairline inside the `#ECECEC` bubble, a leading letter tile, and a trailing mark. This is the template for each offer row.
+- Right panel: round icon buttons (share, close) at the top, a centred identity, and pill segmented tabs (`#EEEEEE` when active). Use that for the detail header and the drawer close button.
+- Conversation rhythm: stick to the bottom of the thread, with a jump-to-latest control. The person sits on the right; the assistant sits on the left.
+- Tool header: one line plus a status (Pending / Running / Completed / Error) for the "Searching Proposales…" step inside the reply.
+- Artifact block: a title, a sub-line, and right-aligned icon actions. This is the offer group's header ("3 offers…" plus Compare / Open).
+- Prompt input: a textarea and a footer toolbar (attach, mode, submit). Speak and history fold into icon buttons.
+- Loading: a text treatment for "Finding venues for 40 guests…" and skeleton cards that match the height of a real card.
+- Suggestions: pill chips for the empty state and short follow-ups ("Only with food", "Under 500 EUR").
+- Sheet: a right drawer with a title, a one-line description, labelled stacked fields, a sticky footer, a close control, and a scrim.
+- Dialog: a focus trap, Escape to close, and an accessible name. The detail view uses that primitive and goes full bleed on a phone.
+- Empty state: one centred question, one wide pill composer, and nothing else.
+- Before comparison: the previous shell, with its cream canvas, serif type, disclosure for More, and boxed buttons.
 
 ---
 
 ## 4. Decision ledger
 | Decision | Source | Role rule | Why |
 |---|---|---|---|
-| Cool grey canvas #F9F9F9 | Grok Bot (11) | canvas only | the user asked for Grok Bot feel; kills the current cream "editorial" slop |
-| Offer rows nested inside the assistant bubble | Grok Bot (12) | #FAFAFA card on #ECECEC bubble | the user's "AG-UI cards inside the chat reply" |
-| Group header + status | AI Elements Tool/Artifact (02, 05) | header row only | gives the reply a scannable summary line and a place for Compare |
-| Right drawer for More | shadcn Sheet (03) + user brief | primary action black | the user asked for "expand from right side" |
-| Full-screen detail with morph | shadcn Dialog (04) + user brief | Esc/✕ return to the same scroll spot | the user asked for "click opened … full screen … and closed" |
-| Black send, coral only for brand + Best match | Grok Bot (11, 13) | coral never a fill | keeps the one accent meaningful |
+| Cool grey canvas #F9F9F9 | Grok Bot chat column | canvas only | matches that column and drops the cream editorial canvas |
+| Offer rows nested inside the assistant bubble | Grok Bot nested answer card | #FAFAFA card on #ECECEC bubble | the ranked rows belong inside the assistant reply |
+| Group header + status | Tool / artifact header | header row only | gives the reply a scannable summary line and a place for Compare |
+| Right drawer for More | Sheet anatomy | primary action black | More expands from the right |
+| Full-screen detail with morph | Dialog primitive | Esc/✕ return to the same scroll spot | a result opens full screen and closes back to the chat |
+| Black send, coral only for brand + Best match | Grok Bot chat column | coral never a fill | keeps the one accent meaningful |
 | Instrument Sans | craft (typography), not Inter | one family | neutral grotesque with tnum for prices |
 
 ---
@@ -190,7 +176,7 @@ Mobbin finds: none, because of the paywall described above. Planned queries, rea
 - [ ] Enter sends, Shift+Enter newline, Cmd/Ctrl+K focuses; placeholder "Describe the event: place, people, date, time".
 
 **In-chat result cards**
-- [ ] Assistant bubble #ECECEC r16, padding 14/16; one summary sentence, then a group header row (Artifact-style): "3 offers · Stockholm · Thu 12 Nov · 40 guests" + Compare + Open-all icons.
+- [ ] Assistant bubble #ECECEC r16, padding 14/16; one summary sentence, then a group header row: "3 offers · Stockholm · Thu 12 Nov · 40 guests" + Compare + Open-all icons.
 - [ ] Each offer = #FAFAFA r12 hairline row: monogram tile 40 / name (17/600) / meta line "Held by Quiet Court" (13/500 #666) / chips (Held = Lucide lock icon, Expired, No food) / price right-aligned tabular 600.
 - [ ] At most one coral "Best match" dot+label per reply. Hover e1, press scale .98, whole card is one button with an aria-label.
 - [ ] Stagger in at 40ms; keyboard ↑/↓ moves between cards, Enter opens detail.
@@ -202,16 +188,16 @@ Mobbin finds: none, because of the paywall described above. Planned queries, rea
 
 **Full-screen detail**
 - [ ] Opens from a card with a shared-element morph; desktop is an inset 12px sheet r20 e4 over the scrim; mobile is true full-screen r0.
-- [ ] Header (borrow 13): round ✕ left, share/copy right; title 22/600, price large tabular; flags; sections: Overview, Includes, Terms/validity, Held by; sticky bottom bar with primary black "File this brief" (draft path) + confirmation.
+- [ ] Header: round ✕ left, share/copy right; title 22/600, price large tabular; flags; sections: Overview, Includes, Terms/validity, Held by; sticky bottom bar with primary black "File this brief" (draft path) + confirmation.
 - [ ] Close (✕, Esc, back gesture, browser Back via URL `?offer=id`) returns to the same chat scroll position with the card focused.
 
 **States**
-- [ ] Empty: centred 28/500 "What are you planning?" + composer + 3 suggestion pills (borrow 09/10). No logo wall.
-- [ ] Loading: Tool-style status row with shimmer text "Searching Proposales…" (08) then 2–3 skeleton cards of the final height (07).
+- [ ] Empty: centred 28/500 "What are you planning?" + composer + 3 suggestion pills. No logo wall.
+- [ ] Loading: a status row ("Searching Proposales…") then 2–3 skeleton cards of the final height.
 - [ ] Sample-data mode: a quiet neutral chip in the group header, "Sample offers", with a tooltip explaining why. Never coral.
 - [ ] No results: assistant bubble with one sentence + 2 refine pills ("Widen date", "Fewer guests").
-- [ ] Error: assistant bubble with a `--danger-text` line + icon + "Try again" secondary button; keep the user's brief in the composer.
-- [ ] Reduced motion, `:focus-visible` rings, 44px targets, 390px mobile, and 1280 / 1440 desktop screenshots for the before/after.
+- [ ] Error: assistant bubble with a `--danger-text` line + icon + "Try again" secondary button; keep the person's brief in the composer.
+- [ ] Reduced motion, `:focus-visible` rings, 44px targets, a 390px phone, and desktop frames for the before/after.
 
 ---
 

@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MoreFieldValues, PlannerViewEvent, ShellRow, ShellViewModel } from "../src/view-models/view-model";
@@ -10,25 +10,25 @@ afterEach(() => {
   cleanup();
 });
 
-const harbour: ShellRow = {
-  venueName: "Harbour House",
-  proposalUuid: "harbour-house",
+const canalLoft: ShellRow = {
+  venueName: "Canal Loft",
+  proposalUuid: "33333333-3333-4333-8333-333333333333",
   heldByCompanyName: "Quiet Court",
   currency: "EUR",
-  roomsMinor: 12000,
-  foodMinor: 4000,
-  spaceMinor: 1000,
-  extrasMinor: 0,
-  totalMinor: 17000,
-  rooms: "120.00 EUR",
-  foodAndBeverage: "40.00 EUR",
-  space: "10.00 EUR",
-  extras: "0.00 EUR",
-  total: "170.00 EUR",
-  expires: "2026-12-01",
+  roomsMinor: 0,
+  foodMinor: 6000,
+  spaceMinor: 3000,
+  extrasMinor: 12000,
+  totalMinor: 21000,
+  rooms: "0.00 EUR",
+  foodAndBeverage: "60.00 EUR",
+  space: "30.00 EUR",
+  extras: "120.00 EUR",
+  total: "210.00 EUR",
+  expires: "2026-09-01",
   gaps: ["expired"],
   favorite: false,
-  blocks: [],
+  blocks: [{ title: "Canal loft day delegate", quantity: 3 }],
 };
 
 const emptyMore: MoreFieldValues = {
@@ -59,7 +59,7 @@ function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
     showFacts: false,
     showConfirm: false,
     showFavorites: false,
-    rows: [harbour],
+    rows: [canalLoft],
     hiddenCount: 0,
     openRow: null,
     more: emptyMore,
@@ -91,24 +91,31 @@ describe("offer detail", () => {
     thread.scrollTop = 80;
     thread.dispatchEvent(new Event("scroll"));
     const held = thread.scrollTop;
-    const card = screen.getByRole("button", { name: /Harbour House/ });
+    const card = screen.getByRole("button", { name: /Canal Loft/ });
     await user.click(card);
-    expect(events.at(-1)).toEqual({ type: "rowOpened", venueName: "Harbour House" });
+    expect(events.at(-1)).toEqual({ type: "rowOpened", venueName: "Canal Loft" });
     view.rerender(
       <PlannerShell
-        viewModel={model({ openRow: harbour })}
+        viewModel={model({ openRow: canalLoft })}
         onEvent={(event) => events.push(event)}
         historyControl={null}
       />,
     );
-    expect(screen.getByRole("dialog", { name: "Harbour House" })).toBeTruthy();
+    const dialog = screen.getByRole("dialog", { name: "Canal Loft" });
+    expect(within(dialog).getByText("Canal loft day delegate × 3")).toBeTruthy();
+    expect(within(dialog).getByText("EUR 210")).toBeTruthy();
+    expect(within(dialog).queryByText("Best match")).toBeNull();
+    const expiredChip = within(dialog)
+      .getAllByText("Expired")
+      .find((node) => node.querySelector("svg") !== null);
+    expect(expiredChip).toBeTruthy();
     expect(thread.scrollTop).toBe(held);
     await user.keyboard("{Escape}");
     expect(events.some((event) => event.type === "rowClosed")).toBe(true);
     view.rerender(
       <PlannerShell viewModel={model()} onEvent={(event) => events.push(event)} historyControl={null} />,
     );
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Harbour House/ }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Canal Loft/ }));
     expect(thread.scrollTop).toBe(held);
   });
 });
@@ -157,6 +164,36 @@ describe("More drawer", () => {
         meetingRoomCount: "",
         foodRequired: "no",
       },
+    });
+  });
+
+  it("shows and edits the budget in euros", async () => {
+    installDomShims();
+    const user = userEvent.setup();
+    const events: PlannerViewEvent[] = [];
+    render(
+      <PlannerShell
+        viewModel={model({
+          more: { ...emptyMore, budget: "2500" },
+          moreStamp: "budget",
+        })}
+        onEvent={(event) => events.push(event)}
+        historyControl={null}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "More" }));
+    const budget = screen.getByLabelText("Budget (EUR)");
+    expect(budget).toBeInstanceOf(HTMLInputElement);
+    if (!(budget instanceof HTMLInputElement)) {
+      return;
+    }
+    expect(budget.value).toBe("2500");
+    await user.clear(budget);
+    await user.type(budget, "2600");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(events.at(-1)).toEqual({
+      type: "moreEdited",
+      details: { budget: "2600" },
     });
   });
 });

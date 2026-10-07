@@ -36,7 +36,7 @@ Required before a match. These three, and only these, may stop the flow to ask:
 
 Everything else lives in More, a drawer from the right. Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Opening More shows those fields. It is not the first screen. Saving More changes only the fields the person edited.
 
-Email still gates filing a brief to a company. It does not gate the match, and it stays editable in More. Favorites stay a mark on the ranked list, not a field in More.
+Filing needs an email; matching does not. The email stays editable in More. Favorites stay a mark on the ranked list, not a field in More.
 
 Confirmed for this pass:
 

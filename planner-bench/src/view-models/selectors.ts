@@ -1,4 +1,4 @@
-import type { MinorUnits } from "../domain/minor-units";
+import { formatBudgetMajor, type MinorUnits } from "../domain/minor-units";
 import type { PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
 import { draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
@@ -320,7 +320,7 @@ function moreFields(brief: PlannerBrief): MoreFieldValues {
     meetingRoomCount: brief.meetingRoomCount === undefined ? "" : String(brief.meetingRoomCount),
     foodRequired: brief.foodRequired === undefined ? "" : brief.foodRequired ? "yes" : "no",
     notes: brief.notes ?? "",
-    budget: brief.budgetMinor === undefined ? "" : String(brief.budgetMinor.amount),
+    budget: brief.budgetMinor === undefined ? "" : formatBudgetMajor(brief.budgetMinor.amount),
   };
 }
 

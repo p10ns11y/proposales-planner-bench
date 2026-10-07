@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { minorUnits } from "../domain/minor-units";
+import { minorFromBudgetMajor, minorUnits } from "../domain/minor-units";
 import { plannerBriefSchema, type PlannerBrief } from "../domain/planner-brief";
 
 const textField = z.string().optional();
@@ -88,8 +88,8 @@ function assignBudget(brief: PlannerBrief, value: string | undefined) {
     delete brief.budgetMinor;
     return;
   }
-  const amount = Number(trimmed);
-  if (!Number.isInteger(amount)) {
+  const amount = minorFromBudgetMajor(trimmed);
+  if (amount === undefined) {
     return;
   }
   brief.budgetMinor = minorUnits(amount);

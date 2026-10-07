@@ -278,7 +278,7 @@ function OfferChips({ offer }: { offer: OfferPart }) {
   );
 }
 
-function GapIcon({ gap }: { gap: string }) {
+export function GapIcon({ gap }: { gap: string }) {
   if (gap === "expired") {
     return <ClockAlert aria-hidden="true" />;
   }

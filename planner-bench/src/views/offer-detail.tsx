@@ -10,6 +10,7 @@ import {
   type OfferPart,
 } from "../contract/offer-group";
 import { gapLabel } from "./offer-copy";
+import { GapIcon } from "./offer-group";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
 
@@ -121,6 +122,7 @@ export function OfferDetail({
                     ) : null}
                     {offer.gaps.map((gap) => (
                       <span key={gap} className="planner-chip planner-chip-status">
+                        <GapIcon gap={gap} />
                         {gapLabel(gap)}
                       </span>
                     ))}
