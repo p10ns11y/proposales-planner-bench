@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="500" viewBox="0 0 1100 500" role="img">
+<title>System context</title>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M 0 1 L 9 5 L 0 9 z" fill="#FB3D50" />
+</marker>
+</defs>
+<rect width="100%" height="100%" fill="#F9F9F9" />
+<line x1="670" y1="220" x2="820" y2="110" stroke="#FB3D50" stroke-width="1.75" marker-end="url(#arrow)" />
+<line x1="670" y1="264" x2="820" y2="394" stroke="#FB3D50" stroke-width="1.75" marker-end="url(#arrow)" />
+<line x1="266" y1="242" x2="420" y2="242" stroke="#FB3D50" stroke-width="1.75" marker-end="url(#arrow)" />
+<rect x="36" y="64" width="56" height="4" rx="2" fill="#FB3D50" stroke="#FB3D50" stroke-width="1.5" />
+<rect x="420" y="188" width="250" height="108" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
+<text x="545" y="233" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">Next.js app</text>
+<text x="545" y="251" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">on Vercel</text>
+<rect x="820" y="56" width="240" height="108" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
+<text x="940" y="101" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">Proposales API</text>
+<text x="940" y="119" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">v3</text>
+<rect x="820" y="340" width="240" height="108" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
+<text x="940" y="385" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">xAI model</text>
+<text x="940" y="403" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">via the AI SDK</text>
+<rect x="36" y="188" width="230" height="108" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
+<text x="151" y="233" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">Browser</text>
+<text x="151" y="251" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">Planner session</text>
+<text x="36" y="50" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="22" font-weight="600">System context</text>
+<text x="746" y="180" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">v3 reads and filing</text>
+<text x="746" y="318" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">AI SDK</text>
+<text x="343" y="224" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">session and turn</text>
+</svg>
