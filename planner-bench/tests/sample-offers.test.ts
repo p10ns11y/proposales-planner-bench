@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { harbourHouseProposal } from "../src/contract/fixtures";
+import { normaliseProposal } from "../src/domain/normalise-proposal";
+import { liveAccountCompanyName, liveDraftProposals } from "./live-draft-proposals";
 import { openingSnapshot } from "../src/flow/chat-request";
 import { runViewportAction } from "../src/flow/viewport-turn";
 import { loadComparableProposals } from "../src/proposales/comparable-proposals";
@@ -22,7 +24,8 @@ function stubClient(loadVenueProposals: ProposalesClient["loadVenueProposals"]):
     get companyReads() {
       return counts.companyReads;
     },
-    client: {
+      client: {
+      readsLiveProposals: true,
       async listCompanies() {
         counts.companyReads += 1;
         return [liveCompany];
@@ -48,6 +51,7 @@ describe("live proposals with a stubbed client", () => {
     const stub = stubClient(async () => [harbourHouseProposal]);
     const loaded = await loadComparableProposals(stub.client);
     expect(loaded.sample).toBe(false);
+    expect(loaded.source).toBe("live");
     expect(loaded.proposals).toEqual([harbourHouseProposal]);
     await stub.client.listCompanies();
     await stub.client.fileBrief(sampleBrief(9));
@@ -146,8 +150,64 @@ describe("live proposals with a stubbed client", () => {
       errorText: null,
       speechAvailable: false,
     });
-    expect(view.sampleOfferLabel).toBe("Sample offers");
+    expect(view.offerLabel).toBe("Sample offers");
     expect(view.draftConfirmation).toBe(draftCreatedNotice);
+  });
+});
+
+describe("seeded live drafts", () => {
+  it("ranks the draft titles as live venues and ignores the account company name", async () => {
+    const stub = stubClient(async () => liveDraftProposals);
+    const snapshot = openingSnapshot([
+      { id: 9, name: liveAccountCompanyName, inboxToken: null },
+    ]);
+    const captured = await runViewportAction({
+      action: {
+        type: "captureSubmitted",
+        text: "I need a place in Stockholm for 40 people on 12 November 2026, from 09:00 to 17:00, with dinner and a meeting room.",
+      },
+      snapshot,
+      client: stub.client,
+      today: "2026-10-06",
+    });
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: captured.snapshot,
+      client: stub.client,
+      today: "2026-10-06",
+    });
+    const ranked = await runViewportAction({
+      action: { type: "favoritesSubmitted", text: "skip" },
+      snapshot: confirmed.snapshot,
+      client: stub.client,
+      today: "2026-10-06",
+    });
+    expect(ranked.snapshot.offerSource).toBe("live");
+    expect(ranked.snapshot.sampleOffers).toBe(false);
+    expect(ranked.snapshot.grid.map((row) => row.venueName)).toEqual([
+      "Canal Loft",
+      "Harbour House",
+      "Ridge Hall",
+    ]);
+    expect(ranked.snapshot.grid.map((row) => row.heldByCompanyName)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(ranked.snapshot.grid.map((row) => row.totalMinor.amount)).toEqual([21_000, 36_500, 95_000]);
+    expect(ranked.snapshot.grid.map((row) => row.venueName)).not.toContain(liveAccountCompanyName);
+    const view = shellViewModel({
+      snapshot: ranked.snapshot,
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(view.offerLabel).toBe("Live offers");
+    expect(liveDraftProposals.map((proposal) => normaliseProposal(proposal).venueName)).toEqual([
+      "Harbour House",
+      "Ridge Hall",
+      "Canal Loft",
+    ]);
   });
 });
 

@@ -62,7 +62,7 @@ export function shellViewModel(input: {
     askLabelsComposer: phase === "capture" || askingGap || phase === "favorites" || phase === "results",
     notice: noticeText(snapshot),
     draftConfirmation: snapshot?.filing?.path === "draft" ? draftCreatedNotice : null,
-    sampleOfferLabel: snapshot?.sampleOffers === true && phase === "results" ? "Sample offers" : null,
+    offerLabel: offerLabel(snapshot, phase),
     factsSentence: facts,
     showFacts: facts !== "" && (askingGap || readyToConfirm || phase === "favorites"),
     showConfirm: readyToConfirm,
@@ -104,6 +104,19 @@ function rankedRows(snapshot: PlannerSnapshot | null): ResultsViewModel["rows"] 
     gaps: row.gaps,
     favorite: row.favorite,
   }));
+}
+
+function offerLabel(snapshot: PlannerSnapshot | null, phase: ShellViewModel["phase"]): string | null {
+  if (snapshot === null || phase !== "results") {
+    return null;
+  }
+  if (snapshot.offerSource === "live") {
+    return "Live offers";
+  }
+  if (snapshot.offerSource === "sample" || snapshot.sampleOffers) {
+    return "Sample offers";
+  }
+  return null;
 }
 
 function noticeText(snapshot: PlannerSnapshot | null): string | null {

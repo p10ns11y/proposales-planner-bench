@@ -78,8 +78,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl }: PlannerShel
             </Button>
           </div>
         ) : null}
-        {viewModel.sampleOfferLabel ? (
-          <p className="mb-3 text-sm text-muted">{viewModel.sampleOfferLabel}</p>
+        {viewModel.offerLabel ? (
+          <p className="mb-3 text-sm text-muted">{viewModel.offerLabel}</p>
         ) : null}
         {viewModel.rows.length > 0 ? (
           <ul className="mb-6 flex flex-col">

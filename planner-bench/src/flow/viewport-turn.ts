@@ -280,6 +280,7 @@ async function rankSnapshot(
   const loaded = await loadComparableProposals(client);
   const normalised = normaliseLoaded(loaded.proposals);
   const sample = loaded.sample || normalised.sample;
+  const offerSource = sample ? "sample" : loaded.source;
   const offers = offersMatchingCity(snapshot.brief, normalised.offers);
   const grid = rankComparisonRows(
     compareOffers(snapshot.brief, offers, today, {
@@ -303,6 +304,7 @@ async function rankSnapshot(
     nextQuestion: "",
     notice: null,
     sampleOffers: sample,
+    offerSource,
     visibleRowCount: snapshot.visibleRowCount || defaultVisibleRowCount,
     openVenueName: null,
   };

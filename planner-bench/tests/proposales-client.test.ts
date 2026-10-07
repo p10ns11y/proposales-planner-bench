@@ -3,7 +3,8 @@ import { companyFixtures, harbourHouseProposal } from "../src/contract/fixtures"
 import { createClient, resolveMode } from "../src/proposales/client";
 import { draftBody, filingPath, inboxBody } from "../src/proposales/filing";
 import { createFixtureClient, sampleBrief } from "../src/proposales/fixture-client";
-import { createHttpClient } from "../src/proposales/http-client";
+import { createHttpClient, plannerUserAgent } from "../src/proposales/http-client";
+import { liveDraftProposals, liveSearchItem } from "./live-draft-proposals";
 
 describe("proposales mode", () => {
   it("uses fixtures unless the mode is live", () => {
@@ -75,13 +76,14 @@ describe("fixture client", () => {
 
 describe("http client", () => {
   it("posts the inbox without the API key and the draft with it", async () => {
-    const calls: { url: string; authorization: string | null; body: unknown }[] = [];
+    const calls: { url: string; authorization: string | null; userAgent: string | null; body: unknown }[] = [];
     const fetchImpl: typeof fetch = async (input, init) => {
       const url = String(input);
       const headers = new Headers(init?.headers);
       calls.push({
         url,
         authorization: headers.get("authorization"),
+        userAgent: headers.get("user-agent"),
         body: init?.body === undefined ? null : JSON.parse(String(init.body)),
       });
       if (url.endsWith("/v3/companies")) {
@@ -111,7 +113,9 @@ describe("http client", () => {
     expect(inbox).toEqual({ path: "inbox", id: 55 });
     const inboxCall = calls.find((call) => call.url.includes("/v1/inbox/inbox-harbour"));
     expect(inboxCall?.authorization).toBeNull();
+    expect(inboxCall?.userAgent).toBe(plannerUserAgent);
     expect(inboxCall?.body).toMatchObject({ is_test: "1", email: "planner@example.com" });
+    expect(calls.every((call) => call.userAgent === plannerUserAgent)).toBe(true);
 
     const draft = await client.fileBrief(sampleBrief(2));
     expect(draft).toEqual({
@@ -133,9 +137,44 @@ describe("http client", () => {
     expect(readCall?.authorization).toBe("Bearer test-key");
   });
 
+  it("loads every draft from proposal search and sends the planner user agent", async () => {
+    const calls: { url: string; userAgent: string | null }[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      calls.push({ url, userAgent: new Headers(init?.headers).get("user-agent") });
+      if (url.includes("/v3/proposal-search")) {
+        return Response.json({ data: liveDraftProposals.map(liveSearchItem) });
+      }
+      const proposal = liveDraftProposals.find((item) => url.includes(item.uuid));
+      if (proposal !== undefined) {
+        return Response.json({ data: proposal });
+      }
+      return Response.json({ data: [] }, { status: 404 });
+    };
+    const client = createHttpClient({
+      apiKey: "test-key",
+      fetchImpl,
+      baseUrl: "https://api.proposales.com",
+    });
+    const proposals = await client.loadVenueProposals();
+    expect(proposals).toHaveLength(liveDraftProposals.length);
+    expect(proposals.map((proposal) => statusOf(proposal))).toEqual(["draft", "draft", "draft"]);
+    expect(calls.map((call) => call.userAgent)).toEqual(calls.map(() => plannerUserAgent));
+    expect(calls.some((call) => call.url.includes("/v3/proposal-search"))).toBe(true);
+    expect(plannerUserAgent).toBe("planner-bench/0.1.0");
+  });
+
   it("rejects a company payload that misses the generated schema", async () => {
     const fetchImpl: typeof fetch = async () => Response.json({ data: [{ id: 1, name: "Partial" }] });
     const client = createHttpClient({ apiKey: "test-key", fetchImpl });
     await expect(client.listCompanies()).rejects.toThrow();
   });
 });
+
+function statusOf(proposal: unknown): string {
+  if (typeof proposal !== "object" || proposal === null) {
+    return "";
+  }
+  const status = Reflect.get(proposal, "status");
+  return typeof status === "string" ? status : "";
+}

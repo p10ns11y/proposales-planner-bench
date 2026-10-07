@@ -27,6 +27,7 @@ function watchClient(inner: ProposalesClient): {
       return counts.filings;
     },
     client: {
+      readsLiveProposals: inner.readsLiveProposals,
       listCompanies: () => inner.listCompanies(),
       getProposal: (uuid) => inner.getProposal(uuid),
       loadVenueProposals: async () => {
@@ -112,6 +113,8 @@ describe("viewport flow without a model key", () => {
     expect(ranked.snapshot.grid[1]?.heldByCompanyName).toBe("Quiet Court");
     expect(ranked.snapshot.grid[2]?.heldByCompanyName).toBe("Harbour House");
     expect(ranked.snapshot.grid[0]?.heldByCompanyName).toBeUndefined();
+    expect(ranked.snapshot.offerSource).toBe("fixture");
+    expect(ranked.snapshot.sampleOffers).toBe(false);
   });
 
   it("files a draft when the selected company has no inbox token", async () => {

@@ -35,6 +35,7 @@ export const plannerSnapshotSchema = z.object({
   openVenueName: z.string().nullable(),
   notice: z.string().nullable().default(null),
   sampleOffers: z.boolean().default(false),
+  offerSource: z.enum(["fixture", "live", "sample"]).default("fixture"),
 });
 
 export type PlannerSnapshot = z.infer<typeof plannerSnapshotSchema>;
@@ -63,5 +64,6 @@ export function emptySnapshot(
     openVenueName: null,
     notice: null,
     sampleOffers: false,
+    offerSource: "fixture",
   };
 }

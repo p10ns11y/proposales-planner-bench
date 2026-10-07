@@ -17,7 +17,6 @@ const proposalForOfferSchema = z.object({
   uuid: z.string(),
   title: z.string().nullable().optional(),
   company_id: z.number().int().optional(),
-  company_name: z.string().optional(),
   currency: z.string().optional(),
   expires_at: z.number().nullable().optional(),
   blocks: z.array(
@@ -58,7 +57,7 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
   const foodAndBeverageMinor = minorUnits(Math.round(totals.foodAndBeverageMinor));
   const spaceMinor = minorUnits(Math.round(totals.spaceMinor));
   const extrasMinor = minorUnits(Math.round(totals.extrasMinor));
-  const venueName = nonEmptyTitle(parsed.title) ?? parsed.company_name ?? "Untitled venue";
+  const venueName = venueNameFromTitle(parsed.title);
 
   return {
     venueName,
@@ -77,9 +76,13 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
   };
 }
 
-function nonEmptyTitle(title: string | null | undefined): string | undefined {
-  if (title === undefined || title === null || title === "") {
-    return undefined;
+const demoVenueSuffix = " (demo venue)";
+
+function venueNameFromTitle(title: string | null | undefined): string {
+  if (title === undefined || title === null) {
+    return "Untitled venue";
   }
-  return title;
+  const stripped = title.endsWith(demoVenueSuffix) ? title.slice(0, -demoVenueSuffix.length) : title;
+  const trimmed = stripped.trim();
+  return trimmed === "" ? "Untitled venue" : trimmed;
 }

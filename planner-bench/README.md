@@ -31,7 +31,7 @@ PROPOSALES_API_KEY=
 
 Put the API key in `PROPOSALES_API_KEY`. Do not commit `.env.local`.
 
-Restart `pnpm dev`, then open localhost port 3000. Use the same Stockholm line, confirm, and skip favorites. Company lookup and filing use the live API. If that account has no proposals, the rows are sample offers and the screen says `Sample offers`. Under More, set Email and Language, save, and say `file`. Leave Event name empty to title the draft with the city and date, or set Event name to use that instead. The screen says `A draft was created in Proposales.`
+Restart `pnpm dev`, then open localhost port 3000. Use the same Stockholm line, confirm, and skip favorites. Company lookup and filing use the live API. When the account has proposals, those rows are live Proposales data and the screen says `Live offers`. A title that ends with ` (demo venue)` is shown without that suffix, and the total is the sum of each block's package split times its quantity. The account company name is not used as a venue name. If the search is empty or the live load fails, the rows are sample offers and the screen says `Sample offers`. Under More, set Email and Language, save, and say `file`. Leave Event name empty to title the draft with the city and date, or set Event name to use that instead. The screen says `A draft was created in Proposales.`
 
 `AI_GATEWAY_API_KEY` and `PLANNER_MODEL` stay empty unless you want a live model. An empty gateway key keeps the scripted extractor.
 

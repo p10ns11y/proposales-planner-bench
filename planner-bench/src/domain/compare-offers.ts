@@ -67,7 +67,7 @@ function heldByCompanyName(
   companies: CompanyNameLookup[],
   venueName: string,
 ): string | undefined {
-  if (offer.companyId === undefined) {
+  if (offer.companyId === undefined || companies.length < 2) {
     return undefined;
   }
   const company = companies.find((item) => item.id === offer.companyId);

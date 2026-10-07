@@ -1,7 +1,10 @@
 import { z } from "zod";
+import packageJson from "../../package.json";
 import { proposalesSchemas } from "../contract/proposales-schemas";
 import { draftBody, filingPath, inboxBody } from "./filing";
 import type { CompanyRecord, FileBriefResult, ProposalesClient } from "./types";
+
+export const plannerUserAgent = `planner-bench/${packageJson.version}`;
 
 const companyReader = z.object({
   id: z.number(),
@@ -45,6 +48,7 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
   async function request(path: string, init: RequestInit, authorize: boolean): Promise<unknown> {
     const headers = new Headers(init.headers);
     headers.set("accept", "application/json");
+    headers.set("user-agent", plannerUserAgent);
     if (init.body !== undefined) {
       headers.set("content-type", "application/json");
     }
@@ -60,6 +64,7 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
   }
 
   return {
+    readsLiveProposals: true,
     async listCompanies() {
       const schemas = await proposalesSchemas();
       const body = searchEnvelopeReader.parse(

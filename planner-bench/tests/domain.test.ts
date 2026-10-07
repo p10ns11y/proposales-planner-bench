@@ -154,6 +154,42 @@ describe("proposal normaliser", () => {
     });
   });
 
+  it("names a live draft from its title and totals the blocks when the proposal total is zero", () => {
+    const offer = normaliseProposal({
+      uuid: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      status: "draft",
+      title: "Harbour House (demo venue)",
+      company_name: "Example Desk",
+      company_id: 9,
+      value_without_tax: 0,
+      blocks: [
+        {
+          quantity: 2,
+          package_split: [
+            { type: "accommodation", value_without_tax: 10_000, value_with_tax: 12_500 },
+            { type: "food", value_without_tax: 3_000, value_with_tax: 3_750 },
+            { type: "meetingRoom", value_without_tax: 5_000, value_with_tax: 6_250 },
+            { type: "other", value_without_tax: 250, value_with_tax: 313 },
+          ],
+        },
+      ],
+    });
+    expect(offer.venueName).toBe("Harbour House");
+    expect(offer.totalMinor).toEqual({ unit: "minor", amount: 36_500 });
+    expect(JSON.stringify(offer)).not.toContain("Example Desk");
+  });
+
+  it("does not use the account company name when the title is missing", () => {
+    const offer = normaliseProposal({
+      uuid: "dddddddd-dddd-4ddd-8ddd-ddddddddddd1",
+      company_name: "Example Desk",
+      title: " (demo venue)",
+      value_without_tax: 0,
+      blocks: [],
+    });
+    expect(offer.venueName).toBe("Untitled venue");
+  });
+
   it("prefers value_without_tax over value_with_tax", () => {
     const offer = normaliseProposal({
       uuid: "44444444-4444-4444-8444-444444444444",
@@ -169,6 +205,21 @@ describe("proposal normaliser", () => {
 });
 
 describe("comparison gaps", () => {
+  it("does not show the only account company as a venue holder", () => {
+    const offer = normaliseProposal({
+      uuid: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      title: "Harbour House (demo venue)",
+      company_name: "Example Desk",
+      company_id: 9,
+      blocks: [{ quantity: 1, package_split: [{ type: "food", value_without_tax: 100 }] }],
+    });
+    const rows = compareOffers(plannerBriefSchema.parse(northwindDayBrief), [offer], today, {
+      companies: [{ id: 9, name: "Example Desk" }],
+    });
+    expect(rows[0]?.venueName).toBe("Harbour House");
+    expect(rows[0]?.heldByCompanyName).toBeUndefined();
+  });
+
   it("marks missing food, missing rooms on an overnight stay, and an expired offer", () => {
     const offers = [harbourHouseProposal, ridgeHallProposal, canalLoftProposal].map(normaliseProposal);
     const rows = compareOffers(plannerBriefSchema.parse(lumenOvernightBrief), offers, today);

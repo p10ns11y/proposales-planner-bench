@@ -14,6 +14,7 @@ export function createFixtureClient(): ProposalesClient {
   let nextDraft = 1;
 
   return {
+    readsLiveProposals: false,
     async listCompanies() {
       return fixtureCompanies.map((company) => ({ ...company }));
     },

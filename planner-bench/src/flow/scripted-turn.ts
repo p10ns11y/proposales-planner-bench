@@ -100,6 +100,7 @@ export async function runFixtureTurn(input: {
       openVenueName: null,
       notice: null,
       sampleOffers: false,
+      offerSource: "fixture",
     },
   };
 }
