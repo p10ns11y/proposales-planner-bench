@@ -1,11 +1,19 @@
+import { plannerBriefSchema, type PlannerBrief } from "../domain/planner-brief";
 import { createClient } from "../proposales/client";
-import { plannerBriefSchema } from "../domain/planner-brief";
-import { currentChatEnv } from "./planner-chat";
+import { resolveBriefPatch } from "./agent-mode";
 import { openingSnapshot } from "./chat-request";
+import { moreDetailsSchema } from "./more-details";
+import { currentChatEnv, type PlannerChatEnv } from "./planner-chat";
 import { plannerSnapshotSchema } from "./planner-snapshot";
 import { runViewportAction, type ViewportAction } from "./viewport-turn";
 
-export async function handlePlannerTurn(request: Request): Promise<Response> {
+export async function handlePlannerTurn(
+  request: Request,
+  options?: {
+    env?: PlannerChatEnv;
+    extractWithModel?: (text: string, brief: PlannerBrief) => Promise<PlannerBrief>;
+  },
+): Promise<Response> {
   const payload: unknown = await request.json();
   if (typeof payload !== "object" || payload === null) {
     return Response.json({ error: "Turn request must be an object." }, { status: 400 });
@@ -14,7 +22,8 @@ export async function handlePlannerTurn(request: Request): Promise<Response> {
   if (action === null) {
     return Response.json({ error: "Unknown turn action." }, { status: 400 });
   }
-  const client = createClient(currentChatEnv());
+  const env = options?.env ?? currentChatEnv();
+  const client = createClient(env);
   const today = new Date().toISOString().slice(0, 10);
   const snapshotValue = Reflect.get(payload, "snapshot");
   const companies =
@@ -30,6 +39,13 @@ export async function handlePlannerTurn(request: Request): Promise<Response> {
     snapshot,
     client,
     today,
+    readPatch: (text, brief) =>
+      resolveBriefPatch({
+        text,
+        brief,
+        env,
+        extractWithModel: options?.extractWithModel,
+      }),
   });
   return Response.json({ snapshot: result.snapshot });
 }
@@ -39,12 +55,24 @@ function readAction(value: unknown): ViewportAction | null {
     return null;
   }
   const type = Reflect.get(value, "type");
-  if (type === "captureSubmitted" || type === "gapAnswered" || type === "favoritesSubmitted") {
+  if (
+    type === "captureSubmitted" ||
+    type === "composerSubmitted" ||
+    type === "gapAnswered" ||
+    type === "favoritesSubmitted"
+  ) {
     const text = Reflect.get(value, "text");
     if (typeof text !== "string") {
       return null;
     }
     return { type, text };
+  }
+  if (type === "moreEdited") {
+    const parsed = moreDetailsSchema.safeParse(Reflect.get(value, "details"));
+    if (!parsed.success) {
+      return null;
+    }
+    return { type: "moreEdited", details: parsed.data };
   }
   if (type === "briefEdited") {
     const briefValue = Reflect.get(value, "brief");

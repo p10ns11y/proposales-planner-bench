@@ -1,7 +1,7 @@
 # Control Card — productize the planner bench
 
 - **goal:** Turn the fixture bench into the professional shell. Free text goes in one sticky input. Clean, confirm the required facts, show structured data, then AI-UI views. Everything else sits in More, collapsed.
-- **phase:** PLAN. The required facts were set on 2026-10-07. Next session starts at EXECUTE. Do not reopen the product vote.
+- **phase:** VERIFY. P1, P2, and P3 are implemented. Browser walk is next. Do not reopen the product vote.
 - **model_role now:** deep for this card. Next session: coding for the inner steps, review on a fresh context.
 - **prior card:** [control-card.md](./control-card.md) owns S1–S6, fixtures, filing, and the contract tests. This card does not redo them.
 - **product:** [planner-bench/PRODUCT.md](./planner-bench/PRODUCT.md), [planner-bench/DESIGN.md](./planner-bench/DESIGN.md), [planner-bench/TASTE.md](./planner-bench/TASTE.md), [planner-product.md](./planner-product.md).
@@ -107,7 +107,7 @@ Browser: `http://localhost:3000` only. `127.0.0.1` does not hydrate.
 
 ## last progress
 
-- 2026-10-07: notes live in `planner-bench/`. This card is the next session. The screen merged with it still asks one question in a side pane. The sticky shell is not built yet.
+- 2026-10-07: P1 splits `brief:comparable` (city, start, end or duration, headcount) from `brief:fileable` (email still gates filing). P2 confirms one missing fact at a time and matches without an email. P3 is one sticky composer, a thread, and collapsed More. Fixture mode is the default. A usable gateway tries the model and any gateway error falls back to the scripted extractor. Fresh review (criterion 6) is not run yet.
 
 ## open decisions
 

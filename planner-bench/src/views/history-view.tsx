@@ -17,7 +17,7 @@ export function HistoryView({ viewModel, onEvent }: HistoryViewProps) {
       title="History"
       side="left"
       trigger={
-        <Button type="button" variant="ghost" className="text-sm text-muted">
+        <Button type="button" variant="ghost" className="min-h-12 px-4 text-sm text-muted">
           History
         </Button>
       }

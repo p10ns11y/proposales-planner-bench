@@ -4,11 +4,11 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { readHistoryLog, historyStorageKey, upsertHistory, type HistoryEntry } from "../flow/history-log";
 import { plannerSnapshotSchema, type PlannerSnapshot } from "../flow/planner-snapshot";
 import type { ViewportAction } from "../flow/viewport-turn";
-import { captureViewModel, resultsViewModel } from "../view-models/selectors";
+import { shellViewModel } from "../view-models/selectors";
 import type { PlannerViewEvent } from "../view-models/view-model";
-import { CaptureView, speechInputAvailable } from "../views/capture-view";
 import { HistoryView } from "../views/history-view";
-import { ResultsView } from "../views/results-view";
+import { PlannerShell } from "../views/planner-shell";
+import { speechInputAvailable } from "../views/speech-input";
 
 export function PlannerSession() {
   const [snapshot, setSnapshot] = useState<PlannerSnapshot | null>(null);
@@ -96,28 +96,20 @@ export function PlannerSession() {
       }
       return;
     }
-    if (event.type === "briefEdited") {
-      void sendAction({ type: "briefEdited", brief: event.brief });
-      return;
-    }
-    if (event.type === "captureSubmitted") {
-      void sendAction({ type: "captureSubmitted", text: event.text });
-      return;
-    }
-    if (event.type === "gapAnswered") {
-      void sendAction({ type: "gapAnswered", text: event.text });
+    if (event.type === "composerSubmitted") {
+      void sendAction({ type: "composerSubmitted", text: event.text });
       return;
     }
     if (event.type === "briefConfirmed") {
-      void sendAction(
-        event.brief === undefined
-          ? { type: "briefConfirmed" }
-          : { type: "briefConfirmed", brief: event.brief },
-      );
+      void sendAction({ type: "briefConfirmed" });
       return;
     }
     if (event.type === "favoritesSubmitted") {
       void sendAction({ type: "favoritesSubmitted", text: event.text });
+      return;
+    }
+    if (event.type === "moreEdited") {
+      void sendAction({ type: "moreEdited", details: event.details });
       return;
     }
     if (event.type === "showMore") {
@@ -135,35 +127,30 @@ export function PlannerSession() {
 
   return (
     <main className="planner-shell" data-brief-stage={snapshot?.stage ?? "collecting"}>
-      <div className="planner-layout">
-        <div className="planner-panes">
-          <CaptureView
-            viewModel={captureViewModel({
-              snapshot,
-              busy,
-              errorText,
-              speechAvailable,
-            })}
+      <PlannerShell
+        viewModel={shellViewModel({
+          snapshot,
+          busy,
+          errorText,
+          speechAvailable,
+        })}
+        onEvent={onEvent}
+        historyControl={
+          <HistoryView
+            viewModel={{
+              open: historyOpen,
+              entries: history.map((entry) => ({
+                id: entry.id,
+                title: entry.title,
+                stage: entry.stage,
+                savedAt: entry.savedAt,
+                venueCount: entry.venueCount,
+              })),
+            }}
             onEvent={onEvent}
-            historyControl={
-              <HistoryView
-                viewModel={{
-                  open: historyOpen,
-                  entries: history.map((entry) => ({
-                    id: entry.id,
-                    title: entry.title,
-                    stage: entry.stage,
-                    savedAt: entry.savedAt,
-                    venueCount: entry.venueCount,
-                  })),
-                }}
-                onEvent={onEvent}
-              />
-            }
           />
-          <ResultsView viewModel={resultsViewModel(snapshot)} onEvent={onEvent} />
-        </div>
-      </div>
+        }
+      />
     </main>
   );
 }

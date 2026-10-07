@@ -10,13 +10,30 @@ import {
 } from "ai";
 import { z } from "zod";
 import { createClient } from "../proposales/client";
-import { latestUserText, openingSnapshot, readChatRequest } from "./chat-request";
+import type { ProposalesClient } from "../proposales/types";
+import { gatewayIsUsable } from "./agent-mode";
+import { latestUserText, openingSnapshot, readChatRequest, type ChatTurnMessage } from "./chat-request";
 import type { PlannerSnapshot } from "./planner-snapshot";
 import { runFixtureTurn } from "./scripted-turn";
 
 export type PlannerUIMessage = UIMessage<unknown, { snapshot: PlannerSnapshot }>;
 
 const plannerModelId = "openai/gpt-4.1-mini";
+
+export type PlannerChatEnv = {
+  PROPOSALES_MODE?: string;
+  PROPOSALES_API_KEY?: string;
+  AI_GATEWAY_API_KEY?: string;
+  PLANNER_MODEL?: string;
+  VERCEL?: string;
+  VERCEL_OIDC_TOKEN?: string;
+};
+
+export type CompletedChatTurn = {
+  reply: string;
+  snapshot: PlannerSnapshot;
+  mode: "live" | "scripted";
+};
 
 export async function handlePlannerChat(request: Request, env: PlannerChatEnv = currentChatEnv()): Promise<Response> {
   const payload: unknown = await request.json();
@@ -28,16 +45,12 @@ export async function handlePlannerChat(request: Request, env: PlannerChatEnv = 
       ? await client.listCompanies()
       : chatRequest.snapshot.companies;
   const snapshot = chatRequest.snapshot ?? openingSnapshot(companies);
-
-  if (env.AI_GATEWAY_API_KEY !== undefined && env.AI_GATEWAY_API_KEY !== "") {
-    return liveAgentResponse(chatRequest.messages, snapshot, client, today, env);
-  }
-
-  const turn = await runFixtureTurn({
-    text: latestUserText(chatRequest.messages),
+  const turn = await completeChatTurn({
+    messages: chatRequest.messages,
     snapshot,
     client,
     today,
+    env,
   });
   const stream = createUIMessageStream<PlannerUIMessage>({
     execute: ({ writer }) => {
@@ -51,12 +64,28 @@ export async function handlePlannerChat(request: Request, env: PlannerChatEnv = 
   return createUIMessageStreamResponse({ stream });
 }
 
-export type PlannerChatEnv = {
-  PROPOSALES_MODE?: string;
-  PROPOSALES_API_KEY?: string;
-  AI_GATEWAY_API_KEY?: string;
-  PLANNER_MODEL?: string;
-};
+export async function completeChatTurn(input: {
+  messages: ChatTurnMessage[];
+  snapshot: PlannerSnapshot;
+  client: ProposalesClient;
+  today: string;
+  env: PlannerChatEnv;
+  runLive?: () => Promise<{ reply: string; snapshot: PlannerSnapshot }>;
+}): Promise<CompletedChatTurn> {
+  if (!gatewayIsUsable(input.env)) {
+    const turn = await scriptedChatTurn(input);
+    return { ...turn, mode: "scripted" };
+  }
+  try {
+    const live = input.runLive
+      ? await input.runLive()
+      : await runLiveChat(input.messages, input.snapshot, input.client, input.today, input.env);
+    return { reply: live.reply, snapshot: live.snapshot, mode: "live" };
+  } catch {
+    const turn = await scriptedChatTurn(input);
+    return { ...turn, mode: "scripted" };
+  }
+}
 
 export function currentChatEnv(): PlannerChatEnv {
   return {
@@ -64,16 +93,32 @@ export function currentChatEnv(): PlannerChatEnv {
     PROPOSALES_API_KEY: envValue("PROPOSALES_API_KEY"),
     AI_GATEWAY_API_KEY: envValue("AI_GATEWAY_API_KEY"),
     PLANNER_MODEL: envValue("PLANNER_MODEL"),
+    VERCEL: envValue("VERCEL"),
+    VERCEL_OIDC_TOKEN: envValue("VERCEL_OIDC_TOKEN"),
   };
 }
 
-async function liveAgentResponse(
-  messages: { role: string; text: string }[],
+async function scriptedChatTurn(input: {
+  messages: ChatTurnMessage[];
+  snapshot: PlannerSnapshot;
+  client: ProposalesClient;
+  today: string;
+}): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
+  return runFixtureTurn({
+    text: latestUserText(input.messages),
+    snapshot: input.snapshot,
+    client: input.client,
+    today: input.today,
+  });
+}
+
+async function runLiveChat(
+  messages: ChatTurnMessage[],
   snapshot: PlannerSnapshot,
-  client: Awaited<ReturnType<typeof createClient>>,
+  client: ProposalesClient,
   today: string,
   env: PlannerChatEnv,
-): Promise<Response> {
+): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
   const state = { snapshot };
   const uiMessages: PlannerUIMessage[] = messages.map((message, messageIndex) => ({
     id: `planner-message-${messageIndex}`,
@@ -82,6 +127,7 @@ async function liveAgentResponse(
   }));
   const result = streamText({
     model: gateway(env.PLANNER_MODEL ?? plannerModelId),
+    abortSignal: AbortSignal.timeout(12_000),
     system: [
       "You are the planner bench agent.",
       "Call updateBrief, fileBrief, addOffer, and compareOffers.",
@@ -153,15 +199,8 @@ async function liveAgentResponse(
       }),
     },
   });
-
-  const stream = createUIMessageStream<PlannerUIMessage>({
-    execute: async ({ writer }) => {
-      writer.merge(result.toUIMessageStream());
-      await result.consumeStream();
-      writer.write({ type: "data-snapshot", data: state.snapshot });
-    },
-  });
-  return createUIMessageStreamResponse({ stream });
+  const reply = await result.text;
+  return { reply, snapshot: state.snapshot };
 }
 
 function envValue(name: string): string | undefined {
