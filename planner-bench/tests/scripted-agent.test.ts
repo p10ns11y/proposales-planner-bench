@@ -165,6 +165,7 @@ describe("viewport flow without a model key", () => {
     });
     expect(confirmed.snapshot.filing).toBeNull();
     expect(confirmed.snapshot.phase).toBe("favorites");
+    expect(confirmed.snapshot.notice?.toLowerCase()).toContain("rooms");
     const refused = await runViewportAction({
       action: { type: "composerSubmitted", text: "file" },
       snapshot: confirmed.snapshot,

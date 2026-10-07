@@ -15,7 +15,7 @@ export function PlannerSession() {
   const [historyOverride, setHistoryOverride] = useState<HistoryEntry[] | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [pendingKind, setPendingKind] = useState<"read" | "search" | null>(null);
+  const [pendingKind, setPendingKind] = useState<"read" | "search" | "more" | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
   const loadGeneration = useRef(0);
   const speechAvailable = useSpeechAvailable();
@@ -56,7 +56,7 @@ export function PlannerSession() {
     });
   }
 
-  async function sendAction(action: ViewportAction, kind: "read" | "search" | null) {
+  async function sendAction(action: ViewportAction, kind: "read" | "search" | "more" | null) {
     if (busy) {
       return;
     }
@@ -84,7 +84,7 @@ export function PlannerSession() {
     }
   }
 
-  function onEvent(event: PlannerViewEvent, pending?: "read" | "search") {
+  function onEvent(event: PlannerViewEvent, pending?: "read" | "search" | "more") {
     if (event.type === "historyToggled") {
       setHistoryOpen(event.open);
       return;
@@ -117,7 +117,7 @@ export function PlannerSession() {
       return;
     }
     if (event.type === "moreEdited") {
-      void sendAction({ type: "moreEdited", details: event.details }, null);
+      void sendAction({ type: "moreEdited", details: event.details }, pending ?? "more");
       return;
     }
     if (event.type === "showMore") {

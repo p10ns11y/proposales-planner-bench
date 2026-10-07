@@ -2,7 +2,7 @@ Feature: Planner critical path
   A full-day brief stays on confirm until the visitor says whether the budget is per person or total, and only then ranks offers.
 
   Scenario: brief confirms the assumed day, asks the budget basis, and ranks only after confirm
-    Given the planner is open with detail and More closed
+    Given the planner is open with detail and Add details closed
     When the visitor sends "Team offsite in Stockholm for 25 people on 3 Dec 2026, a full day with breakout space and vegetarian lunch. Budget around EUR 300."
     Then the city fact is "Stockholm"
     And the date fact contains "2026"
@@ -79,6 +79,33 @@ Feature: Planner critical path
     Then Compare is absent
     When the wide desktop viewport shows five offers
     Then Compare is absent
+
+  Scenario: fits the More drawer on a phone and a desktop
+    Given the ranked results
+    When the visitor opens Add details at 390 by 844
+    Then the drawer body does not scroll sideways
+    And Rooms and Meeting rooms are separate rows with 44 pixel controls
+    When the visitor opens Add details at 1280 by 800
+    Then the drawer body does not scroll sideways
+    And every field fits the drawer
+
+  Scenario: shows the chosen language after an English brief
+    Given the planner is open with detail and Add details closed
+    When the visitor opens Add details before a brief
+    Then neither language is pressed, both are enabled, and the hint says what the choice sets
+    When an English brief reaches the results and Add details opens
+    Then exactly one language control is pressed
+    And that choice stays pressed on a phone
+
+  Scenario: shows the updated headcount after More applies
+    Given the ranked results on a phone
+    When the visitor applies Add details without changes
+    Then the status says nothing changed
+    When the visitor sets guests to 30 and meeting rooms to 2
+    Then a busy state shows while the turn runs
+    And the update line is "Updated: 30 guests, 2 meeting rooms"
+    And the results header contains the new guest count
+    And the same line and count stay visible on a desktop
 
   Scenario: starts a new chat from the header during a conversation
     Given a phone or a desktop viewport and a full-day brief waiting on confirm

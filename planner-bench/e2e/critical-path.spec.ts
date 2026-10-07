@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Route } from "@playwright/test";
 
 const fullDay =
   "Team offsite in Stockholm for 25 people on 3 Dec 2026, a full day with breakout space and vegetarian lunch. Budget around EUR 300.";
@@ -151,6 +151,83 @@ test("shows Compare for two or three wide offers only", async ({ page }) => {
   await expectWideCompare(page, false);
 });
 
+test("fits the More drawer on a phone and a desktop", async ({ page }) => {
+  await reachResults(page);
+  await expectDrawerFits(page, { width: 390, height: 844 });
+  await page.keyboard.press("Escape");
+  await expectDrawerFits(page, { width: 1280, height: 800 });
+});
+
+test("shows the chosen language after an English brief", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("[data-lcv-marker=detail]")).toHaveAttribute("data-lcv-ui-state", "detail:closed");
+  await expect(page.locator("[data-lcv-marker=more]")).toHaveAttribute("data-lcv-ui-state", "more:closed");
+  await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+  const drawer = page.getByRole("dialog", { name: "Add details" });
+  const english = drawer.getByRole("button", { name: "English" });
+  const svenska = drawer.getByRole("button", { name: "Svenska" });
+  await expect(english).toHaveAttribute("aria-pressed", "false");
+  await expect(svenska).toHaveAttribute("aria-pressed", "false");
+  await expect(english).toBeEnabled();
+  await expect(svenska).toBeEnabled();
+  await expect(drawer.locator('[aria-pressed="true"]')).toHaveCount(0);
+  await expect(drawer.getByText("Language of the request venues receive")).toBeVisible();
+  expect(await svenska.evaluate((element) => getComputedStyle(element).opacity)).toBe("1");
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await reachResults(page);
+  await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+  const open = page.getByRole("dialog", { name: "Add details" });
+  await expect(open.locator('[aria-pressed="true"]')).toHaveCount(1);
+  await expect(open.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "true");
+  await expect(open.getByRole("button", { name: "Svenska" })).toHaveAttribute("aria-pressed", "false");
+  const pressedBackground = await open.getByRole("button", { name: "English" }).evaluate((element) => getComputedStyle(element).backgroundColor);
+  const openBackground = await open.getByRole("button", { name: "Svenska" }).evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(pressedBackground).not.toBe(openBackground);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(open.locator('[aria-pressed="true"]')).toHaveCount(1);
+});
+
+test("shows the updated headcount after More applies", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await reachResults(page);
+  await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+  let drawer = page.getByRole("dialog", { name: "Add details" });
+  await drawer.locator("[data-lcv-event=save-more]").click();
+  await expect(drawer).toBeHidden();
+  await expect(page.locator("[data-more-update]")).toHaveText("Nothing changed");
+
+  await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+  drawer = page.getByRole("dialog", { name: "Add details" });
+  await stepTo(drawer.getByRole("group", { name: "Guests" }), "guests", 30);
+  await stepTo(drawer.getByRole("group", { name: "Meeting rooms" }), "meeting rooms", 2);
+  let releaseTurn: () => void = () => undefined;
+  const turnHeld = new Promise<void>((resolve) => {
+    releaseTurn = resolve;
+  });
+  await page.route("**/api/turn", async (route) => {
+    const body = route.request().postDataJSON() as { action?: { type?: string } };
+    if (body.action?.type === "moreEdited") {
+      await turnHeld;
+    }
+    await route.continue();
+  });
+  const applying = drawer.locator("[data-lcv-event=save-more]").click();
+  await expect(page.getByRole("status").filter({ hasText: "Updating the brief" })).toBeVisible();
+  releaseTurn();
+  await applying;
+  await expect(page.locator("[data-more-update]")).toHaveText("Updated: 30 guests, 2 meeting rooms");
+  await expect(page.locator("[data-lcv-count=header]")).toContainText("30 guests");
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect(page.locator("[data-more-update]")).toHaveText("Updated: 30 guests, 2 meeting rooms");
+  await expect(page.locator("[data-lcv-count=header]")).toContainText("30 guests");
+});
+
 async function fileEnglishBrief(page: Page, viewport: { width: number; height: number }) {
   await page.setViewportSize(viewport);
   await reachResults(page);
@@ -283,6 +360,66 @@ async function expectWideCompare(page: Page, shown: boolean) {
     return;
   }
   await expect(page.getByRole("button", { name: "Compare" })).toHaveCount(0);
+}
+
+async function expectDrawerFits(page: Page, viewport: { width: number; height: number }) {
+  await page.setViewportSize(viewport);
+  await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+  const drawer = page.getByRole("dialog", { name: "Add details" });
+  await expect(drawer).toBeVisible();
+  const body = drawer.locator(".planner-drawer-body");
+  expect(
+    await body.evaluate((node) => {
+      const bounds = node.getBoundingClientRect();
+      const spilled = [...node.querySelectorAll("input, textarea, button, .planner-step-row, .planner-segment")].some(
+        (element) => {
+          const rect = element.getBoundingClientRect();
+          return rect.width > 0 && (rect.left < bounds.left - 1 || rect.right > bounds.right + 1);
+        },
+      );
+      return node.scrollWidth <= node.clientWidth && !spilled;
+    }),
+  ).toBe(true);
+  const rooms = drawer.getByRole("group", { name: "Rooms", exact: true });
+  const meetings = drawer.getByRole("group", { name: "Meeting rooms" });
+  const roomsBox = await rooms.boundingBox();
+  const meetingsBox = await meetings.boundingBox();
+  const bodyBox = await body.boundingBox();
+  expect(roomsBox).toBeTruthy();
+  expect(meetingsBox).toBeTruthy();
+  expect(bodyBox).toBeTruthy();
+  if (roomsBox === null || meetingsBox === null || bodyBox === null) {
+    return;
+  }
+  expect(meetingsBox.y).toBeGreaterThanOrEqual(roomsBox.y + roomsBox.height - 1);
+  expect(roomsBox.width).toBeGreaterThan(bodyBox.width * 0.85);
+  expect(meetingsBox.width).toBeGreaterThan(bodyBox.width * 0.85);
+  const buttonBox = await rooms.getByRole("button").first().boundingBox();
+  expect(buttonBox).toBeTruthy();
+  if (buttonBox === null) {
+    return;
+  }
+  expect(buttonBox.width).toBeGreaterThanOrEqual(44);
+  expect(buttonBox.height).toBeGreaterThanOrEqual(44);
+  const labelBox = await rooms.locator("span").first().boundingBox();
+  const stepperBox = await rooms.locator(".planner-stepper").boundingBox();
+  expect(labelBox).toBeTruthy();
+  expect(stepperBox).toBeTruthy();
+  if (labelBox === null || stepperBox === null) {
+    return;
+  }
+  expect(labelBox.x + labelBox.width).toBeLessThanOrEqual(stepperBox.x + 1);
+}
+
+async function stepTo(group: Locator, label: string, target: number) {
+  const value = group.locator(".planner-step-value");
+  let current = Number((await value.innerText()).trim());
+  const name = `${current < target ? "More" : "Fewer"} ${label}`;
+  while (current !== target) {
+    await group.getByRole("button", { name }).click();
+    current += current < target ? 1 : -1;
+  }
+  await expect(value).toHaveText(String(target));
 }
 
 const sizedViewports = [
