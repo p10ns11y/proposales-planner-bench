@@ -4,7 +4,7 @@
 - **phase:** INTEGRATE. Review returned pass. The pull request is open. Do not merge unless asked. Do not reopen the product vote.
 - **model_role now:** deep for this card. Next session: coding for the inner steps, review on a fresh context.
 - **prior card:** [control-card.md](./control-card.md) owns S1–S6, fixtures, filing, and the contract tests. This card does not redo them.
-- **product:** [PRODUCT.md](./PRODUCT.md), [DESIGN.md](./DESIGN.md), [TASTE.md](./TASTE.md), [planner-product.md](./planner-product.md).
+- **product:** [PRODUCT.md](../PRODUCT.md), [DESIGN.md](../DESIGN.md), [TASTE.md](../TASTE.md), [planner-product.md](./planner-product.md).
 
 ## What this session builds
 
@@ -123,5 +123,5 @@ Browser: `http://localhost:3000` only. `127.0.0.1` does not hydrate.
 
 ## handoff
 
-- artifacts: this card, `PRODUCT.md`, `DESIGN.md`, `TASTE.md`, `planner-product.md`
+- artifacts: this card, [PRODUCT.md](../PRODUCT.md), [DESIGN.md](../DESIGN.md), [TASTE.md](../TASTE.md), [planner-product.md](./planner-product.md)
 - open_risks: filing and matching use different field sets; the dev server must be opened as localhost

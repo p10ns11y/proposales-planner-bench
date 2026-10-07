@@ -14,7 +14,7 @@ A planner who needs a place for an event. They may know nothing about Proposales
 
 The bench turns what they say into a brief, finds venues through Proposales, and shows the best fits. Success is that the hard work stays behind one input, and a person can finish without learning the product.
 
-The flow already defined in [planner-product.md](planner-product.md) is the flow: free text, clean, confirm, structured data, then the views. Favorites, fetch, rank, and show still follow. This record does not replace that flow. It says which facts block it.
+The flow already defined in [planner-product.md](notes/planner-product.md) is the flow: free text, clean, confirm, structured data, then the views. Favorites, fetch, rank, and show still follow. This record does not replace that flow. It says which facts block it.
 
 ## Positioning
 
@@ -22,7 +22,7 @@ One problem, solved so it feels effortless. The person types or talks into one s
 
 ## Operating Context
 
-The app lives at the repository root. It is a web page. Company is a Proposales hotel account. Organisation is the planner's client. Venue is a priced row. Those names are fixed in [planner-product.md](planner-product.md) and [ontology.md](ontology.md).
+The app lives at the repository root. It is a web page. Company is a Proposales hotel account. Organisation is the planner's client. Venue is a priced row. Those names are fixed in [planner-product.md](notes/planner-product.md) and [ontology.md](notes/ontology.md).
 
 The first thing on the page is the input. Company is never the first control. History stays available and stays off the first glance.
 
@@ -97,8 +97,8 @@ The screen is humble. The craft is in how little it asks them to do. Voice and r
 
 ## Evidence on Hand
 
-- Flow, names, fetch, and rank: [planner-product.md](planner-product.md)
-- Booker walk and the company / venue / organisation split: [ux-findings.md](ux-findings.md)
+- Flow, names, fetch, and rank: [planner-product.md](notes/planner-product.md)
+- Booker walk and the company / venue / organisation split: [ux-findings.md](notes/ux-findings.md)
 - Fixture venues already in the bench: Harbour House, Ridge Hall, Canal Loft. Do not invent further venues, prices, photos, or testimonials.
 
 ## Product Principles

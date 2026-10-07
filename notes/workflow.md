@@ -26,7 +26,7 @@ The predicate is never relaxed to declare victory. A real dead end gets surfaced
 | **P4 Verify** | Real commands on the right surface | pstack `prove-it-works`, Vercel `verification`, Playwright MCP, `layout-content-view` | Pass/fail per exit-condition item |
 | **P5 Harden** | Only the core logic: fitness, normaliser, gaps, client mode switch | `craft` (CRAP scores, mutation testing) | Mutation score, untested branches closed |
 | **P6 Review** | Fresh context, not the implementer | pstack `interrogate`, `no-comments`, `unslop` | Gaps list |
-| **P7 Integrate** | Record and hand over | `show-me-your-work`, `michelin-kitchen` (`findings-first`, `shared-scripts`) | `journey.md`, `worklog.md`, card updated |
+| **P7 Integrate** | Record and hand over | `show-me-your-work`, `michelin-kitchen` (`findings-first`, `shared-scripts`) | [journey.md](journey.md), [worklog.md](worklog.md), card updated |
 | **P8 Human** (later) | Design, keys, deploy | `impeccable`, `shadcn`, `layout-content-view`, Vercel `env-vars` and `vercel-cli` | D1 design session; secrets and deploy by you |
 
 ## P1 — invariants placed by trust-stack
@@ -124,5 +124,5 @@ Patterns that keep a redesign cheap:
 | `pstack arena`, `swarm` | One shape is clear enough; parallel runners would cost more than they reveal |
 | `git-worktrees` | One owner; no parallel checkouts |
 | `odysseus-navigator` | Optional at P6 if the design looks over-clever |
-| `pulse-memory`, `premflow` | `journey.md` and `worklog.md` already cover this |
+| `pulse-memory`, `premflow` | [journey.md](journey.md) and [worklog.md](worklog.md) already cover this |
 | `mvu-refactor-plan` | Written for C and CMake. Its model-view-update idea is covered by the XState flow layer |

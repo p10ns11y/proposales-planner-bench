@@ -1,6 +1,6 @@
 # Review — what to build on the Proposales API
 
-Sources: `tech-case.md` (the application brief) and `proposales-report.md` (product and API map). The report was written when `tech-case.md` was empty, so it ranks gaps. This review ranks gaps that a free account can demonstrate and that can be charged for without a Proposales partnership.
+Sources: [tech-case.md](tech-case.md) (the application brief) and [proposales-report.md](proposales-report.md) (product and API map). The report was written when [tech-case.md](tech-case.md) was empty, so it ranks gaps. The definition that followed the vote is [planner-product.md](planner-product.md). This review ranks gaps that a free account can demonstrate and that can be charged for without a Proposales partnership.
 
 ## The brief
 

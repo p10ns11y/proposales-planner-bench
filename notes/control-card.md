@@ -6,7 +6,7 @@ The next session uses [control-card-productize.md](./control-card-productize.md)
 - **phase:** EXECUTE (S6 done). S7 and D1 are not started.
 - **decision:** concordance proceed. Both judges say planner-bench, `p_dm` 0.42, `tau` 0.4 (caller). The pending `inbox_token` check cannot change the label.
 - **model_role now:** coding through S6. Next: S7 review, not this session.
-- **workflow:** [workflow.md](./workflow.md) maps each phase to plugins and sets the autonomous-run exit condition.
+- **workflow:** [workflow.md](./workflow.md) maps each phase to plugins and sets the autonomous-run exit condition. Terms are in [ontology.md](./ontology.md).
 
 ## Tech stack
 | Concern | Choice | Role in the app |
@@ -62,7 +62,7 @@ pnpm build
 | S4 | `ProposalesClient` port with `fixture` and `http` adapters, chosen by `PROPOSALES_MODE`. Live responses are parsed with the tolerant readers in `http-client.ts`. `fileBrief()` picks inbox or draft from `inbox_token`. | S2 | mode-switch and path tests pass | coding |
 | S5 | Agent route: AI SDK `streamText` with tools `updateBrief`, `fileBrief`, `addOffer`, `compareOffers`. The next question comes from the gap list. Scripted fixture agent when there is no model key. | S3, S4 | tests pass with no key | coding |
 | S6 | UI shell with shadcn: Chat (text and Web Speech input), Results grid, History (`localStorage`). Plain styling only. | S5 | `pnpm build` passes and the flow works on fixtures | coding |
-| S7 | Fresh-context review of plan and diff, plus a `layout-content-view` pass on the three views. Update `journey.md` and `worklog.md`. | S6 | pass/fail and gaps listed | review |
+| S7 | Fresh-context review of plan and diff, plus a `layout-content-view` pass on the three views. Update [journey.md](journey.md) and [worklog.md](worklog.md). | S6 | pass/fail and gaps listed | review |
 | D1 | **Design session (separate):** look and feel and the nature of the app with `impeccable`, shadcn theming, `layout-content-view`. | S6 | user-led | human + deep |
 
 S3 and S4 can run in parallel after S2.
@@ -87,8 +87,8 @@ S3 and S4 can run in parallel after S2.
 - Web Speech still depends on the browser. Typed input is always available.
 
 ## compact context for any new agent
-- Read only: this card, `workflow.md`, and `src/contract/openapi.json`.
-- Do not read: `proposales-report.md`, `review.md`, `journey.md`, or agent transcripts, unless a step needs a fact that is missing here.
+- Read only: this card, [workflow.md](./workflow.md), and `src/contract/openapi.json`.
+- Do not read: [proposales-report.md](proposales-report.md), [review.md](review.md), [journey.md](journey.md), or agent transcripts, unless a step needs a fact that is missing here.
 - Workspace and app: repository root. Node 22, pnpm 9.
 - The Git root is this workspace. Do not run `git init`. Small steps can commit to `main`. Larger features go on a branch and a pull request.
 - No secrets exist yet. Fixture mode is the default. Never ask the human during EXECUTE; log open decisions on this card.
@@ -97,5 +97,5 @@ S3 and S4 can run in parallel after S2.
 - none
 
 ## handoff
-- artifacts: `control-card.md`, `proposales-report.md`, `review.md`, `src/contract/openapi.json`
+- artifacts: [control-card.md](control-card.md), [proposales-report.md](proposales-report.md), [review.md](review.md), `src/contract/openapi.json`
 - open_risks: `additionalProperties` are not kept by the generated Zod schemas (the adapter sends the original metadata); Web Speech support varies by browser (text input is always available); `braces` audit advisory is dev-only and has no patch

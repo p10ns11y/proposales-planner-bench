@@ -1,6 +1,6 @@
 # Proposales — first-principles product report and third-party build map
 
-Sources: proposales.com (home, pricing, MCP, Operator, product and connect pages), the full developer docs at docs.proposales.com (35 pages and `openapi.json` v2026.09.02). Raw captures live in `.firecrawl/`. Note: `tech-case.md` was empty when this was written, so the build ideas below are not tied to a specific brief.
+Sources: proposales.com (home, pricing, MCP, Operator, product and connect pages), the full developer docs at docs.proposales.com (35 pages and `openapi.json` v2026.09.02). Raw captures live in `.firecrawl/`. Note: [tech-case.md](tech-case.md) was empty when this was written, so the build ideas below are not tied to a specific brief. The later choice of what to build is in [review.md](review.md).
 
 **Terminology:** acronyms and abbreviations (RFP, PMS, MICE, OPERA block statuses, and the rest) are defined in [ontology.md](./ontology.md).
 

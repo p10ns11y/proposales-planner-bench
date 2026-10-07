@@ -4,6 +4,8 @@ One line names a city, a date and time, and how many people. The bench confirms 
 
 The live app is at https://proposales-planner-bench.vercel.app.
 
+Research, findings, and plans are in [Notes](notes/README.md).
+
 ## Run
 
 ```bash

@@ -1,6 +1,6 @@
 # Journey — findings and limitations
 
-Short statements of what we learned and where our knowledge stops. Details live in [proposales-report.md](./proposales-report.md), terms in [ontology.md](./ontology.md), the build choice in [review.md](./review.md), and time in [worklog.md](./worklog.md).
+Short statements of what we learned and where our knowledge stops. Details live in [proposales-report.md](./proposales-report.md), terms in [ontology.md](./ontology.md), the build choice in [review.md](./review.md), the product definition in [planner-product.md](./planner-product.md), and time in [worklog.md](./worklog.md).
 
 ## Findings
 

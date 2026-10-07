@@ -2,7 +2,7 @@
 
 Walked 2026-10-06 on `http://localhost:3000` in Chromium, as a person who only wants to book a place. No product knowledge. These notes are for the later design session (S7 / D1). The page is unchanged.
 
-The research notes stay in [journey.md](./journey.md). Terms stay in [ontology.md](./ontology.md).
+The research notes stay in [journey.md](./journey.md). Terms stay in [ontology.md](./ontology.md). The product definition is in [planner-product.md](./planner-product.md).
 
 ## Verdict
 

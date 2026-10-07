@@ -1,6 +1,6 @@
 # Product — planner bench
 
-This file is the planner definition: the flow, the names, and fetch and rank. The shell, the hold, and the later extensions are in [PRODUCT.md](./PRODUCT.md). Voice is in [TASTE.md](./TASTE.md). Visual materials are in [DESIGN.md](./DESIGN.md).
+This file is the planner definition: the flow, the names, and fetch and rank. The shell, the hold, and the later extensions are in [PRODUCT.md](../PRODUCT.md). Voice is in [TASTE.md](../TASTE.md). Visual materials are in [DESIGN.md](../DESIGN.md).
 
 One screen. A planner says what they want into one sticky input. The bench turns that into a short brief, finds the best-fitting venues from Proposales, and shows them ranked in the thread. Favorites they already have in mind sit on that same list, marked.
 
@@ -65,13 +65,13 @@ The screen is humble and simple. The craft is extreme. Beauty comes from the one
 
 Mode is Operate: a person finishes a task. The first thing they meet is the input.
 
-Tailwind and shadcn stay the materials. The recorded materials are in [DESIGN.md](./DESIGN.md).
+Tailwind and shadcn stay the materials. The recorded materials are in [DESIGN.md](../DESIGN.md).
 
 Wrong even if polished: a dashboard of labels, a loud marketing page, a form of every brief field, or a thread that makes them guess a magic phrase.
 
 ## This pass
 
-Make the defined flow work behind the sticky input. Simple on the surface. The cleaning, the fetch, and the rank stay the hard work. Off-topic asks stop at the hold in [TASTE.md](./TASTE.md).
+Make the defined flow work behind the sticky input. Simple on the surface. The cleaning, the fetch, and the rank stay the hard work. Off-topic asks stop at the hold in [TASTE.md](../TASTE.md).
 
 ## Next hydration
 
