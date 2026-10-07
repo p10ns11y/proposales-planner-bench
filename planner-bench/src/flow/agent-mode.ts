@@ -6,7 +6,7 @@ import type { PlannerChatEnv } from "./planner-chat";
 
 export const defaultPlannerModelId = "grok-4.7";
 
-export const modelAttemptMs = 20_000;
+export const modelAttemptMs = 40_000;
 
 export const briefExtractionProviderOptions = {
   xai: {

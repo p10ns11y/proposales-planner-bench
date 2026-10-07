@@ -37,7 +37,7 @@ Leave `XAI_API_KEY` and `PLANNER_MODEL` empty to keep the scripted extractor.
 
 ## Model
 
-Grok runs through xAI only when `XAI_API_KEY` is set on the server. The default model id is `grok-4.7`. `PLANNER_MODEL` overrides that id. A missing key, a model error, or a timeout falls back to the scripted extractor within about 20 seconds. Brief extraction requests low reasoning effort. A Vercel deploy without `XAI_API_KEY` stays scripted.
+Grok runs through xAI only when `XAI_API_KEY` is set on the server. The default model id is `grok-4.7`. `PLANNER_MODEL` overrides that id. A missing key, a model error, or a timeout falls back to the scripted extractor within about 40 seconds. Brief extraction requests low reasoning effort. A Vercel deploy without `XAI_API_KEY` stays scripted.
 
 On Vercel, set the project root to `planner-bench`. Fixture mode needs no secrets.
 
