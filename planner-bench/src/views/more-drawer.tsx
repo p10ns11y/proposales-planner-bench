@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { Sheet } from "../design/ui/sheet";
 import type { MoreFieldValues, PlannerViewEvent } from "../view-models/view-model";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
+import { moreUpdateLine } from "./more-update";
 
 type MoreDrawerProps = {
   more: MoreFieldValues;
@@ -23,6 +24,7 @@ const fieldKeys: (keyof MoreFieldValues)[] = [
   "organisationName",
   "contactEmail",
   "language",
+  "attendeeCount",
   "roomCount",
   "meetingRoomCount",
   "foodRequired",
@@ -51,8 +53,11 @@ export function MoreDrawer({
       onOpenChange={onOpenChange}
       onCloseAutoFocus={onCloseAutoFocus}
       onApply={(details) => {
-        onEvent({ type: "moreEdited", details });
-        onApplied(updateLine(details));
+        const line = moreUpdateLine(details);
+        if (line !== "Nothing changed") {
+          onEvent({ type: "moreEdited", details });
+        }
+        onApplied(line);
         onOpenChange(false);
       }}
     />
@@ -79,12 +84,7 @@ function MoreForm({
   const [values, setValues] = useState(more);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const details = changedDetails(more, values);
-    if (Object.keys(details).length === 0) {
-      onOpenChange(false);
-      return;
-    }
-    onApply(details);
+    onApply(changedDetails(more, values));
   }
   return (
     <Sheet
@@ -149,7 +149,12 @@ function MoreForm({
         />
         <div className="planner-field">
           <span id="more-language-label">Language</span>
-          <div className="planner-segment" role="group" aria-labelledby="more-language-label">
+          <div
+            className="planner-segment"
+            role="group"
+            aria-labelledby="more-language-label"
+            aria-describedby="more-language-hint"
+          >
             <button
               type="button"
               aria-pressed={values.language === "en"}
@@ -167,19 +172,25 @@ function MoreForm({
               Svenska
             </button>
           </div>
+          <p id="more-language-hint" className="planner-field-hint">
+            Language of the request venues receive
+          </p>
         </div>
-        <div className="planner-step-pair">
-          <CountStepper
-            label="Rooms"
-            value={values.roomCount}
-            onChange={(roomCount) => setValues({ ...values, roomCount })}
-          />
-          <CountStepper
-            label="Meeting rooms"
-            value={values.meetingRoomCount}
-            onChange={(meetingRoomCount) => setValues({ ...values, meetingRoomCount })}
-          />
-        </div>
+        <CountStepper
+          label="Guests"
+          value={values.attendeeCount}
+          onChange={(attendeeCount) => setValues({ ...values, attendeeCount })}
+        />
+        <CountStepper
+          label="Rooms"
+          value={values.roomCount}
+          onChange={(roomCount) => setValues({ ...values, roomCount })}
+        />
+        <CountStepper
+          label="Meeting rooms"
+          value={values.meetingRoomCount}
+          onChange={(meetingRoomCount) => setValues({ ...values, meetingRoomCount })}
+        />
         <div className="planner-switch-row">
           <span id="more-food-label">Food</span>
           <button
@@ -332,42 +343,9 @@ function assignDetail(details: Partial<MoreFieldValues>, key: keyof MoreFieldVal
   if (key === "organisationName") details.organisationName = value;
   if (key === "contactEmail") details.contactEmail = value;
   if (key === "language") details.language = value;
+  if (key === "attendeeCount") details.attendeeCount = value;
   if (key === "roomCount") details.roomCount = value;
   if (key === "meetingRoomCount") details.meetingRoomCount = value;
   if (key === "notes") details.notes = value;
   if (key === "budget") details.budget = value;
-}
-
-function updateLine(details: Partial<MoreFieldValues>): string {
-  const parts: string[] = [];
-  if (details.eventTitle !== undefined) {
-    parts.push(details.eventTitle === "" ? "event name cleared" : details.eventTitle);
-  }
-  if (details.organisationName !== undefined) {
-    parts.push(details.organisationName === "" ? "organisation cleared" : details.organisationName);
-  }
-  if (details.contactEmail !== undefined) {
-    parts.push(details.contactEmail === "" ? "email cleared" : details.contactEmail);
-  }
-  if (details.language !== undefined) {
-    parts.push(details.language === "" ? "language cleared" : `language ${details.language}`);
-  }
-  if (details.roomCount !== undefined) {
-    parts.push(details.roomCount === "" ? "rooms cleared" : `${details.roomCount} rooms`);
-  }
-  if (details.meetingRoomCount !== undefined) {
-    parts.push(
-      details.meetingRoomCount === "" ? "meeting rooms cleared" : `${details.meetingRoomCount} meeting rooms`,
-    );
-  }
-  if (details.foodRequired !== undefined) {
-    parts.push(details.foodRequired === "yes" ? "food on" : details.foodRequired === "no" ? "food off" : "food cleared");
-  }
-  if (details.notes !== undefined) {
-    parts.push(details.notes === "" ? "notes cleared" : "notes updated");
-  }
-  if (details.budget !== undefined) {
-    parts.push(details.budget === "" ? "budget cleared" : `budget ${details.budget}`);
-  }
-  return `Updated: ${parts.join(", ")}`;
 }

@@ -9,6 +9,7 @@ export const moreDetailsSchema = z.object({
   organisationName: textField,
   contactEmail: textField,
   language: textField,
+  attendeeCount: textField,
   roomCount: textField,
   meetingRoomCount: textField,
   foodRequired: z.enum(["", "yes", "no"]).optional(),
@@ -25,6 +26,7 @@ export function applyMoreDetails(brief: PlannerBrief, details: MoreDetails): Pla
   assignText(next, "contactEmail", details.contactEmail);
   assignText(next, "language", details.language);
   assignText(next, "notes", details.notes);
+  assignCount(next, "attendeeCount", details.attendeeCount);
   assignCount(next, "roomCount", details.roomCount);
   assignCount(next, "meetingRoomCount", details.meetingRoomCount);
   assignFood(next, details.foodRequired);
@@ -50,7 +52,7 @@ function assignText(
 
 function assignCount(
   brief: PlannerBrief,
-  key: "roomCount" | "meetingRoomCount",
+  key: "attendeeCount" | "roomCount" | "meetingRoomCount",
   value: string | undefined,
 ) {
   if (value === undefined) {

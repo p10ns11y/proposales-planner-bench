@@ -28,6 +28,15 @@ describe("applyMoreDetails", () => {
     expect(next.attendeeCount).toBe(40);
   });
 
+  it("stores a guest count from More and clears it when the save is empty", () => {
+    const saved = applyMoreDetails(brief, { attendeeCount: "30" });
+    expect(saved.attendeeCount).toBe(30);
+    expect(saved.meetingRoomCount).toBe(2);
+    const cleared = applyMoreDetails(saved, { attendeeCount: "" });
+    expect(cleared.attendeeCount).toBeUndefined();
+    expect(cleared.meetingRoomCount).toBe(2);
+  });
+
   it("clears a field when the save sends it empty", () => {
     const next = applyMoreDetails(brief, {
       meetingRoomCount: "",
@@ -72,5 +81,18 @@ describe("applyMoreDetails", () => {
       speechAvailable: false,
     });
     expect(view.more.budget).toBe("2500");
+    expect(view.more.attendeeCount).toBe("");
+  });
+
+  it("shows the stored guest count in More", () => {
+    const snapshot = emptySnapshot([], "", []);
+    snapshot.brief = plannerBriefSchema.parse({ attendeeCount: 40 });
+    const view = shellViewModel({
+      snapshot,
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(view.more.attendeeCount).toBe("40");
   });
 });

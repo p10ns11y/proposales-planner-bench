@@ -13,6 +13,7 @@ const files = [
   "src/flow/brief-language.ts",
   "src/flow/filing-guard.ts",
   "src/views/file-brief-state.ts",
+  "src/views/more-update.ts",
 ];
 const detected = new Set(["Killed", "Timeout", "RuntimeError"]);
 const counted = new Set(["Killed", "Timeout", "RuntimeError", "Survived", "NoCoverage"]);
