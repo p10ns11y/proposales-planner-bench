@@ -3,16 +3,11 @@ import { comparisonRowSchema } from "../domain/comparison-row";
 import { plannerBriefSchema } from "../domain/planner-brief";
 import { venueOfferSchema } from "../domain/venue-offer";
 import type { BriefStage } from "./brief-flow";
+import { companiesForClient, companyRecordSchema, type ClientCompany } from "./client-company";
 
 export const viewportPhaseSchema = z.enum(["capture", "confirm", "favorites", "results"]);
 
 export type ViewportPhase = z.infer<typeof viewportPhaseSchema>;
-
-export const companyRecordSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  inboxToken: z.string().nullable(),
-});
 
 export const fileBriefResultSchema = z.discriminatedUnion("path", [
   z.object({ path: z.literal("inbox"), id: z.number() }),
@@ -44,11 +39,12 @@ export type PlannerSnapshot = z.infer<typeof plannerSnapshotSchema>;
 export const defaultVisibleRowCount = 5;
 
 export function emptySnapshot(
-  companies: PlannerSnapshot["companies"],
+  companies: readonly ClientCompany[],
   nextQuestion: string,
   gaps: string[],
 ): PlannerSnapshot {
-  const firstCompany = companies[0];
+  const listed = companiesForClient(companies);
+  const firstCompany = listed[0];
   return {
     brief: {},
     stage: "collecting" satisfies BriefStage,
@@ -57,7 +53,7 @@ export function emptySnapshot(
     filing: null,
     gaps,
     nextQuestion,
-    companies,
+    companies: listed,
     selectedCompanyId: firstCompany === undefined ? null : firstCompany.id,
     grid: [],
     favoriteVenueNames: [],
@@ -67,5 +63,12 @@ export function emptySnapshot(
     sampleOffers: false,
     offerSource: "fixture",
     filingAvailable: true,
+  };
+}
+
+export function snapshotForClient(snapshot: PlannerSnapshot): PlannerSnapshot {
+  return {
+    ...snapshot,
+    companies: companiesForClient(snapshot.companies),
   };
 }

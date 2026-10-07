@@ -16,7 +16,7 @@ import { offerGroupFromShell } from "../view-models/offer-part";
 import { shellViewModel } from "../view-models/selectors";
 import { modelAttemptSignal, modelIsUsable, plannerLanguageModel } from "./agent-mode";
 import { latestUserText, readChatRequest, readSessionSnapshot, type ChatTurnMessage } from "./chat-request";
-import type { PlannerSnapshot } from "./planner-snapshot";
+import { snapshotForClient, type PlannerSnapshot } from "./planner-snapshot";
 import { runFixtureTurn } from "./scripted-turn";
 
 export type PlannerUIMessage = UIMessage<unknown, { snapshot: PlannerSnapshot; "offer-group": OfferGroupPart }>;
@@ -47,16 +47,17 @@ export async function handlePlannerChat(request: Request, env: PlannerChatEnv = 
     today,
     env,
   });
+  const clientSnapshot = snapshotForClient(turn.snapshot);
   const stream = createUIMessageStream<PlannerUIMessage>({
     execute: ({ writer }) => {
       const textId = "planner-reply";
       writer.write({ type: "text-start", id: textId });
       writer.write({ type: "text-delta", id: textId, delta: turn.reply });
       writer.write({ type: "text-end", id: textId });
-      writer.write({ type: "data-snapshot", data: turn.snapshot });
+      writer.write({ type: "data-snapshot", data: clientSnapshot });
       const group = offerGroupFromShell(
         shellViewModel({
-          snapshot: turn.snapshot,
+          snapshot: clientSnapshot,
           busy: false,
           errorText: null,
           speechAvailable: false,

@@ -4,7 +4,7 @@ import { resolveBriefPatch, type PlannerPath } from "./agent-mode";
 import { readSessionSnapshot } from "./chat-request";
 import { moreDetailsSchema } from "./more-details";
 import { currentChatEnv, type PlannerChatEnv } from "./planner-chat";
-import { plannerSnapshotSchema } from "./planner-snapshot";
+import { plannerSnapshotSchema, snapshotForClient } from "./planner-snapshot";
 import { runViewportAction, type ViewportAction } from "./viewport-turn";
 
 export async function handlePlannerTurn(
@@ -47,7 +47,7 @@ export async function handlePlannerTurn(
       return resolved.brief;
     },
   });
-  return Response.json({ snapshot: result.snapshot, planner });
+  return Response.json({ snapshot: snapshotForClient(result.snapshot), planner });
 }
 
 function readAction(value: unknown): ViewportAction | null {

@@ -256,7 +256,7 @@ flowchart TD
   ua["User agent planner-bench/0.1.0"] --> search
 ```
 
-Normalisation copies city, capacity, `min_capacity`, `day_part`, and `event_type` when they parse. `XAI_API_KEY` and `PROPOSALES_API_KEY` stay on the server. Requests that send the API key also send the bearer. The model key goes to the xAI provider. The turn JSON returns the snapshot and `planner`. Each company in that snapshot includes `inboxToken`.
+Normalisation copies city, capacity, `min_capacity`, `day_part`, and `event_type` when they parse. `XAI_API_KEY` and `PROPOSALES_API_KEY` stay on the server. Requests that send the API key also send the bearer. The model key goes to the xAI provider. The turn JSON returns the snapshot and `planner`. Each company in that snapshot is id and name.
 
 | What happens | Status |
 | --- | --- |

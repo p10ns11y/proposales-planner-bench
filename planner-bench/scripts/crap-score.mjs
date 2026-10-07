@@ -27,6 +27,8 @@ const scope = [
   { file: "src/flow/brief-language.ts" },
   { file: "src/flow/filing-guard.ts" },
   { file: "src/views/file-brief-state.ts" },
+  { file: "src/flow/client-company.ts" },
+  { file: "src/flow/planner-snapshot.ts", functions: ["emptySnapshot", "snapshotForClient"] },
 ];
 
 const branchKinds = new Set([
