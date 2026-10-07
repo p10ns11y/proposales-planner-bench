@@ -16,7 +16,7 @@
 <text x="545" y="251" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">on Vercel</text>
 <rect x="820" y="56" width="240" height="108" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
 <text x="940" y="101" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">Proposales API</text>
-<text x="940" y="119" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">v3</text>
+<text x="940" y="119" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">v1 and v3</text>
 <rect x="820" y="340" width="240" height="108" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
 <text x="940" y="385" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">xAI model</text>
 <text x="940" y="403" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">via the AI SDK</text>
@@ -24,7 +24,7 @@
 <text x="151" y="233" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">Browser</text>
 <text x="151" y="251" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">Planner session</text>
 <text x="36" y="50" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="22" font-weight="600">System context</text>
-<text x="746" y="180" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">v3 reads and filing</text>
+<text x="746" y="180" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">reads and filing</text>
 <text x="746" y="318" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">AI SDK</text>
 <text x="343" y="224" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">session and turn</text>
 </svg>

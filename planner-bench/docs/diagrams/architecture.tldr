@@ -262,7 +262,7 @@
               "content": [
                 {
                   "type": "text",
-                  "text": "confirm, or say file"
+                  "text": "post once, then reuse"
                 }
               ]
             }
@@ -497,7 +497,7 @@
       "opacity": 1,
       "meta": {
         "stroke": "#FB3D50",
-        "label": "v3 reads and filing",
+        "label": "reads and filing",
         "labelAt": {
           "x": 746,
           "y": 180
@@ -530,7 +530,7 @@
               "content": [
                 {
                   "type": "text",
-                  "text": "v3 reads and filing"
+                  "text": "reads and filing"
                 }
               ]
             }
@@ -1418,7 +1418,7 @@
       "opacity": 1,
       "meta": {
         "stroke": "#FB3D50",
-        "label": "if it can be filed",
+        "label": "fileable, not filed",
         "labelAt": {
           "x": 818,
           "y": 248
@@ -1451,7 +1451,7 @@
               "content": [
                 {
                   "type": "text",
-                  "text": "if it can be filed"
+                  "text": "fileable, not filed"
                 }
               ]
             }
@@ -1634,7 +1634,7 @@
               "content": [
                 {
                   "type": "text",
-                  "text": "40 s window"
+                  "text": "40 s. Capture, gaps, results"
                 }
               ]
             }
@@ -1693,7 +1693,7 @@
               "content": [
                 {
                   "type": "text",
-                  "text": "v3"
+                  "text": "v1 and v3"
                 }
               ]
             }

@@ -22,7 +22,7 @@ A line such as this reaches confirm, then the match:
 
 `I need a place in Stockholm for 40 people on 12 November 2026, from 09:00 to 17:00, with dinner and a meeting room.`
 
-Say yes, then skip favorites. Three ranked rows appear. Filing still needs an email. Add it under More, then say `file`.
+Say yes, then skip favorites. Three ranked rows appear. That line is English, so the language is `en`. Add an email under More, then say `file`. In the detail, File with no email opens More and focuses Email. It does not call the server. After filing, the button reads Filed and is disabled.
 
 ## Live Proposales
 
@@ -35,7 +35,7 @@ PROPOSALES_API_KEY=
 
 Put the API key in `PROPOSALES_API_KEY`. Do not commit `.env.local`.
 
-Restart `pnpm dev`, then open localhost port 3000. Use the same Stockholm line, confirm, and skip favorites. Company lookup and filing use the live API. When the account has proposals, those rows are live Proposales data and the screen says `Live offers`. A title that ends with ` (demo venue)` is shown without that suffix, and the total is the sum of each block's package split times its quantity. The account company name is not used as a venue name. If the search is empty or the live load fails, the rows are sample offers and the screen says `Sample offers`. If company lookup fails, ranking still runs and the screen says `Filing is unavailable right now.` A failed filing stays on that sentence and does not say a draft was created. Under More, set Email and Language, save, and say `file`. Leave Event name empty to title the draft with the city and date, or set Event name to use that instead. The screen says `A draft was created in Proposales.`
+Restart `pnpm dev`, then open localhost port 3000. Use the same Stockholm line, confirm, and skip favorites. Company lookup and filing use the live API. When the account has proposals, those rows are live Proposales data and the screen says `Live offers`. A title that ends with ` (demo venue)` is shown without that suffix, and the total is the sum of each block's package split times its quantity. The account company name is not used as a venue name. If the search is empty or the live load fails, the rows are sample offers and the screen says `Sample offers`. If company lookup fails, ranking still runs and the screen says `Filing is unavailable right now.` A failed filing stays on that sentence and does not say a draft was created. Under More, set Email, save, and say `file`. A later `file` returns that filing and does not call Proposales again. Leave Event name empty to title the draft with the city and date, or set Event name to use that instead. The screen says `A draft was created in Proposales.`
 
 Leave `XAI_API_KEY` and `PLANNER_MODEL` empty to keep the scripted extractor.
 

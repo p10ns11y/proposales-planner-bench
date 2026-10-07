@@ -26,36 +26,36 @@ Harbour House is both a company and a venue name. Ridge Hall and Canal Loft are 
 2. **Clean** — strip the dump down to a concrete brief.
 3. **Confirm** — show that brief and ask if this is it. They can edit.
 4. **Favorites** — ask which hotels or venues they already have in mind.
-5. **Fetch** — build the Proposales query and pull a narrowed set.
-6. **Rank** — score that set against the brief and order it.
-7. **Show** — top five or ten, in that order, favorites highlighted.
+5. **Fetch** — `GET /v3/proposal-search?limit=25`. Keep a row when either city is blank or the cities match, and when the headcount fits the bounds that offer sets.
+6. **Rank** — if the brief names a currency, that currency leads. Otherwise the fewest gaps lead, with currency A to Z on a tie, then the lower total. No conversion. A favorite mark does not change the order.
+7. **Show** — five rows, then five more. Favorites are marked on that list.
 
 ## Flow
 
-Free text → clean → confirm → structured data → AI-UI views.
+Free text → clean → confirm → structured data → the views.
 
 Favorites → fetch → rank → show still follow the structured brief.
 
-Required to reach a match: location, date and time (a start, and an end or a duration), and the number of people. The rest sits in More, collapsed, as form fields. Email is required to file, not to match.
+Required to reach a match: a city, a start date, a start time, an attendee count, and an end time. The end time can be absent when a duration is set, or when the end date is after the start date. A budget with no basis stays on confirm and asks "Is that per person or total?" The Yes button stays hidden until that basis is set. The rest sits in More, collapsed. Filing needs an email, both dates, an attendee count, a language, and rooms when the end date is after the start. An English brief with no stated language is stored as `en`. Yes asks for a missing email. A later file on the page returns the stored filing. Matching does not need those fields.
 
 Input to result, few beats, same page. Extra views (overlays, dialogs, popovers) sit off this spine and open only where they are needed.
 
 ## Fetch and rank
 
-**Fetch** is System 1. The job is the query: which filters go to Proposales (location, must-haves, whatever the API allows). That slot is a **decision model**. The collab-finder decision model waits; it is a stretch for this build. For now the same slot is an LLM that already knows the questions and the allowed filters, and builds the request from those. If that map is simple, it is ordinary code.
+**Fetch** is one search: `GET /v3/proposal-search?limit=25`. City and capacity are checked in the app after the rows come back. The search itself sends no city filter. The collab-finder decision model is not in this build.
 
-**Rank** is the real LLM. This is the match against the brief. System 2 fits this step: the first brief can be incomplete, they can edit it, and we do not know what they will say. A mix of System 1 and System 2 is still open.
+**Rank** is the sort in the core functions above. It does not call the model. The model, when `XAI_API_KEY` is set, extracts the brief.
 
 ## Engines
 
-- **Proposales** supplies the set. Filing still follows the existing rule: inbox when `inbox_token` is set, draft when it is null.
-- **LLM** stands in for the fetch decision model, and does the rank.
+- **Proposales** supplies the set. Filing uses the inbox when `inbox_token` is set, and a draft when it is null. A later file on the page returns that result.
+- The model extracts the brief. Fetch and rank stay ordinary code.
 
 ## Page
 
 - One sticky input at the bottom. They type or talk. The input stays put.
 - The thread above it shows the current step, and it is the part that may move.
-- A step renders an element in the thread only when they need to see it. AG-UI is the event stream for that thread. The components stay the ones in the design note. Ordinary React can render the first shell.
+- A step renders an element in the thread only when they need to see it. The page draws that part in React. `/api/chat` can stream the same `data-offer-group` part. AG-UI is not connected.
 - Detail for a result opens in an overlay or a modal.
 - Company is not the first control.
 
@@ -78,11 +78,11 @@ Make the defined flow work behind the sticky input. Simple on the surface. The c
 - Images and hotel views.
 - Whether a ranked row opens a dedicated page for one venue.
 - The collab-finder decision model in place of the fetch stand-in.
-- A System 1 + System 2 mix on rank, if System 2 alone is not enough.
+- Rank stays the sort above.
 - From the same input, later: a faster path, the inner working when they ask to see it, and other jobs.
 
 ## Open
 
-- Fetch: ordinary code when the filter map is a known list. An LLM fills only those known filters. The named decision model waits.
-- Rank: System 2 for this pass. A mix with System 1 is not settled.
+- Fetch is the search plus the city and capacity checks. The named decision model is not in this build.
+- Rank is the sort above.
 - Show the top five in the viewport. Further matches wait behind one control.

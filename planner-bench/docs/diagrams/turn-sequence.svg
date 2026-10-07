@@ -27,7 +27,7 @@
 <text x="784" y="345" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">scripted extractor</text>
 <rect x="936" y="292" width="220" height="88" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
 <text x="1046" y="327" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">Optional filing</text>
-<text x="1046" y="345" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">confirm, or say file</text>
+<text x="1046" y="345" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">post once, then reuse</text>
 <rect x="1008" y="108" width="168" height="92" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
 <text x="1092" y="145" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">Results</text>
 <text x="1092" y="163" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">Ranked rows</text>
@@ -51,9 +51,9 @@
 <text x="504" y="163" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">First missing field</text>
 <rect x="224" y="292" width="364" height="88" rx="8" fill="#FFFFFF" stroke="#151515" stroke-width="1.5" />
 <text x="406" y="327" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="14" font-weight="600">Model planner</text>
-<text x="406" y="345" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">40 s window</text>
+<text x="406" y="345" text-anchor="middle" dominant-baseline="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="400">40 s. Capture, gaps, results</text>
 <text x="28" y="46" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="22" font-weight="600">Turn sequence</text>
 <text x="1138" y="248" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">say file</text>
-<text x="818" y="248" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">if it can be filed</text>
+<text x="818" y="248" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">fileable, not filed</text>
 <text x="624" y="274" text-anchor="middle" fill="#151515" font-family="Instrument Sans, system-ui, sans-serif" font-size="12" font-weight="500">missing key, error, timeout</text>
 </svg>

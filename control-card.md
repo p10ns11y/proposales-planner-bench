@@ -13,8 +13,8 @@ The next session uses [control-card-productize.md](./control-card-productize.md)
 |---|---|---|
 | Framework | Next.js App Router on Vercel | Hosting, route handlers for the agent |
 | API contract | `@adaptate/utils` (`openAPISchemaToZod`) | Zod schemas generated from the committed `planner-bench/src/contract/openapi.json` for contract tests. Runtime checks use the tolerant readers in `http-client.ts`. |
-| Model fitness | `@adaptate/core` (`transformSchema`, `makeConditionalSchemaTransformer`) | One deep-partial `PlannerBrief` schema. Each consumer has a config of required fields. Whatever fails the config is the gap list, and the agent's next question. Example of a conditional rule: rooms are required when the end date is after the start date. |
-| Agent | Vercel AI SDK (`streamText` with tools, `useChat`) | Chat-first intake. Tools: `updateBrief`, `fileBrief`, `addOffer`, `compareOffers`. |
+| Model fitness | `@adaptate/core` (`makeConditionalSchemaTransformer`) | One deep-partial `PlannerBrief` schema. Each consumer has a config of required fields. Whatever fails the config is the gap list, and the next question. Rooms are required when the end date is after the start date. |
+| Agent | Vercel AI SDK (`streamText` with tools) | The page posts to `/api/turn`. `/api/chat` streams with tools `updateBrief`, `fileBrief`, `addOffer`, and `compareOffers`. The page does not call `useChat`. |
 | Voice | Browser Web Speech API for input | No key needed. Speech goes into the same chat. |
 | UI primitives | shadcn/ui | Chat, table, sheet, badge |
 | Design | `impeccable` plugin, `layout-content-view` where applicable | **Separate session.** This build ships a plain, structurally sound shell. |
@@ -31,7 +31,7 @@ The next session uses [control-card-productize.md](./control-card-productize.md)
 2. Every fixture validates against `openapi.json` component schemas (`Proposal`, `Company`, `CreateRfpRequest`).
 3. Offers from Proposales are normalised **deterministically** from `blocks[].package_split.type` (`accommodation`, `food`, `meetingRoom`, `other`). The LLM is used only for free text: the brief, and proposals pasted as text.
 4. With no LLM key, brief extraction falls back to a fixture extractor, so the UI never blocks. A model attempt waits 40 seconds, and the turn and chat routes set maxDuration to 60.
-5. Filing the brief picks a path at runtime: `inbox_token` set → `POST /v1/inbox/{token}` with `is_test`; `null` → `POST /v3/proposals` draft with the brief in `data`.
+5. Filing the brief picks a path at runtime: `inbox_token` set → `POST /v1/inbox/{token}` with `is_test`; `null` → `POST /v3/proposals` draft with the brief in `data`. An English brief with no stated language is `en`. Yes asks when the email is missing. A later file on the page returns the stored filing.
 6. Switching to the real API needs only `PROPOSALES_MODE=live` and `PROPOSALES_API_KEY`. No code change.
 
 ## Verify commands
@@ -59,7 +59,7 @@ pnpm build
 |---|---|---|---|---|
 | S1 | Scaffold `planner-bench/`: Next.js App Router, TypeScript, Tailwind, Vitest, Zod, `ai` SDK. `git init`. | — | `pnpm build` passes on an empty page | coding |
 | S2 | Generate Zod schemas from `openapi.json` with `@adaptate/utils`. First check that it accepts a JSON spec (its loader documents YAML). Fixtures: `companies` (token set and `null` variants), 3 venue proposals with different prices, extras, and expiry, 2 sample briefs. Contract test. | S1 | contract test passes | coding |
-| S3 | Domain: deep-partial `PlannerBrief` and `VenueOffer`. Fitness configs per consumer with `@adaptate/core` (`brief:fileable`, `brief:comparable`, `offer:gridRow`). `normaliseProposal()` from `package_split`. `findGaps()` = fields that fail the fitness check. Unit tests. | S2 | tests pass | coding |
+| S3 | Domain: deep-partial `PlannerBrief` and `VenueOffer`. Fitness configs with `@adaptate/core` (`brief:fileable`, `brief:comparable`, and `offerGridRowConfig`). `normaliseProposal()` from `package_split`. `findGaps()` = fields that fail the fitness check. Unit tests. | S2 | tests pass | coding |
 | S4 | `ProposalesClient` port with `fixture` and `http` adapters, chosen by `PROPOSALES_MODE`. Live responses are parsed with the tolerant readers in `http-client.ts`. `fileBrief()` picks inbox or draft from `inbox_token`. | S2 | mode-switch and path tests pass | coding |
 | S5 | Agent route: AI SDK `streamText` with tools `updateBrief`, `fileBrief`, `addOffer`, `compareOffers`. The next question comes from the gap list. Scripted fixture agent when there is no model key. | S3, S4 | tests pass with no key | coding |
 | S6 | UI shell with shadcn: Chat (text and Web Speech input), Results grid, History (`localStorage`). Plain styling only. | S5 | `pnpm build` passes and the flow works on fixtures | coding |
@@ -68,9 +68,9 @@ pnpm build
 
 S3 and S4 can run in parallel after S2.
 
-## HITL gates (later, not now)
+## HITL later, not now
 - Vercel deploy (production).
-- Adding `PROPOSALES_API_KEY` or an LLM key (secrets). The user does this in a separate session.
+- Adding `PROPOSALES_API_KEY` or `XAI_API_KEY` (secrets). The user does this in a separate session.
 
 ## last progress
 - S1 through S6 are committed on `main`. `pnpm typecheck`, `pnpm test`, and `pnpm build` pass in `planner-bench/`.
@@ -80,9 +80,9 @@ S3 and S4 can run in parallel after S2.
 
 ## open decisions
 - 2026-10-06: `getDereferencedOpenAPIDocument` loads the committed `planner-bench/src/contract/openapi.json`. js-yaml accepts the JSON, so the component-schema fallback was not used. A company with `tax_mode: "nope"` fails, which shows `$ref` resolution is in effect. Generated schemas check fixtures in contract tests. Live responses are checked by the tolerant readers in `http-client.ts`.
-- `openAPISchemaToZod` drops `additionalProperties`. Known fields on fixtures are still checked with the generated schemas. The HTTP adapter sends the original `Proposal.data` and inbox metadata so the brief is not stripped.
+- `openAPISchemaToZod` drops `additionalProperties`. Known fields on fixtures are still checked with the generated schemas. The draft post sends `draftBody`: the inbox fields plus `planner_bench_brief`. It does not forward a stored `Proposal.data` object.
 - Offer totals use `value_without_tax` when present, otherwise `value_with_tax`, multiplied by block `quantity` (default 1). Minor units stay branded until the view model formats them.
-- No model key uses the scripted agent. A live model uses the AI SDK gateway when `AI_GATEWAY_API_KEY` is set. `PLANNER_MODEL` defaults to `openai/gpt-4.1-mini`. No provider package was added.
+- No `XAI_API_KEY` keeps the scripted extractor. A set key calls xAI through `@ai-sdk/xai`. The model id is `grok-4.7` unless `PLANNER_MODEL` is set. There is no `AI_GATEWAY_API_KEY`.
 - The spec path is `planner-bench/src/contract/openapi.json`. Contract tests load it. API routes leave the file unread.
 - `pnpm audit` reports one high advisory in `braces@3.0.3`. It is reached only through `eslint-config-next`, used for linting in development. No patched version exists. Do not override it; re-run audit before deploy.
 - Web Speech still depends on the browser. Typed input is always available.
@@ -90,7 +90,7 @@ S3 and S4 can run in parallel after S2.
 ## compact context for any new agent
 - Read only: this card, `workflow.md`, and `planner-bench/src/contract/openapi.json`.
 - Do not read: `proposales-report.md`, `review.md`, `journey.md`, or agent transcripts, unless a step needs a fact that is missing here.
-- Workspace: `.` (repository root). App: `planner-bench/`. Node 24, pnpm 9.
+- Workspace: `.` (repository root). App: `planner-bench/`. Node 22, pnpm 9.
 - Git root is this workspace, not `planner-bench/`. Do not run `git init` inside the app. Small steps can commit to `main`. Larger features go on a branch and a pull request.
 - No secrets exist yet. Fixture mode is the default. Never ask the human during EXECUTE; log open decisions on this card.
 

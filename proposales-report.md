@@ -86,7 +86,7 @@ Money is always stored in the **smallest currency unit** (cents or öre).
   - Marketing claims: "30% sales time saved", "75% conversion on inbound RFPs", and "30% revenue increase for Groups & MICE".
 - **Sales and catering / events systems**: Thynk, Event Temple, Cvent.
 - **CRM**: Salesforce, HubSpot, Microsoft Dynamics 365, and SuperOffice update deal stages from proposal activity.
-- **Glue**: Zapier, Google Tag Manager, Google Analytics, plus visualiser and virtual-tour partners. Zapier triggers on proposal status changes and needs a user API key plus activation by customer success, the same manual gate as the API.
+- **Glue**: Zapier, Google Tag Manager, Google Analytics, plus visualiser and virtual-tour partners. Zapier triggers on proposal status changes and needs a user API key plus activation by customer success, the same manual approval as the API.
 - **Workflows**: "Autonomous workflows for event sales, detailing and delivery." The marketing page gives no specifics, so check in a demo.
 
 ### Level 6: Enterprise and multi-property
