@@ -40,15 +40,15 @@ The input is first. Company is never the first control. History stays off the fi
 | People | A count |
 | Budget | When a budget is set and `budget.scope` is missing, ask "Is that per person or total?" Yes stays hidden until the answer |
 
-More is a drawer from the right: event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Saving changes only edited fields. `Budget (EUR)` writes `budgetMinor` and leaves `budget.scope` unset.
+Add details is a drawer from the right: event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Saving changes only edited fields. The budget label uses the brief currency, for example `Budget (SEK)`, and writes `budgetMinor`. It leaves `budget.scope` unset. A named currency stays when the city changes. Otherwise the label follows the city.
 
 | Filing | Matching |
 | --- | --- |
 | Email, both dates, attendees, a language, and rooms when the end date is after the start | Those fields are not required |
 | English with no stated language stores `en` | — |
-| Yes asks for a missing email | — |
+| Yes asks for one missing filing field | — |
 | The word `file` returns a stored filing and makes no second Proposales call | — |
-| In the detail, File with no email opens More and focuses Email | — |
+| In the detail, File with no email opens Add details and focuses Email | — |
 | After filing, that button reads Filed and is disabled | Favorites are a mark on the ranked list |
 
 A model attempt waits 40 seconds. Turn and chat set maxDuration to 60. A missing key, a model error, or that window falls back to the scripted extractor.

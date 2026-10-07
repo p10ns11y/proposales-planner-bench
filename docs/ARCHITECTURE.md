@@ -30,13 +30,13 @@ Posts: [Filing](#filing).
 | --- | --- |
 | Comparable | City, start date, start time, attendees, end time. End time may be absent for a duration, or an end date after the start. |
 | Favorites | `Which places do you already have in mind? You can skip.` |
-| More | Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Apply sends `moreEdited`. `Budget (EUR)` writes `budgetMinor` and leaves `budget.scope` unset. |
+| Add details | Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Apply sends `moreEdited`. The label is the brief currency, for example `Budget (SEK)`, and writes `budgetMinor`. It leaves `budget.scope` unset. A named currency stays when the city changes. |
 | Compare | Two or three offers, group at least 640px. |
 | Show more | Five rows. History in `localStorage`. Typing always works. |
 
 ## Budget
 
-Minor units are the major amount times 100, rounded. No scope: stay on confirm, ask "Is that per person or total?", and keep Yes hidden. Per person with attendees: minor units times the count. Per person with no attendees: no ceiling. Total: the minor units. No budget object: `budgetMinor` only, no currency check. Same currency over the ceiling: over budget. `readBudgetScope`: per person, pp, each, per head, per attendee, per guest, and a head are `per-person`. Total, in total, and overall are `total`. A stated basis skips the question. The word yes leaves the basis unset. Saving More leaves the open offer.
+Minor units are the major amount times 100, rounded. No scope: stay on confirm, ask "Is that per person or total?", and keep Yes hidden. Per person with attendees: minor units times the count. Per person with no attendees: no ceiling. Total: the minor units. No budget object: `budgetMinor` only. A different currency is not compared. Same currency over the ceiling: over budget. `readBudgetScope`: per person, pp, each, per head, per attendee, per guest, and a head are `per-person`. Total, in total, and overall are `total`. A stated basis skips the question. The word yes leaves the basis unset. Saving Add details leaves the open offer.
 
 ## Extraction
 
@@ -60,7 +60,7 @@ Absent breakout or diet is `Not stated` (`Breakout not stated`, `Diet not stated
 
 ## Where the code lives
 
-`src/app` to `src/flow` (`src/domain`, `src/proposales`). `src/views` draws the shell, detail, and More. `renderPart` passes `hiddenCount`, `openName`, `onOpen`, and `onShowMore` to `OfferGroupCard`.
+`src/app` to `src/flow` (`src/domain`, `src/proposales`). `src/views` draws the shell, detail, and Add details. `renderPart` passes `hiddenCount`, `openName`, `onOpen`, and `onShowMore` to `OfferGroupCard`.
 
 `mergeBrief` replaces fields the patch sets. A clock replaces `timeAssumption` and can clear it. Food merges meal and diets and sets `foodRequired` when unset. Diet names share one spelling. Budget currency is upper case. Fitness uses `makeConditionalSchemaTransformer` from `@adaptate/core`. Rooms are required when the end date is after the start. `normaliseProposal` sums each package split times quantity into rooms, food, space, and extras: `value_without_tax` when present, otherwise `value_with_tax`. It drops a trailing ` (demo venue)`. The account company name is not a venue name.
 
@@ -68,7 +68,7 @@ Absent breakout or diet is `Not stated` (`Breakout not stated`, `Diet not stated
 
 Unset, or any mode but `live`: fixture rows, no source chip. Live: `GET /v3/proposal-search?limit=25`, skip `data.planner_bench_brief`, fetch five at a time. Drop one bad draft. One failed normalise, an empty search, or a thrown load replaces the list with sample offers. Else: live offers.
 
-Readers: `companyReader`, `rfpReader`, `draftReader`, `proposalEnvelopeReader`, `searchEnvelopeReader`, `searchIdentityReader`. A null inbox token stays null. `data` stays unknown. User agent `planner-bench/0.1.0`. City, capacity, `min_capacity`, `day_part`, and `event_type` copy when they parse. `XAI_API_KEY` and `PROPOSALES_API_KEY` stay on the server. The Proposales request sends the bearer. The model key goes to xAI. Turn JSON returns the snapshot, `planner`, and each `inboxToken`.
+Readers: `companyReader`, `rfpReader`, `draftReader`, `proposalEnvelopeReader`, `searchEnvelopeReader`, `searchIdentityReader`. A null inbox token stays null. `data` stays unknown. User agent `planner-bench/0.1.0`. City, capacity, `min_capacity`, `day_part`, and `event_type` copy when they parse. `XAI_API_KEY` and `PROPOSALES_API_KEY` stay on the server. The Proposales request sends the bearer. The model key goes to xAI. Turn JSON returns the snapshot and `planner`. Each company on the client snapshot is id and name.
 
 | What happens | Status |
 | --- | --- |
@@ -87,7 +87,7 @@ Fileable means email, both dates, attendees, a language, and rooms when the end 
 | Trigger | Result |
 | --- | --- |
 | Yes, filing stored | No post. Notice cleared. Favorites |
-| Yes, no email | `What email should receive the venue replies?` No post |
+| Yes, no email | `Add an email under Add details so venues reply to this address.` No post |
 | Yes, email set, another gap | Notice cleared. Favorites |
 | Yes, fileable | Selected company, else the first. Then post |
 | `file`, filing stored | Return it. No Proposales call. Phase stays |
@@ -102,7 +102,7 @@ Fileable means email, both dates, attendees, a language, and rooms when the end 
 
 `addEnglishLanguage` stores `en` for two words from a small English list, with no accents and no Swedish, French, or German markers. A set language, a patch language, `in swedish`, `på svenska`, or `Language` plus two letters other than `en` stays.
 
-Detail sends `file` when an email is set. No email opens More, focuses Email, and makes no server call. Detail shows the latest filing message. The draft sentence also shows in the thread. After filing, the button reads Filed and is disabled.
+Detail sends `file` when an email is set. No email opens Add details, focuses Email, and makes no server call. The detail says `Add details opened so venues reply to this address.` Detail shows the latest filing message. The draft sentence also shows in the thread. After filing, the button reads Filed and is disabled.
 
 `projectBriefFlow` is `collecting`, `fileable`, `filed`, or `comparing`. Offers append only from `filed`. Ranked rows can still show while `collecting` or `fileable`.
 
@@ -118,4 +118,4 @@ Company rejects a null timezone and a loose website. Proposal rejects a loose em
 
 ## Checks
 
-`verify` runs typecheck, lint, and `pnpm verify --skip-mutation`. Node 22, pnpm 9, `next typegen` (`LayoutProps`), and `braces@3.0.3` are on the [control card](../notes/control-card.md).
+`verify` runs typecheck, lint, and `pnpm verify --skip-mutation`. Node 22, pnpm 9, `next typegen` (`LayoutProps`), and `braces@3.0.3` are on the [control card](../notes/control-card.md). On Vercel the Root Directory is still `planner-bench` until that setting is cleared.

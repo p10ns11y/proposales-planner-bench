@@ -10,7 +10,7 @@ Plain, short, and calm. Use place, event, people, date, city. Use Organisation, 
 
 The sticky line accepts a dump, a sentence, or speech. "File" is enough. A missing email is asked. A filed brief is not resent.
 
-Ask one missing required fact: a city, a start date, a start time, an end (or a duration, or an end date after the start), and how many people. A budget with no basis asks whether it is per person or total before Yes. When those are complete, show them back and ask if that is right. Everything else waits in More.
+Ask one missing required fact: a city, a start date, a start time, an end (or a duration, or an end date after the start), and how many people. A budget with no basis asks whether it is per person or total before Yes. When those are complete, show them back and ask if that is right. Everything else waits in Add details.
 
 ## The hold
 

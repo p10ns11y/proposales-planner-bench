@@ -29,7 +29,7 @@ Next: [control-card-productize.md](./control-card-productize.md). S1–S6. [work
 2. Every fixture validates against `Proposal`, `Company`, and `CreateRfpRequest`.
 3. Offers are normalised from `blocks[].package_split.type` (`accommodation`, `food`, `meetingRoom`, `other`). The model reads free text only.
 4. With no model key, extraction uses the scripted extractor. A model attempt waits 40 seconds. Turn and chat set maxDuration to 60.
-5. `inbox_token` set posts `POST /v1/inbox/{token}` with `is_test`. Null posts a `POST /v3/proposals` draft with the brief in `data`. English with no stated language is `en`. Yes asks when the email is missing. A later file on the page returns the stored filing.
+5. `inbox_token` set posts `POST /v1/inbox/{token}` with `is_test`. Null posts a `POST /v3/proposals` draft with the brief in `data`. English with no stated language is `en`. Yes asks for one missing filing field. A later file on the page returns the stored filing.
 6. Live mode needs `PROPOSALES_MODE=live` and `PROPOSALES_API_KEY`.
 
 ## Verify

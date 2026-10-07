@@ -2,7 +2,7 @@
 
 One sentence in. Ranked venues back.
 
-[![Walkthrough of the live bench: a Stockholm offsite, three venues, then File asks for an email](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
+[![Walkthrough: ranked venues for a Stockholm offsite, then File opens Add details](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
 
 Live: [proposales-planner-bench.vercel.app](https://proposales-planner-bench.vercel.app)
 
@@ -32,9 +32,7 @@ pnpm test
 pnpm build && pnpm e2e
 ```
 
-Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the address the dev server prints. A numeric address does not hydrate.
-
-On Vercel the Root Directory is still `planner-bench` until that setting is cleared.
+Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the address the dev server prints.
 
 ## References
 
@@ -45,4 +43,3 @@ On Vercel the Root Directory is still `planner-bench` until that setting is clea
 - [layout-content-view](https://github.com/p10ns11y/plugins/tree/31d93a0355838d8b24511966ae1ba0062c05f012/layout-content-view) at `31d93a0`
 - [Mermaid](https://mermaid.js.org)
 - [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans)
-- [AG-UI](https://github.com/ag-ui-protocol/ag-ui) is not connected

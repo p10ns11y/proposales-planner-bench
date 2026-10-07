@@ -15,8 +15,9 @@ import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import { offerGroupFromShell } from "../view-models/offer-part";
 import { shellViewModel } from "../view-models/selectors";
 import { modelAttemptSignal, modelIsUsable, plannerLanguageModel } from "./agent-mode";
+import { attemptFiling } from "./filing-guard";
 import { latestUserText, readChatRequest, readSessionSnapshot, type ChatTurnMessage } from "./chat-request";
-import type { PlannerSnapshot } from "./planner-snapshot";
+import { snapshotForClient, type PlannerSnapshot } from "./planner-snapshot";
 import { runFixtureTurn } from "./scripted-turn";
 
 export type PlannerUIMessage = UIMessage<unknown, { snapshot: PlannerSnapshot; "offer-group": OfferGroupPart }>;
@@ -47,16 +48,17 @@ export async function handlePlannerChat(request: Request, env: PlannerChatEnv = 
     today,
     env,
   });
+  const clientSnapshot = snapshotForClient(turn.snapshot);
   const stream = createUIMessageStream<PlannerUIMessage>({
     execute: ({ writer }) => {
       const textId = "planner-reply";
       writer.write({ type: "text-start", id: textId });
       writer.write({ type: "text-delta", id: textId, delta: turn.reply });
       writer.write({ type: "text-end", id: textId });
-      writer.write({ type: "data-snapshot", data: turn.snapshot });
+      writer.write({ type: "data-snapshot", data: clientSnapshot });
       const group = offerGroupFromShell(
         shellViewModel({
-          snapshot: turn.snapshot,
+          snapshot: clientSnapshot,
           busy: false,
           errorText: null,
           speechAvailable: false,
@@ -179,13 +181,11 @@ async function runLiveChat(
           companyId: z.number().int().optional(),
         }),
         execute: async ({ companyId }) => {
-          const selectedCompanyId = companyId ?? state.snapshot.selectedCompanyId;
-          const nextSnapshot = { ...state.snapshot, selectedCompanyId };
-          const turn = await runFixtureTurn({
-            text: "file the brief",
-            snapshot: nextSnapshot,
+          const turn = await fileChatBrief({
+            snapshot: state.snapshot,
             client,
             today,
+            companyId,
           });
           state.snapshot = turn.snapshot;
           return { reply: turn.reply, filing: turn.snapshot.filing };
@@ -225,6 +225,36 @@ async function runLiveChat(
   });
   const reply = await result.text;
   return { reply, snapshot: state.snapshot };
+}
+
+export async function fileChatBrief(input: {
+  snapshot: PlannerSnapshot;
+  client: ProposalesClient;
+  today: string;
+  companyId?: number;
+}): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
+  const selectedCompanyId = input.companyId === undefined ? input.snapshot.selectedCompanyId : input.companyId;
+  const attempt = await attemptFiling({
+    brief: input.snapshot.brief,
+    filing: input.snapshot.filing,
+    filingAvailable: input.snapshot.filingAvailable,
+    selectedCompanyId,
+    companies: input.snapshot.companies,
+    client: input.client,
+  });
+  return runFixtureTurn({
+    text: "file the brief",
+    snapshot: {
+      ...input.snapshot,
+      filing: attempt.filing,
+      filingAvailable: attempt.filingAvailable,
+      selectedCompanyId: attempt.selectedCompanyId,
+      notice: attempt.notice,
+    },
+    client: input.client,
+    today: input.today,
+    filingSettled: true,
+  });
 }
 
 function envValue(name: string): string | undefined {

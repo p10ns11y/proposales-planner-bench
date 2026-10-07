@@ -114,6 +114,33 @@ describe("compare toggle in the group", () => {
     expect(chips.map((chip) => chip.textContent)).toEqual(["Not stated", "Not stated"]);
     expect(card.textContent).not.toContain("No breakout");
   });
+
+  it("shows Not compared in plain words and keeps the offer price", () => {
+    installMatchMedia();
+    installWidth(800);
+    render(
+      <OfferGroupCard
+        group={group([
+          offer({
+            proposalUuid: "ridge",
+            venueName: "Ridge Hall",
+            currency: "SEK",
+            total: 95000,
+            neutral: ["not-compared"],
+          }),
+        ])}
+        hiddenCount={0}
+        openName={null}
+        onOpen={() => undefined}
+        onShowMore={() => undefined}
+      />,
+    );
+    const card = screen.getByRole("button", { name: /Ridge Hall/ });
+    expect(card.textContent).toContain("SEK 950");
+    expect(card.textContent).toContain("Not compared");
+    expect(card.textContent).not.toContain("Over budget");
+    expect(card.querySelector("[data-lcv-chip=not-compared]")?.textContent).toBe("Not compared");
+  });
 });
 
 function renderGroup(count: number, width: number) {

@@ -40,7 +40,7 @@ The README is a new front page, so the 40–60% band does not apply. It has 139 
 
 ## Walkthrough
 
-Recorded on production at https://proposales-planner-bench.vercel.app. The brief is made up: a team offsite for 25 people in Stockholm on 3 December, half day, meeting room and lunch. The clip shows the empty composer, the brief, Yes, Skip, three result cards, the More drawer, the Canal Loft detail, and File with no email, which opens More with Email focused and empty. No draft is filed.
+Recorded on production at https://proposales-planner-bench.vercel.app. The brief is made up: a team offsite for 25 people in Stockholm on 3 December, half day, meeting room and lunch. The clip opens on the ranked venues, then the venue detail, then File with no email, which opens Add details with Email focused and empty. No draft is filed.
 
 The computer-use tool was blocked by a model quota, so the capture is headed Chrome driven by Playwright, then cropped to the page.
 

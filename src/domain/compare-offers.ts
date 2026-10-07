@@ -2,7 +2,7 @@ import { findBriefGaps, findOfferGaps } from "./fitness";
 import type { ComparisonRow } from "./comparison-row";
 import { minorUnits } from "./minor-units";
 import type { PlannerBrief } from "./planner-brief";
-import { stayNeedsRooms } from "./planner-brief";
+import { offerNotCompared, sameBudgetCurrency, stayNeedsRooms } from "./planner-brief";
 import type { VenueOffer } from "./venue-offer";
 
 export type { ComparisonRow } from "./comparison-row";
@@ -105,7 +105,7 @@ function comparisonRow(
     totalMinor: offer.totalMinor ?? minorUnits(0),
     expiresAt: offer.expiresAt,
     gaps: comparisonGaps(brief, offer, today),
-    neutral: unstatedOfferMarks(brief),
+    neutral: [...unstatedOfferMarks(brief), ...currencyMarks(brief, offer)],
     favorite: favoriteVenueNames.some(
       (favoriteName) => favoriteName.toLowerCase() === venueName.toLowerCase(),
     ),
@@ -170,17 +170,20 @@ export function unstatedOfferMarks(brief: PlannerBrief): string[] {
   return marks;
 }
 
+function currencyMarks(brief: PlannerBrief, offer: VenueOffer): string[] {
+  if (offerNotCompared(brief, offer.currency)) {
+    return ["not-compared"];
+  }
+  return [];
+}
+
 function offerExceedsBudget(brief: PlannerBrief, offer: VenueOffer): boolean {
+  if (!sameBudgetCurrency(brief, offer.currency)) {
+    return false;
+  }
   const total = offer.totalMinor?.amount;
   if (brief.budget !== undefined) {
     const ceiling = budgetCeilingMinor(brief.budget, brief.attendeeCount);
-    const offerCurrency = offer.currency?.trim().toUpperCase();
-    if (offerCurrency === undefined || offerCurrency === "") {
-      return false;
-    }
-    if (offerCurrency !== brief.budget.currency.trim().toUpperCase()) {
-      return false;
-    }
     return (total as number) > (ceiling as number);
   }
   if (brief.budgetMinor !== undefined) {

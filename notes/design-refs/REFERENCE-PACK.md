@@ -17,7 +17,7 @@ Primary reference: the Grok Bot desktop chat column.
 | Coral `#FB3D50` | Brand mark and one Best match. Text, if any, uses `#D92D3F`. Coral is 3.4:1, so it is not body text |
 | Borrow | A one-line group header, and a right sheet with a sticky primary action |
 | Media | No photos. Optional monogram tile, `#EEEEEE`, 40px |
-| Reject | Cream, serif, `<details>` for More, boxed Send/Speak/History, indigo, emoji, stripes, a shadow on every card, Inter, `transition: all` |
+| Reject | Cream, serif, `<details>` for Add details, boxed Send/Speak/History, indigo, emoji, stripes, a shadow on every card, Inter, `transition: all` |
 
 Shipped: greys, hairline, black send, coral on the mark and one Best match, and those rejects. Changed: ranked rows sit under the reply, in their own grey block. See the [verdicts](#verdicts).
 
@@ -123,18 +123,18 @@ Composer icons, a jump-to-latest control, a letter tile on a `#FAFAFA` row, a ri
 | Cool grey canvas #F9F9F9 | Grok Bot chat column | canvas only | matches that column and drops the cream editorial canvas |
 | Offer rows nested inside the assistant bubble | Grok Bot nested answer card | #FAFAFA card on #ECECEC bubble | the ranked rows belong inside the assistant reply |
 | Group header + status | Tool / artifact header | header row only | gives the reply a scannable summary line and a place for Compare |
-| Right drawer for More | Sheet anatomy | primary action black | More expands from the right |
+| Right drawer for Add details | Sheet anatomy | primary action black | Add details expands from the right |
 | Full-screen detail with morph | Dialog primitive | Esc/✕ return to the same scroll spot | a result opens full screen and closes back to the chat |
 | Black send, coral only for brand + Best match | Grok Bot chat column | coral never a fill | keeps the one accent meaningful |
 | Instrument Sans | craft (typography), not Inter | one family | neutral grotesque with tnum for prices |
 
-**Shipped** for the canvas, the nested-card colours, the black send, and Instrument Sans. **Changed:** More is a right drawer, and its fields are the extras below, not the city and guest controls. The detail sheet opens over a scrim; the shared move is the title and the price.
+**Shipped** for the canvas, the nested-card colours, the black send, and Instrument Sans. **Changed:** Add details is a right drawer, and its fields are the extras below, not the city and guest controls. The detail sheet opens over a scrim; the shared move is the title and the price.
 
 ---
 
 ## 5. Anti-patterns
 
-Cream, serif, `<details>` for More, boxed Send/Speak/History, coral as a fill, emoji, stripes, a shadow on every card, `transition: all`, Expired by colour alone, and fake photos. Fixtures stay Harbour House, Ridge Hall, and Canal Loft. Status uses an icon, a word, and a struck price.
+Cream, serif, `<details>` for Add details, boxed Send/Speak/History, coral as a fill, emoji, stripes, a shadow on every card, `transition: all`, Expired by colour alone, and fake photos. Fixtures stay Harbour House, Ridge Hall, and Canal Loft. Status uses an icon, a word, and a struck price.
 
 ---
 
@@ -144,18 +144,18 @@ The 32 items, with file and line, are the [verdicts](#verdicts). Shots of the sa
 
 ## Before and after
 
-The first six shots are the shell this plan replaced. The after shots are production of main at `346363e`, desktop and phone, at first open, results, detail, and More. They match the screens in the code. Detail had no before shot.
+The first six shots are the shell this plan replaced. The after shots are production of main at `346363e`, desktop and phone, at first open, results, detail, and Add details. They match the screens in the code. Detail had no before shot.
 
 | View | Before | After |
 |---|---|---|
 | First, desktop | [00-before-desktop-first.png](00-before-desktop-first.png) | [01-after-desktop-first.png](01-after-desktop-first.png) |
 | Results, desktop | [00-before-desktop-results.png](00-before-desktop-results.png) | [01-after-desktop-results.png](01-after-desktop-results.png) |
 | Detail, desktop | — | [01-after-desktop-detail.png](01-after-desktop-detail.png) |
-| More, desktop | [00-before-desktop-more.png](00-before-desktop-more.png) | [01-after-desktop-more.png](01-after-desktop-more.png) |
+| Add details, desktop | [00-before-desktop-more.png](00-before-desktop-more.png) | [01-after-desktop-more.png](01-after-desktop-more.png) |
 | First, phone | [00-before-phone-first.png](00-before-phone-first.png) | [01-after-phone-first.png](01-after-phone-first.png) |
 | Results, phone | [00-before-phone-results.png](00-before-phone-results.png) | [01-after-phone-results.png](01-after-phone-results.png) |
 | Detail, phone | — | [01-after-phone-detail.png](01-after-phone-detail.png) |
-| More, phone | [00-before-phone-more.png](00-before-phone-more.png) | [01-after-phone-more.png](01-after-phone-more.png) |
+| Add details, phone | [00-before-phone-more.png](00-before-phone-more.png) | [01-after-phone-more.png](01-after-phone-more.png) |
 
 ## Verdicts
 

@@ -249,6 +249,12 @@ function mergePlainEnglish(patch: PlannerBrief, text: string): PlannerBrief {
       next.budget = budget;
     }
   }
+  if (next.statedCurrency === undefined && next.budget === undefined) {
+    const named = readNamedCurrency(text);
+    if (named !== undefined) {
+      next.statedCurrency = named;
+    }
+  }
   if (next.meetingRoomCount === undefined) {
     const numberedRooms = /(\d+)\s+meeting\s+rooms?\b/i.exec(text);
     if (numberedRooms?.[1]) {
@@ -363,6 +369,7 @@ const currencyWords: Record<string, string> = {
   pound: "GBP",
   pounds: "GBP",
   sek: "SEK",
+  kr: "SEK",
   krona: "SEK",
   kronor: "SEK",
   nok: "NOK",
@@ -452,11 +459,19 @@ function budgetFromClause(clause: string): PlannerBrief["budget"] {
   };
 }
 
+const spacedAmount = "\\d{1,3}(?:[ \\u00a0]\\d{3})+";
+const plainAmount = "\\d+(?:[.,]\\d+)?";
+const amountPattern = `(?:${spacedAmount}|${plainAmount})`;
+const scopeTail = "(?:\\s*(?:per[\\s-]+(?:person|head|attendee|guest)|pp|each|total))?";
+
 function firstSpokenBudget(text: string): PlannerBrief["budget"] {
   const patterns = [
-    /(?:around|about|approx(?:imately)?|roughly)\s+(?:€|\$|£|[A-Za-z]{3})\s*\d+(?:[.,]\d+)?(?:\s*(?:per[\s-]+(?:person|head|attendee|guest)|pp|each|total))?/gi,
-    /(?:€|\$|£|[A-Za-z]{3})\s*\d+(?:[.,]\d+)?(?:\s*(?:per[\s-]+(?:person|head|attendee|guest)|pp|each|total))?/gi,
-    /\d+(?:[.,]\d+)?\s*(?:€|\$|£|[A-Za-z]{3})(?:\s*(?:per[\s-]+(?:person|head|attendee|guest)|pp|each|total))?/gi,
+    new RegExp(
+      `(?:around|about|approx(?:imately)?|roughly)\\s+(?:€|\\$|£|kr|kronor|krona|[A-Za-z]{3})\\s*${amountPattern}${scopeTail}`,
+      "gi",
+    ),
+    new RegExp(`(?:€|\\$|£|kr|kronor|krona|[A-Za-z]{3})\\s*${amountPattern}${scopeTail}`, "gi"),
+    new RegExp(`${amountPattern}\\s*(?:€|\\$|£|kr|kronor|krona|[A-Za-z]{3})${scopeTail}`, "gi"),
   ];
   for (const pattern of patterns) {
     for (const match of text.matchAll(pattern)) {
@@ -482,25 +497,33 @@ export function readBudgetScope(text: string): "total" | "per-person" | undefine
 }
 
 function readMoney(text: string): { amount: number; currency: string } | undefined {
-  for (const match of text.matchAll(/(€|\$|£)\s*(\d+(?:[.,]\d+)?)(?!\d)/g)) {
+  for (const match of text.matchAll(new RegExp(`(€|\\$|£)\\s*(${amountPattern})(?!\\d)`, "g"))) {
     const parsed = money(match[1] ?? "", match[2] ?? "");
     if (parsed !== undefined) {
       return parsed;
     }
   }
-  for (const match of text.matchAll(/\b([A-Za-z]{3})\s*(\d+(?:[.,]\d+)?)(?!\d)/g)) {
+  for (const match of text.matchAll(new RegExp(`\\b([A-Za-z]{3})\\s*(${amountPattern})(?!\\d)`, "g"))) {
     const parsed = money(match[1] ?? "", match[2] ?? "");
     if (parsed !== undefined) {
       return parsed;
     }
   }
-  for (const match of text.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(€|\$|£|[A-Za-z]+)\b/g)) {
+  for (const match of text.matchAll(new RegExp(`\\b(${amountPattern})\\s*(€|\\$|£|kr|kronor|krona|[A-Za-z]+)\\b`, "g"))) {
     const parsed = money(match[2] ?? "", match[1] ?? "");
     if (parsed !== undefined) {
       return parsed;
     }
   }
   return undefined;
+}
+
+function readNamedCurrency(text: string): string | undefined {
+  const match = /\b(sek|nok|dkk|eur|euro|euros|usd|gbp|chf|kr|kronor|krona)\b/i.exec(text);
+  if (match?.[1] === undefined) {
+    return undefined;
+  }
+  return currencyCode(match[1]);
 }
 
 function money(currencyToken: string, amountToken: string): { amount: number; currency: string } | undefined {
@@ -526,7 +549,8 @@ function currencyCode(token: string): string | undefined {
 }
 
 function parseAmount(raw: string): number | undefined {
-  const normalised = raw.includes(",") && !raw.includes(".") ? raw.replace(",", ".") : raw.replace(/,/g, "");
+  const compact = raw.replace(/[\s\u00a0]/g, "");
+  const normalised = compact.includes(",") && !compact.includes(".") ? compact.replace(",", ".") : compact.replace(/,/g, "");
   const amount = Number(normalised);
   if (!Number.isFinite(amount) || amount < 0) {
     return undefined;

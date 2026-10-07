@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| Goal | One sticky input. Clean, confirm the required facts, show structured data, then the views. Everything else sits in More, collapsed. |
+| Goal | One sticky input. Clean, confirm the required facts, show structured data, then the views. Everything else sits in Add details, collapsed. |
 | Phase | INTEGRATE. Review returned pass. The pull request is open. Do not merge unless asked. |
 | Prior | [control-card.md](./control-card.md) owns S1–S6. This card does not redo them. |
 | Product | [PRODUCT.md](../PRODUCT.md), [DESIGN.md](../DESIGN.md), [TASTE.md](../TASTE.md), [planner-product.md](./planner-product.md). |
@@ -17,7 +17,7 @@
 | People | A count |
 | Budget | When set and the scope is missing: "Is that per person or total?" |
 
-More, collapsed: event name, organisation, email, language, rooms, meeting rooms, food, notes, budget.
+Add details, collapsed: event name, organisation, email, language, rooms, meeting rooms, food, notes, budget.
 
 Filing needs an email, both dates, attendees, a language, and rooms when the end date is after the start. English with no stated language stores `en`. Yes asks for a missing email. A later file on the page returns the stored filing. Matching does not need those fields. Favorites stay a mark on the ranked rows.
 
@@ -38,7 +38,7 @@ At most four per phase. Load them. Do not copy them into the app.
 | Phase | Loads | Owns |
 | --- | --- | --- |
 | EXECUTE, domain | `trust-stack`, pstack `tdd`, `typescript-best-practices` | Fitness before the view. Tests first. |
-| EXECUTE, shell | `shadcn`, `modern-web-guidance`, `impeccable` (materials only) | Sticky composer, thread, collapsed More. Do not run `impeccable init`. |
+| EXECUTE, shell | `shadcn`, `modern-web-guidance`, `impeccable` (materials only) | Sticky composer, thread, collapsed Add details. Do not run `impeccable init`. |
 | VERIFY | Vercel `verification`, `layout-content-view` | Chromium on the dev server, by name. A numeric address does not hydrate. Desktop and a phone. |
 | REVIEW | pstack `interrogate`, cursor-agent in ask mode | Fresh context. Read-only. |
 
@@ -50,14 +50,14 @@ One writer. Review model: `grok-4.7-high`. Do not use `composer-2.5` for this sc
 | --- | --- |
 | P1 | Comparable and fileable field sets, as above. Time stays on the brief. Contract tests, `pnpm test`, and `pnpm typecheck` pass. |
 | P2 | A Stockholm sentence with a date and 40 people reaches confirm without asking for email. Confirm writes the structured brief. |
-| P3 | Shell from DESIGN.md. Sticky composer. Thread shows the brief, then the ranked rows. More is collapsed. Detail is an overlay. Desktop and 390×844 finish with three fixture rows and More closed. |
+| P3 | Shell from DESIGN.md. Sticky composer. Thread shows the brief, then the ranked rows. Add details is collapsed. Detail is an overlay. Desktop and 390×844 finish with three fixture rows and Add details closed. |
 
 P1 before P2 before P3.
 
 ## Success
 
 1. A sentence with city, date and time, and headcount reaches ranked rows.
-2. More stays closed until opened.
+2. Add details stays closed until opened.
 3. Filing waits for the fileable fields. English stores `en`. Yes asks for a missing email. A later file returns the stored filing.
 4. Off-topic text holds, and does not call fetch or rank.
 5. `pnpm test` and `pnpm typecheck` pass at the repository root.
@@ -70,7 +70,7 @@ pnpm test
 
 ## Progress
 
-P1–P3 are in. A bare budget asks "Is that per person or total?" before Yes. Sticky composer, collapsed More, rows Harbour House, Canal Loft, Ridge Hall. A missing key, a model error, or the 40 second window falls back to the scripted extractor. Turn and chat set maxDuration to 60. Desktop and 390×844 passed. Deploy stays with the owner.
+P1–P3 are in. A bare budget asks "Is that per person or total?" before Yes. Sticky composer, collapsed Add details, rows Harbour House, Canal Loft, Ridge Hall. A missing key, a model error, or the 40 second window falls back to the scripted extractor. Turn and chat set maxDuration to 60. Desktop and 390×844 passed. Deploy stays with the owner.
 
 ## Open
 

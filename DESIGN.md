@@ -134,7 +134,7 @@ components:
 
 # Design system
 
-A chat column. One line in. The reply is a cool grey bubble, and the venues sit in it as lighter cards. The composer stays at the bottom. More comes from the right. Detail covers the column and returns to the same place in the thread.
+A chat column. One line in. The reply is a cool grey bubble, and the venues sit in it as lighter cards. The composer stays at the bottom. Add details comes from the right. Detail covers the column and returns to the same place in the thread.
 
 Coral is the mark and one dot on the best valid offer. Actions are black. Status, including Expired, is a neutral chip. Instrument Sans is the only face. Placeholder text is `{colors.placeholder}` (`#6E6E6E`).
 
@@ -159,7 +159,7 @@ Prices use tabular numbers.
 
 ## Layout
 
-A 64px rail plus a 720px column. The composer floats 16px up. Turns are 24px apart, messages 8px. Below 640px the rail hides and More and detail go full width. Compare needs two or three offers and a group at least 640px wide.
+A 64px rail plus a 720px column. The composer floats 16px up. Turns are 24px apart, messages 8px. Below 640px the rail hides. New chat and Add details stay in the header. Add details and detail go full width. Compare needs two or three offers and a group at least 640px wide.
 
 | Level | Shadow | Where |
 | --- | --- | --- |
@@ -175,12 +175,12 @@ Scrim `rgba(10,10,10,.32)`. Motion is transform and opacity: drawer 320ms in and
 | Piece | Rule |
 | --- | --- |
 | Primary | 44px, 10px radius. Send is a 32px black circle in a 44px hit area. Disabled send face is `{colors.input-border}`. |
-| Composer | Pill, max 720px. Placeholder: "Describe the event: place, people, date, time". Plus is Add details. Header pill is More |
+| Composer | Pill, max 720px. Placeholder: "Describe the event: place, people, date, time". Header and composer both open Add details |
 | Row | 56px. Monogram, name, chips, held-by, one 96px price. Expired price is 60% opacity with a line-through |
 | Best match | One coral dot and the words, on the best non-expired offer |
 | Compare | Side-by-side, only through the toggle, only when the group qualifies. Lines come from the offer and sum to the total. A remainder is Other |
 | Footer | "Prices are totals for the day, excl. VAT" |
-| More | 400px, white, e3. Full width below 640px. Title "Refine the brief" |
+| Add details | 400px, white, e3. Full width below 640px. Title "Add details" |
 | Detail | Desktop inset 12px, radius 20, e4. Phone is full screen. Overview shows the block, who holds it, and the total |
 
 Keep the composer on screen. Best match sits on the best non-expired offer. Lines come from the offer. Leave cream, a serif, photos, and ratings off the page. Coral is not a fill.

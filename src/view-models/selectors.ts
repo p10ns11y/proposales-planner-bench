@@ -1,9 +1,10 @@
 import { questionForGap } from "../domain/fitness";
 import { formatBudgetMajor, type MinorUnits } from "../domain/minor-units";
-import type { PlannerBrief } from "../domain/planner-brief";
+import { briefCurrency, type PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import { placesSentence } from "../contract/offer-group";
+import { appendBudgetLine } from "./facts-line";
 import type { ConfirmFactName, ConfirmRun, MoreFieldValues, ResultsViewModel, ShellViewModel } from "./view-model";
 
 const monthNames = [
@@ -81,6 +82,7 @@ export function shellViewModel(input: {
     openRow,
     more,
     moreStamp: moreStamp(more),
+    budgetCurrency: briefCurrency(brief),
     composerPlaceholder,
     offerSummary: offerSummary(brief, offerCount, phase),
     contextChips: phase === "results" ? briefContextChips(brief) : [],
@@ -305,7 +307,7 @@ function briefPresentation(brief: PlannerBrief): { runs: ConfirmRun[]; sentence:
     }
     runs.push({ kind: "text", text: assumption, inSentence: true });
   }
-  appendBudget(runs, brief);
+  appendBudgetLine(runs, brief);
   return {
     runs,
     sentence: runs
@@ -323,24 +325,6 @@ function datePhrase(brief: PlannerBrief): string {
     return `${start} to ${end}`;
   }
   return start;
-}
-
-function appendBudget(runs: ConfirmRun[], brief: PlannerBrief) {
-  const budget = brief.budget;
-  if (budget === undefined) {
-    return;
-  }
-  const amount = Number.isInteger(budget.amount) ? String(budget.amount) : String(budget.amount);
-  if (runs.some((run) => run.inSentence && run.text !== "")) {
-    runs.push({ kind: "text", text: " ", inSentence: false });
-  }
-  runs.push({ kind: "fact", name: "budget", text: `${budget.currency} ${amount}`, inSentence: false });
-  const basis = budget.scope === "per-person" ? "per person" : budget.scope === "total" ? "total" : "";
-  if (basis === "") {
-    return;
-  }
-  runs.push({ kind: "text", text: " ", inSentence: false });
-  runs.push({ kind: "fact", name: "budget-basis", text: basis, inSentence: false });
 }
 
 function clockPhrase(brief: PlannerBrief): string {
@@ -385,6 +369,7 @@ function moreFields(brief: PlannerBrief): MoreFieldValues {
     organisationName: brief.organisationName ?? "",
     contactEmail: brief.contactEmail ?? "",
     language: brief.language ?? "",
+    attendeeCount: brief.attendeeCount === undefined ? "" : String(brief.attendeeCount),
     roomCount: brief.roomCount === undefined ? "" : String(brief.roomCount),
     meetingRoomCount: brief.meetingRoomCount === undefined ? "" : String(brief.meetingRoomCount),
     foodRequired: brief.foodRequired === undefined ? "" : brief.foodRequired ? "yes" : "no",
@@ -399,6 +384,7 @@ function moreStamp(more: MoreFieldValues): string {
     more.organisationName,
     more.contactEmail,
     more.language,
+    more.attendeeCount,
     more.roomCount,
     more.meetingRoomCount,
     more.foodRequired,

@@ -5,6 +5,7 @@ import {
   findBriefGaps,
   findGaps,
   findOfferGaps,
+  isFileableGap,
   questionForGap,
 } from "../src/domain/fitness";
 import type { PlannerBrief } from "../src/domain/planner-brief";
@@ -62,12 +63,12 @@ describe("brief and offer gaps", () => {
   it("asks one question for a known gap, a basis, or an unknown field", () => {
     const questions: Record<string, string> = {
       eventTitle: "What should we call this event?",
-      contactEmail: "What email should receive the venue replies?",
-      startDate: "What is the start date? Use YYYY-MM-DD.",
-      endDate: "What is the end date? Use YYYY-MM-DD.",
-      attendeeCount: "How many people are coming?",
-      language: "Which two-letter language should the request use?",
-      roomCount: "The stay runs past the start date. How many rooms do you need?",
+      contactEmail: "Add an email under Add details so venues reply to this address.",
+      startDate: "Add the start date in the message, as YYYY-MM-DD.",
+      endDate: "Add the end date in the message, as YYYY-MM-DD.",
+      attendeeCount: "Add how many people are coming in the message.",
+      language: "Add a language under Add details.",
+      roomCount: "Add how many rooms you need under Add details for this multi-day stay.",
       city: "Which city is the event in?",
       startTime: "What time does it start?",
       endTime: "When does it end, or how long does it run?",
@@ -83,6 +84,16 @@ describe("brief and offer gaps", () => {
       expect(questionForGap(field)).toBe(question);
     }
     expect(questionForGap("theme")).toBe("What should we use for theme?");
+    expect(isFileableGap(undefined)).toBe(false);
+    expect(isFileableGap("")).toBe(false);
+    expect(isFileableGap("contactEmail")).toBe(true);
+    expect(isFileableGap("startDate")).toBe(true);
+    expect(isFileableGap("endDate")).toBe(true);
+    expect(isFileableGap("attendeeCount")).toBe(true);
+    expect(isFileableGap("language")).toBe(true);
+    expect(isFileableGap("roomCount")).toBe(true);
+    expect(isFileableGap("city")).toBe(false);
+    expect(isFileableGap("theme")).toBe(false);
     expect(briefConfirmHold({})).toEqual({
       gaps: ["city", "startDate", "startTime", "attendeeCount", "endTime"],
       question: questions.city,

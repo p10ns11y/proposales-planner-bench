@@ -30,7 +30,7 @@ Free text, clean, confirm, structured data, then the views. Then favorites, fetc
 | Rank | A named currency leads. Otherwise fewest gaps, then currency A to Z, then the lower total. No conversion. A favorite mark leaves the order unchanged |
 | Show | Five rows, then five more |
 
-Required to match: city, start date, start time, attendees, and an end time. The end time can be absent when a duration is set, or when the end date is after the start. A budget with no basis stays on confirm and asks "Is that per person or total?" Yes stays hidden until the basis is set. The rest sits in More.
+Required to match: city, start date, start time, attendees, and an end time. The end time can be absent when a duration is set, or when the end date is after the start. A budget with no basis stays on confirm and asks "Is that per person or total?" Yes stays hidden until the basis is set. The rest sits in Add details.
 
 Filing needs an email, both dates, attendees, a language, and rooms when the end date is after the start. English with no stated language stores `en`. Yes asks for a missing email. A later file on the page returns the stored filing. Matching does not need those fields.
 

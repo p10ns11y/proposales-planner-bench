@@ -9,9 +9,9 @@ import {
   offerBreakdown,
   type OfferPart,
 } from "../contract/offer-group";
-import { gapLabel, neutralChipName } from "./offer-copy";
+import { gapLabel, neutralChipAttrs, neutralChipName, neutralChipText } from "./offer-copy";
 import { GapIcon } from "./offer-group";
-import { fileBriefDisabled, fileBriefLabel } from "./file-brief-state";
+import { detailStatusLine, fileBriefLabel } from "./file-brief-state";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
@@ -29,9 +29,11 @@ type OfferDetailProps = {
   includeExtras: boolean;
   contextChips: string[];
   filingMessage: string | null;
+  errorText: string | null;
+  whyMore: string | null;
   filed: boolean;
   active: boolean;
-  busy: boolean;
+  pressable: boolean;
   onClose: () => void;
   onFile: () => void;
 };
@@ -41,9 +43,11 @@ export function OfferDetail({
   includeExtras,
   contextChips,
   filingMessage,
+  errorText,
+  whyMore,
   filed,
   active,
-  busy,
+  pressable,
   onClose,
   onFile,
 }: OfferDetailProps) {
@@ -51,6 +55,7 @@ export function OfferDetail({
   const canShare = useCanShare();
   const [copied, setCopied] = useState(false);
   const open = offer !== null;
+  const statusLine = detailStatusLine({ errorText, filingMessage, whyMore });
   const lines = offer === null ? [] : offerBreakdown(offer, includeExtras);
   const price = offer === null ? "" : formatOfferPrice(offer.total, offer.currency);
   const expired = offer?.gaps.includes("expired") === true;
@@ -160,13 +165,12 @@ export function OfferDetail({
                     {(offer.neutral ?? []).map((mark) => (
                       <span
                         key={mark}
-                        className="planner-chip planner-chip-not-stated"
+                        className={mark === "not-compared" ? "planner-chip planner-chip-status" : "planner-chip planner-chip-not-stated"}
                         data-facet={mark}
                         aria-label={neutralChipName(mark)}
-                        data-lcv="must-show"
-                        data-lcv-chip="not-stated"
+                        {...neutralChipAttrs(mark)}
                       >
-                        Not stated
+                        {neutralChipText(mark)}
                       </span>
                     ))}
                   </div>
@@ -237,15 +241,15 @@ export function OfferDetail({
                 Back to chat
               </button>
               <div className="planner-detail-file">
-                {filingMessage ? (
+                {statusLine ? (
                   <p className="planner-meta" role="status">
-                    {filingMessage}
+                    {statusLine}
                   </p>
                 ) : null}
                 <button
                   type="button"
                   className="planner-apply"
-                  disabled={fileBriefDisabled(busy, filed)}
+                  disabled={!pressable}
                   {...lcvStay("file-brief", "detail:open")}
                   onClick={onFile}
                 >
