@@ -10,7 +10,7 @@ Use the words they would use: place, event, people, date, city. Use Organisation
 
 ## The input
 
-The sticky line accepts a dump, a sentence, or speech. It does not ask them to learn a phrase. "File" is enough when they mean file. A partial reply is enough.
+The sticky line accepts a dump, a sentence, or speech. It does not ask them to learn a phrase. "File" is enough when they mean file. A missing email is asked. A brief that is already filed is not sent again. A partial reply is enough.
 
 When a required fact is missing, ask that one fact. Required means a city, a start date, a start time, an end (or a duration, or an end date after the start), and how many people. A budget with no basis asks whether it is per person or total before Yes. When those are complete, show them back and ask if that is right. Everything else waits in More.
 

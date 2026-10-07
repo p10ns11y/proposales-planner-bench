@@ -35,7 +35,7 @@ The predicate is never relaxed to declare victory. A real dead end gets surfaced
 |---|---|---|
 | Fixtures and live responses match the Proposales API | shape + check | Zod generated from `openapi.json` by `@adaptate/utils`; contract test |
 | Offer totals and `budgetMinor` are minor units. `budget.amount` is major units | shape | A branded `MinorUnits` type. The ceiling is the major amount times 100, rounded. Formatting stays at the view edge |
-| A brief is filed only when it is fileable | shape + check | `@adaptate/core` fitness config `brief:fileable`; the tool refuses otherwise |
+| A brief is filed only when it is fileable | shape + check | `@adaptate/core` fitness config `brief:fileable`. A missing email is asked. A stored filing on the page is returned. |
 | Fixture mode never makes a network call | check | Test that the fixture adapter is used when `PROPOSALES_MODE` is unset |
 | No secrets in the repo or the client bundle | check + human | Keys only in server env; `.env*` gitignored; you add keys |
 | Views do not import domain, Proposales, or flow | shape + check | `no-restricted-imports` in `src/views/` blocks `src/domain/`, `src/proposales/`, and `src/flow/` |

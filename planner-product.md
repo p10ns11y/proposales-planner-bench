@@ -36,7 +36,7 @@ Free text → clean → confirm → structured data → the views.
 
 Favorites → fetch → rank → show still follow the structured brief.
 
-Required to reach a match: a city, a start date, a start time, an attendee count, and an end time. The end time can be absent when a duration is set, or when the end date is after the start date. A budget with no basis stays on confirm and asks "Is that per person or total?" The Yes button stays hidden until that basis is set. The rest sits in More, collapsed. Filing needs an email, both dates, an attendee count, a language, and rooms when the end date is after the start. Matching does not need those.
+Required to reach a match: a city, a start date, a start time, an attendee count, and an end time. The end time can be absent when a duration is set, or when the end date is after the start date. A budget with no basis stays on confirm and asks "Is that per person or total?" The Yes button stays hidden until that basis is set. The rest sits in More, collapsed. Filing needs an email, both dates, an attendee count, a language, and rooms when the end date is after the start. An English brief with no stated language is stored as `en`. Yes asks for a missing email. A later file on the page returns the stored filing. Matching does not need those fields.
 
 Input to result, few beats, same page. Extra views (overlays, dialogs, popovers) sit off this spine and open only where they are needed.
 
@@ -48,7 +48,7 @@ Input to result, few beats, same page. Extra views (overlays, dialogs, popovers)
 
 ## Engines
 
-- **Proposales** supplies the set. Filing still follows the existing rule: inbox when `inbox_token` is set, draft when it is null.
+- **Proposales** supplies the set. Filing uses the inbox when `inbox_token` is set, and a draft when it is null. A later file on the page returns that result.
 - The model extracts the brief. Fetch and rank stay ordinary code.
 
 ## Page

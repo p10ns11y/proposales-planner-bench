@@ -31,7 +31,7 @@ The next session uses [control-card-productize.md](./control-card-productize.md)
 2. Every fixture validates against `openapi.json` component schemas (`Proposal`, `Company`, `CreateRfpRequest`).
 3. Offers from Proposales are normalised **deterministically** from `blocks[].package_split.type` (`accommodation`, `food`, `meetingRoom`, `other`). The LLM is used only for free text: the brief, and proposals pasted as text.
 4. With no LLM key, brief extraction falls back to a fixture extractor, so the UI never blocks. A model attempt waits 40 seconds, and the turn and chat routes set maxDuration to 60.
-5. Filing the brief picks a path at runtime: `inbox_token` set → `POST /v1/inbox/{token}` with `is_test`; `null` → `POST /v3/proposals` draft with the brief in `data`.
+5. Filing the brief picks a path at runtime: `inbox_token` set → `POST /v1/inbox/{token}` with `is_test`; `null` → `POST /v3/proposals` draft with the brief in `data`. An English brief with no stated language is `en`. Yes asks when the email is missing. A later file on the page returns the stored filing.
 6. Switching to the real API needs only `PROPOSALES_MODE=live` and `PROPOSALES_API_KEY`. No code change.
 
 ## Verify commands

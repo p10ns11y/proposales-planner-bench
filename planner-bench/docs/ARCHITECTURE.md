@@ -63,10 +63,11 @@ flowchart TD
   confirm -->|file| filing
   favorites -->|file| filing
   results -->|file| filing
-  detail -->|file| filing
+  detail -->|email set| filing
+  detail -->|no email| askEmail["More. Email focused. No server call."]
 ```
 
-Detail sits over the thread and returns to the same place in the chat. The favorite mark does not change the sort. Post rules are in [Filing](#filing).
+Detail sits over the thread and returns to the same place in the chat. Saving More while that detail is open leaves the same offer open. The favorite mark does not change the sort. Post rules are in [Filing](#filing).
 
 ![Turn sequence](diagrams/turn-sequence.svg)
 
@@ -111,7 +112,7 @@ flowchart TD
   merge --> modelPath["planner model. 200"]
 ```
 
-Confirm, favorites, show more, and opening a row leave `planner` as `scripted`. The prompt says to leave unknown fields out. `assumedSpan` fills the clocks and the statement. Full day and all day are 09:00–17:00. Half day and morning are 09:00–12:00. Afternoon is 13:00–17:00.
+Confirm, favorites, show more, and opening a row leave `planner` as `scripted`. An English brief with no stated language is stored as `en`. The rule is in [Filing](#filing). The prompt says to leave unknown fields out. `assumedSpan` fills the clocks and the statement. Full day and all day are 09:00–17:00. Half day and morning are 09:00–12:00. Afternoon is 13:00–17:00.
 
 A scripted budget with the same amount and currency, and no basis, keeps the basis the model set. The brief keeps its span on `timeAssumption`. Offer day parts are separate, and they do not filter or rank: `full_day`, `half_day_morning`, `half_day_afternoon`, `evening`, `overnight`, `multi_day`.
 
@@ -272,29 +273,38 @@ Normalisation copies city, capacity, `min_capacity`, `day_part`, and `event_type
 ```mermaid
 flowchart TD
   need["Fileable: email, both dates, attendees, language, and rooms when the end date is after the start"]
-  yes["Yes, on Does this brief look right?"] --> yesReady{Fileable, and filing is empty?}
-  yesReady -->|no| yesSkip["No post from Yes. Phase becomes favorites."]
+  en["English text and no stated language: store en"]
+  yes["Yes, on Does this brief look right?"] --> yesHeld{Filing already stored?}
+  yesHeld -->|yes| yesClear["No post. Notice cleared. Phase becomes favorites."]
+  yesHeld -->|no| yesReady{Fileable?}
+  yesReady -->|no, email missing| yesEmail["Notice: What email should receive the venue replies? No post."]
+  yesReady -->|no, email set| yesClear
   yesReady -->|yes| yesCo["Selected company, else the first"]
+  en --> need
   need --> yesReady
-  word["file, or a line that contains file the brief"] --> wordGap{A fileable field is missing?}
+  word["file, or a line that contains file the brief"] --> stored{Filing already stored?}
+  stored -->|yes| reuse["Return that filing. No Proposales call. Phase stays."]
+  stored -->|no| wordGap{A fileable field is missing?}
   yesCo --> yesId{Company id?}
   yesId -->|no, filing open| yesSilent["No post. Notice stays empty."]
   yesId -->|no, filing closed| yesClosed["Filing is unavailable right now."]
   yesId -->|yes| yesPost[fileBrief]
   yesPost --> yesKind{Inbox token?}
-  yesKind -->|yes| yesInbox["POST /v1/inbox/ and the token. No bearer. No inbox sentence."]
-  yesKind -->|no| yesDraft["POST /v3/proposals. Bearer. A draft was created in Proposales."]
+  yesKind -->|yes| yesInbox["POST /v1/inbox/ and the token. No bearer. Notice stays empty. Detail shows The brief is filed."]
+  yesKind -->|no| yesDraft["POST /v3/proposals. Bearer. Notice stays empty. Detail and thread show A draft was created in Proposales."]
   yesPost -->|throw| yesFail["Filing is unavailable right now. This post sets no draft sentence."]
   yesSilent --> yesDone[Phase becomes favorites]
   yesClosed --> yesDone
   yesInbox --> yesDone
   yesDraft --> yesDone
   yesFail --> yesDone
+  yesEmail --> yesDone
+  yesClear --> yesDone
   wordGap -->|yes| wordAsk["Notice asks questionForGap. No post."]
   wordGap -->|no| wordId{Company id?}
   wordId -->|no, filing open| wordWhich["Which company should receive the brief?"]
   wordId -->|no, filing closed| wordClosed["Filing is unavailable right now."]
-  wordId -->|yes| wordPost["fileBrief, again if one is already stored"]
+  wordId -->|yes| wordPost[fileBrief]
   wordPost --> wordKind{Inbox token?}
   wordKind -->|yes| wordInbox["POST /v1/inbox/ and the token. No bearer. The brief is filed."]
   wordKind -->|no| wordDraft["POST /v3/proposals. Bearer. A draft was created in Proposales."]
@@ -305,15 +315,18 @@ flowchart TD
   wordInbox --> wordPhase
   wordDraft --> wordPhase
   wordFail --> wordPhase
+  reuse --> wordPhase
 ```
 
-The detail button sends `file`.
+`addEnglishLanguage` in `brief-language.ts` stores `en` when the text has two words from a small English list, no accented letters, and none of the Swedish, French, or German marker words. A language already on the brief, a language in the patch, `in swedish`, `på svenska`, or `Language` plus two letters other than `en` leaves the language as it is. The model path and the scripted path both do this.
+
+With an email, the detail button sends `file`. With no email, it opens More, focuses Email, and does not call the server. The detail shows the latest filing message. A stored draft shows `A draft was created in Proposales.` A stored inbox filing shows `The brief is filed.` A successful Yes leaves the notice empty, and the detail still shows that sentence. The draft sentence also shows in the thread. The word `file` puts the inbox sentence on the notice. After a filing, including the filing Yes makes, the button reads Filed and is disabled.
 
 `projectBriefFlow` sets the stage to `collecting`, `fileable`, `filed`, or `comparing`. Offers join that stage only after a filing result is stored. Ranked rows can still show while the stage is `collecting` or `fileable`.
 
 An empty event name titles the draft with the city and the date. Each filed date joins its clock as a `Z` timestamp, and uses `00:00` when the clock is missing. The inbox body sets `is_test` to `1`. Draft data sets `planner_bench_brief` to true.
 
-`/api/chat` files inside `runFixtureTurn`. On the scripted path that happens only when the user text says file, and the company id is `selectedCompanyId` alone. The `fileBrief` tool sends `file the brief`, and it may set the company id from the tool first. Either path can post again.
+`/api/chat` files inside `runFixtureTurn`. That happens only when the user text says file, and the company id is `selectedCompanyId` alone. The `fileBrief` tool sends `file the brief`, and it may set the company id from the tool first. That chat path can post again. The page path returns the stored filing.
 
 ## Contract
 

@@ -17,7 +17,7 @@ Required before a match:
 
 More, collapsed, as form fields: event name, organisation, email, language, rooms, meeting rooms, food, notes, budget.
 
-Filing needs an email, both dates, an attendee count, a language, and rooms when the end date is after the start. Matching does not need those. Favorites stay a mark on the ranked rows.
+Filing needs an email, both dates, an attendee count, a language, and rooms when the end date is after the start. An English brief with no stated language is stored as `en`. Yes asks for a missing email. A later file on the page returns the stored filing. Matching does not need those fields. Favorites stay a mark on the ranked rows.
 
 Flow: free text → clean → confirm → structured data → the views. Then favorites, fetch, rank, show, as already defined.
 
@@ -78,7 +78,7 @@ P1 before P2 before P3. No parallel writers.
 
 1. A sentence with a city, a date and time, and a headcount reaches ranked rows without a field grid.
 2. More is closed until opened. The fields inside it edit the structured brief.
-3. Filing refuses until the fileable fields are set. Matching does not require them.
+3. Filing waits until the fileable fields are set. An English brief stores language `en`. Yes asks for a missing email. A later file on the page returns the stored filing. Matching does not require the fileable fields.
 4. Off-topic text holds, and does not call fetch or rank.
 5. `pnpm test` and `pnpm typecheck` pass in `planner-bench/`.
 6. The fresh review returns pass, or only gaps written back on this card.
