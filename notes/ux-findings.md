@@ -1,79 +1,58 @@
-# UX findings — planner bench
+# UX findings
 
-Walked 2026-10-06 on `http://localhost:3000` in Chromium, as a person who only wants to book a place. No product knowledge. These notes are for the later design session (S7 / D1). The page is unchanged.
-
-The research notes stay in [journey.md](./journey.md). Terms stay in [ontology.md](./ontology.md). The product definition is in [planner-product.md](./planner-product.md).
+Walked 2026-10-06 on the dev server in Chromium, as a person who only wants to book a place. A numeric address paints the shell and then freezes. Notes for the later design session. The page was left unchanged. Related: [journey.md](./journey.md), [ontology.md](./ontology.md), [planner-product.md](./planner-product.md).
 
 ## Verdict
 
-A booker cannot get through the page from top to bottom. The first screen already assumes they know what a brief, a company, an inbox, and a grid are. After they speak, the next action is a sentence they have to type, and a shorter reply fails.
+A booker cannot get through the page. The first screen assumes they know brief, company, inbox, and grid. After they speak, the next action is a sentence they have to type.
 
 ## First look
 
-- The page should wait for the person. Voice or text. They say what they want: an event, a posting, a booking. That is the first step.
-- The Company dropdown is the first control they have to decode. It should not be.
-- Subtitle: "One brief, the offers you received, one grid."
-- Company menu: "Harbour House (inbox)" and "Quiet Court (draft)".
-- Stage: "collecting".
-- One question is clear: "What should we call this event?"
-- Results: "Offers show up here after you add venue proposals."
-- History (0): "Filed briefs show up here."
+| On screen | Text |
+| --- | --- |
+| Subtitle | One brief, the offers you received, one grid. |
+| Company | Harbour House (inbox), Quiet Court (draft) |
+| Stage | collecting |
+| Question | What should we call this event? |
+| Results | Offers show up here after you add venue proposals. |
+| History | Filed briefs show up here. |
 
-`http://127.0.0.1:3000` paints the same shell and then freezes: Company empty, Send grey, no question. Next.js blocks that host in development. The walk used localhost.
+The Company menu should not be the first control.
 
 ## What they type
 
-A normal sentence is dropped. "Hi, I need a place in Stockholm for 40 people on 12 November, with dinner and a meeting room." The page repeats it and asks the same question again. City, date, headcount, dinner, and meeting room are gone.
+A normal sentence is dropped. "Hi, I need a place in Stockholm for 40 people on 12 November, with dinner and a meeting room." City, date, headcount, dinner, and meeting room disappear, and the same question returns.
 
-The only message that fills the form is this shape:
+The only message that fills the form is a labelled dump: title, organisation, email, start, end, attendees, language, city, meeting rooms, food, notes. Nothing on the page shows that shape.
 
-```
-Title Northwind offsite. Organisation Northwind. Email ada@northwind.example. Start 2026-11-12. End 2026-11-12. Attendees 40. Language en. City Stockholm. Meeting rooms 2. Food yes. Notes One plenary and dinner.
-```
+The assistant then coaches "Say file the brief" and "Say add the venue proposals". A shorter reply has to work. "file" must count. Those two phrases do file and then show the grid. History goes to 1.
 
-Nothing on the page shows that shape. Plain English should become the structured event, then the next step should start.
+## Names
 
-After that parse, the assistant coaches exact phrases: "Say file the brief when you want it sent." Then "Say add the venue proposals when you have the offers." That coaching is easy to abandon. There is no control that makes the next action obvious. A shorter reply has to work: "file" has to count the same as "file the brief".
+| Name | In the fixture |
+| --- | --- |
+| Company | The account that receives the brief. Harbour House (id 1) has an inbox. Quiet Court (id 2) saves a draft. |
+| Venue | A priced row: Harbour House, Ridge Hall, Canal Loft. |
+| Organisation | The planner's client. Northwind is neither a company nor a venue. |
 
-Those two phrases do file and then show the grid. History goes to 1.
+| Offer | Stored under | In the company menu |
+| --- | --- | --- |
+| Harbour House | Harbour House | yes |
+| Ridge Hall | Harbour House | no |
+| Canal Loft | Quiet Court | no |
 
-## Company, venue, organisation
-
-**Company** is the hotel account that receives the brief. The dropdown picks that account.
-
-- Harbour House (id 1): has an inbox, so the brief is delivered.
-- Quiet Court (id 2): no inbox, so the brief is saved as a draft on that account.
-
-**Venue** is a place that answered with a price. Each grid row is one offer: rooms, food, space, extras, a total, and an expiry. The three offers are Harbour House, Ridge Hall, and Canal Loft.
-
-**Organisation** is the planner's client, the party the event is for. In the example that is Northwind. Northwind is not a company in the dropdown and not a venue in the grid.
-
-## Which venue sits under which company
-
-In the fixture records, each offer is stored under one of the two dropdown companies.
-
-| Offer name | Stored under | In the dropdown |
-|---|---|---|
-| Harbour House | Harbour House (id 1) | yes, as a company |
-| Ridge Hall | Harbour House (id 1) | no |
-| Canal Loft | Quiet Court (id 2) | no |
-
-Ridge Hall and Canal Loft are offers only. Quiet Court is an account only. Harbour House is both: the selected account, and one of the three offers.
-
-The page never shows that link. The dropdown only chooses which account receives the brief. After "add the venue proposals", the grid lists all three offers by their own names, including Canal Loft, even while Harbour House stays selected. Company and venue look like the same kind of name, so a booker cannot tell them apart.
+The grid lists all three offers while Harbour House stays selected. The page never shows that link.
 
 ## Results
 
-With Harbour House selected, the grid shows:
-
-| Venue | Total | Gaps |
-|---|---|---|
+| Venue | Total | Gap shown |
+| --- | --- | --- |
 | Harbour House | 365.00 EUR | Clear |
 | Ridge Hall | 950.00 SEK | foodAndBeverage |
 | Canal Loft | 210.00 EUR | expired |
 
-The amounts in a row add up. The page never says whether a figure is the whole booking, one person, or one day, and it never says why one row is EUR and another is SEK. Gap marks read "Clear", "foodAndBeverage", and "expired". On a phone the venue names and those gap words wrap inside the cells. Opening History covers the right side of the desktop page and cuts off the Expires column. The saved row is "Northwind offsite", "comparing · 3 venues", and a raw timestamp.
+The page never says whether a figure is the booking, one person, or one day, or why one row is EUR and another is SEK. On a phone the names and gap words wrap. History covers the right side and cuts off Expires.
 
 ## Hold
 
-Do not change the page on these notes until the design session. That pass is where more constraints, views, and taste land.
+Leave the page until the design session.

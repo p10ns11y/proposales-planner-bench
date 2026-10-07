@@ -132,147 +132,55 @@ components:
     height: "56px"
 ---
 
-# Design System: Planner bench
+# Design system
 
-## Overview
+A chat column. One line in. The reply is a cool grey bubble, and the venues sit in it as lighter cards. The composer stays at the bottom. More comes from the right. Detail covers the column and returns to the same place in the thread.
 
-**Creative North Star: "The nested reply"**
+Coral is the mark and one dot on the best valid offer. Actions are black. Status, including Expired, is a neutral chip. Instrument Sans is the only face. Placeholder text is `{colors.placeholder}` (`#6E6E6E`).
 
-The bench is a chat column. A person writes one line. The reply sits in a cool grey bubble, and the venues sit inside that bubble as lighter cards. The composer stays on the bottom edge. More arrives from the right. A venue's detail covers the column and then returns to the same place in the thread.
+| Role | Use |
+| --- | --- |
+| Action | Send, Apply, File this brief |
+| Ink | Primary text, and Compare when it is on |
+| Canvas, rail, assistant, card, raised | Page, rail, reply, rows and composer, drawer and sheet |
+| Chip, selected, hairline | Chips and the monogram, a pressed segment, edges |
+| Danger | Error text with an icon |
 
-The material is cool grey, hairlines, and one sans. Coral is identity, used twice at most: the brand mark, and one dot on the best valid offer.
+| Type | Size | Use |
+| --- | --- | --- |
+| Display 500 | 28 / 34 | Empty-state question |
+| Title 600 | 22 / 28 | Detail name, drawer title |
+| Card 600 | 17 / 24 | Venue name |
+| Body 400 | 15 / 22 | Reply, composer, prices |
+| Meta 500 | 13 / 18 | Held-by, summary, breakdown |
+| Chip 500 | 12 / 16 | Chips and the VAT line |
 
-**Key Characteristics:**
-
-- One composer, floating above the bottom edge.
-- Offer cards live inside the assistant reply.
-- Cool greys separated by hairlines.
-- Instrument Sans for every role, including prices.
-- Black for the primary action. Coral is never a fill.
-
-## Colors
-
-Surfaces step from canvas to rail to assistant to card to white. Text is ink, secondary, or placeholder. One black does the primary actions.
-
-### Primary
-
-- **Action** (`{colors.action}`): Send, Apply, and File this brief. Hover is `{colors.action-hover}`.
-- **Ink** (`{colors.ink}`): primary text, and the Compare pill when it is on.
-
-### Neutral
-
-- **Canvas** (`{colors.canvas}`): the page.
-- **Rail** (`{colors.rail}`): the left rail.
-- **Assistant** (`{colors.assistant}`): the reply bubble and the offer group.
-- **Card** (`{colors.card}`): offer rows, compare cards, the composer, and fields.
-- **Raised** (`{colors.raised}`): the drawer and the detail sheet.
-- **Chip** (`{colors.chip}`): chips, the Compare pill when it is off, and the monogram tile.
-- **Selected** (`{colors.selected}`): a pressed or selected segment.
-- **Hairline** (`{colors.hairline}`): row and card edges.
-- **Input border** (`{colors.input-border}`): field borders, and the disabled send face.
-- **Secondary** (`{colors.secondary}`): meta text and the price note.
-- **Placeholder** (`{colors.placeholder}`): input placeholders. This is darker than the frame's `#8A8A8A` so placeholder text clears WCAG AA on `{colors.card}`.
-- **Status** (`{colors.status}`): chip text, including Expired.
-
-### Accent
-
-- **Coral** (`{colors.coral}`): the brand mark and the 6px Best match dot. Never a button, a wash, an error, or body text.
-
-### Danger
-
-- **Danger** (`{colors.danger}`): error text, always with an icon. Never a red fill.
-
-**The Coral Rule.** Coral appears on the brand mark and on at most one Best match dot. Status, including Expired, is a neutral chip: icon plus word.
-
-## Typography
-
-**Display Font:** Instrument Sans
-**Body Font:** Instrument Sans
-**Label/Mono Font:** Instrument Sans. Prices use tabular numbers at weight 600. There is no second family.
-
-**Character:** A neutral grotesque, set tight on the display and regular on the body. Nothing is set in capitals.
-
-### Hierarchy
-
-- **Display** (500, 28px / 34px, tracking -0.02em): the empty-state question.
-- **Title** (600, 22px / 28px): the detail venue name and the drawer title.
-- **Card** (600, 17px / 24px): a venue name.
-- **Body** (400, 15px / 22px): the reply, the composer, and prices.
-- **Meta** (500, 13px / 18px): held-by, the group summary, and the breakdown.
-- **Chip** (500, 12px / 16px): chips and the VAT line.
-
-**The One Face Rule.** Instrument Sans is the only face. Placeholder text uses `{colors.placeholder}` (`#6E6E6E`), not `#8A8A8A`.
+Prices use tabular numbers.
 
 ## Layout
 
-The page is a 64px rail plus a column. The column's content maxes at 720px. The composer floats 16px above the bottom. Messages sit 8px apart inside a turn and 24px between turns.
+A 64px rail plus a 720px column. The composer floats 16px up. Turns are 24px apart, messages 8px. Below 640px the rail hides and More and detail go full width. Compare needs two or three offers and a group at least 640px wide.
 
-Below 640px the rail hides, the header sticks, and the More drawer and the detail sheet become full width. Compare is measured on the offer group, not the window: it exists only for two or three offers when that group is at least 640px wide.
+| Level | Shadow | Where |
+| --- | --- | --- |
+| e1 | `0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.04)` | Row hover |
+| e2 | `0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)` | Composer |
+| e3 | `-16px 0 48px rgba(0,0,0,.10)` | Drawer |
+| e4 | `0 24px 80px rgba(0,0,0,.18)` | Detail |
 
-**The Sticky Composer Rule.** The input remains in place. Results, More, and detail come and go around it.
-
-## Elevation & Depth
-
-Most surfaces are flat, separated by a hairline.
-
-- **e1**, row hover: `0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.04)`.
-- **e2**, composer: `0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)`.
-- **e3**, drawer: `-16px 0 48px rgba(0,0,0,.10)`.
-- **e4**, detail: `0 24px 80px rgba(0,0,0,.18)`.
-
-The scrim is `rgba(10,10,10,.32)`.
-
-Motion is transform and opacity. The drawer enters in 320ms and leaves in 220ms. Rows fade and rise 8px over 200ms, staggered 40ms, at most four. Card to detail uses a spring (stiffness 380, damping 34) on the card, the title, and the price. List and compare crossfade in 200ms. Reduced motion is a 150ms opacity change. Never `transition: all`.
-
-**The Hairline Rule.** A shadow is for the composer, the drawer, the detail sheet, or a hovered row. It is not a default card treatment.
-
-## Shapes
-
-Bubbles and the offer group use 16px, with a 2px corner where the bubble meets its speaker. Rows and compare cards use 12px. Tiles and fields use 10px. Chips, the composer, and the header pills are full pills. A multi-line composer uses 24px. The detail sheet uses 20px on desktop and 0 on a phone.
-
-The best compare card adds a 1.5px `{colors.ink}` outline. That outline follows the Best match badge, so it never lands on an expired offer.
+Scrim `rgba(10,10,10,.32)`. Motion is transform and opacity: drawer 320ms in and 220ms out, rows 200ms and 8px, stagger 40ms, at most four. Detail springs at stiffness 380 and damping 34. Reduced motion is a 150ms fade. Shadows sit on the composer, the drawer, the detail sheet, or a hovered row. The best compare card uses a 1.5px ink outline that follows Best match and stays off an expired offer.
 
 ## Components
 
-### Buttons
+| Piece | Rule |
+| --- | --- |
+| Primary | 44px, 10px radius. Send is a 32px black circle in a 44px hit area. Disabled send face is `{colors.input-border}`. |
+| Composer | Pill, max 720px. Placeholder: "Describe the event: place, people, date, time". Plus is Add details. Header pill is More |
+| Row | 56px. Monogram, name, chips, held-by, one 96px price. Expired price is 60% opacity with a line-through |
+| Best match | One coral dot and the words, on the best non-expired offer |
+| Compare | Side-by-side, only through the toggle, only when the group qualifies. Lines come from the offer and sum to the total. A remainder is Other |
+| Footer | "Prices are totals for the day, excl. VAT" |
+| More | 400px, white, e3. Full width below 640px. Title "Refine the brief" |
+| Detail | Desktop inset 12px, radius 20, e4. Phone is full screen. Overview shows the block, who holds it, and the total |
 
-- **Shape:** primary actions are 44px tall with a 10px radius, except Send, which is a 32px black circle inside a 44px hit area.
-- **Primary:** `{colors.action}` fill, white text. Apply and File this brief.
-- **Ghost:** `{colors.chip}` fill or text-only. Reset, Open, Back to chat, Try again.
-- **Hover / Focus:** primary hover is `{colors.action-hover}`. Focus is `0 0 0 2px #F9F9F9, 0 0 0 4px #151515`. Press scales to 0.98.
-- **Disabled send:** the 32px face is `{colors.input-border}` and the arrow stays `{colors.ink}`.
-
-### Inputs / Fields
-
-- **Style:** `{colors.card}` fill, 1px `{colors.input-border}`, 15px type, 44px tall, 10px radius.
-- **Focus:** the same 2px ink ring.
-- **The composer:** a pill, max-width 720px, hairline, e2. Placeholder: "Describe the event: place, people, date, time". The left plus opens More and is named Add details. The header pill is named More.
-
-### The thread
-
-- **Style:** canvas, with the assistant reply on `{colors.assistant}`.
-- **A row:** a 56px button. Monogram, name, chips, held-by, and one 96px right-aligned price. An expired price is 60% opacity with a line-through.
-- **Best match:** one coral dot and the words Best match, on the best non-expired offer. Never on an expired offer.
-- **Compare:** side-by-side cards, only through the Compare toggle, and only when the group qualifies. Breakdown lines come from the offer's own amounts and always sum to the total. A remainder is labelled Other.
-- **Footer:** "Prices are totals for the day, excl. VAT".
-
-### Drawer and detail
-
-- **More:** a 400px right drawer, white, e3. Full width below 640px. Title "Refine the brief".
-- **Detail:** desktop inset 12px, radius 20, e4. Phone is full screen, radius 0. Overview shows the proposal block, who holds it, and the total. No invented amenities.
-
-## Do's and Don'ts
-
-### Do:
-
-- **Do** keep the composer on screen and the current action reachable.
-- **Do** put Best match on the best non-expired offer, and Expired on a neutral chip.
-- **Do** render breakdown lines from the offer so they sum to the total.
-- **Do** use canvas, rail, assistant, card, ink, and coral as they are tokenised above.
-
-### Don't:
-
-- **Don't** use cream, a serif, or a `<details>` element for More.
-- **Don't** hard-code Best match, or put it on an expired offer.
-- **Don't** invent photos, ratings, amenities, or prices that do not sum.
-- **Don't** use coral as a fill, a wash, or error text.
+Keep the composer on screen. Best match sits on the best non-expired offer. Lines come from the offer. Leave cream, a serif, photos, and ratings off the page. Coral is not a fill.

@@ -1,101 +1,81 @@
 # Control Card — planner bench
 
-The next session uses [control-card-productize.md](./control-card-productize.md). This card stays the record of S1–S6.
+Next: [control-card-productize.md](./control-card-productize.md). S1–S6. [workflow.md](./workflow.md). [ontology.md](./ontology.md).
 
-- **goal:** A planner bench on Vercel. A planner turns one free-text brief into a structured brief, adds the venue proposals they received, and sees one comparison grid with what is missing against the brief. It runs fully on fixtures until a real Proposales API key exists, then switches to the real API with one environment variable.
-- **phase:** EXECUTE (S6 done). S7 and D1 are not started.
-- **decision:** concordance proceed. Both judges say planner-bench, `p_dm` 0.42, `tau` 0.4 (caller). The pending `inbox_token` check cannot change the label.
-- **model_role now:** coding through S6. Next: S7 review, not this session.
-- **workflow:** [workflow.md](./workflow.md) maps each phase to plugins and sets the autonomous-run exit condition. Terms are in [ontology.md](./ontology.md).
+| | |
+| --- | --- |
+| Goal | One free-text brief becomes a structured brief, then a comparison grid. Fixtures until a Proposales key exists. |
+| Phase | EXECUTE. S6 done. S7 and D1 not started. |
+| Decision | Concordance proceed. Both judges say planner-bench, `p_dm` 0.42, `tau` 0.4. The pending `inbox_token` check cannot change the label. |
+| Role | Coding through S6. Next: S7. |
 
 ## Tech stack
-| Concern | Choice | Role in the app |
-|---|---|---|
-| Framework | Next.js App Router on Vercel | Hosting, route handlers for the agent |
-| API contract | `@adaptate/utils` (`openAPISchemaToZod`) | Zod schemas generated from the committed `src/contract/openapi.json` for contract tests. Runtime checks use the tolerant readers in `http-client.ts`. |
-| Model fitness | `@adaptate/core` (`makeConditionalSchemaTransformer`) | One deep-partial `PlannerBrief` schema. Each consumer has a config of required fields. Whatever fails the config is the gap list, and the next question. Rooms are required when the end date is after the start date. |
-| Agent | Vercel AI SDK (`streamText` with tools) | The page posts to `/api/turn`. `/api/chat` streams with tools `updateBrief`, `fileBrief`, `addOffer`, and `compareOffers`. The page does not call `useChat`. |
-| Voice | Browser Web Speech API for input | No key needed. Speech goes into the same chat. |
-| UI primitives | shadcn/ui | Chat, table, sheet, badge |
-| Design | `impeccable` plugin, `layout-content-view` where applicable | **Separate session.** This build ships a plain, structurally sound shell. |
-| History | `localStorage` | No database or secrets for the case |
+
+| Concern | Choice | Role |
+| --- | --- | --- |
+| Framework | Next.js App Router on Vercel | Hosting and route handlers |
+| API contract | `@adaptate/utils` (`openAPISchemaToZod`) | Zod from `src/contract/openapi.json` for contract tests. Runtime uses the tolerant readers in `http-client.ts`. |
+| Fitness | `@adaptate/core` (`makeConditionalSchemaTransformer`) | One deep-partial `PlannerBrief`. Each consumer lists required fields. Failures are the gap list and the next question. Rooms are required when the end date is after the start. |
+| Agent | Vercel AI SDK (`streamText` with tools) | The page posts to `/api/turn`. `/api/chat` streams `updateBrief`, `fileBrief`, `addOffer`, and `compareOffers`. The page does not call `useChat`. |
+| Voice | Browser Web Speech API | Speech enters the same chat. |
+| UI | shadcn/ui | Chat, table, sheet, badge |
+| Design | `impeccable`, `layout-content-view` | A separate session. This build ships a plain shell. |
+| History | `localStorage` | No database |
 | Tests | Vitest | Contract, fitness, normaliser, mode switch |
 
-## Views (few, agentic)
-1. **Chat** (home): talk or type the brief. The agent fills the brief and asks for whatever the fitness config says is missing.
-2. **Results:** comparison grid for one brief, with gap badges per venue.
-3. **History:** past briefs and their results.
+## Success
 
-## Success criteria
-1. `PROPOSALES_MODE=fixture` (the default) runs the full flow with no secrets: brief in, offers in, grid out.
-2. Every fixture validates against `openapi.json` component schemas (`Proposal`, `Company`, `CreateRfpRequest`).
-3. Offers from Proposales are normalised **deterministically** from `blocks[].package_split.type` (`accommodation`, `food`, `meetingRoom`, `other`). The LLM is used only for free text: the brief, and proposals pasted as text.
-4. With no LLM key, brief extraction falls back to a fixture extractor, so the UI never blocks. A model attempt waits 40 seconds, and the turn and chat routes set maxDuration to 60.
-5. Filing the brief picks a path at runtime: `inbox_token` set → `POST /v1/inbox/{token}` with `is_test`; `null` → `POST /v3/proposals` draft with the brief in `data`. An English brief with no stated language is `en`. Yes asks when the email is missing. A later file on the page returns the stored filing.
-6. Switching to the real API needs only `PROPOSALES_MODE=live` and `PROPOSALES_API_KEY`. No code change.
+1. `PROPOSALES_MODE=fixture` runs brief, offers, and grid with no secrets.
+2. Every fixture validates against `Proposal`, `Company`, and `CreateRfpRequest`.
+3. Offers are normalised from `blocks[].package_split.type` (`accommodation`, `food`, `meetingRoom`, `other`). The model reads free text only.
+4. With no model key, extraction uses the scripted extractor. A model attempt waits 40 seconds. Turn and chat set maxDuration to 60.
+5. `inbox_token` set posts `POST /v1/inbox/{token}` with `is_test`. Null posts a `POST /v3/proposals` draft with the brief in `data`. English with no stated language is `en`. Yes asks when the email is missing. A later file on the page returns the stored filing.
+6. Live mode needs `PROPOSALES_MODE=live` and `PROPOSALES_API_KEY`.
 
-## Verify commands
+## Verify
+
 ```bash
 pnpm typecheck
-pnpm test        # vitest: contract, normaliser, gaps, client mode switch
+pnpm test
 pnpm build
 ```
 
-## Budgets
-- max_loop_iters=8 rem=8
-- max_repair_rounds=3 rem=3
-- max_step_retries=2
-- max_tool_calls_per_step=25
-- no_progress=2 identical failures → re-PLAN or HITL
+## Steps
 
-## load_diag
-- actor=human, dominant=extraneous (signup and keys) → offloaded to the user's separate session. No asks during EXECUTE.
-- actor=agent, dominant=intrinsic (data contract) → fixed by contract tests in S2 before the UI.
-
-## Steps (Inner DAG)
-
-| id | step | depends_on | done_when | role |
-|---|---|---|---|---|
-| S1 | Scaffold the app at the repository root: Next.js App Router, TypeScript, Tailwind, Vitest, Zod, `ai` SDK. `git init`. | — | `pnpm build` passes on an empty page | coding |
-| S2 | Generate Zod schemas from `openapi.json` with `@adaptate/utils`. First check that it accepts a JSON spec (its loader documents YAML). Fixtures: `companies` (token set and `null` variants), 3 venue proposals with different prices, extras, and expiry, 2 sample briefs. Contract test. | S1 | contract test passes | coding |
-| S3 | Domain: deep-partial `PlannerBrief` and `VenueOffer`. Fitness configs with `@adaptate/core` (`brief:fileable`, `brief:comparable`, and `offerGridRowConfig`). `normaliseProposal()` from `package_split`. `findGaps()` = fields that fail the fitness check. Unit tests. | S2 | tests pass | coding |
-| S4 | `ProposalesClient` port with `fixture` and `http` adapters, chosen by `PROPOSALES_MODE`. Live responses are parsed with the tolerant readers in `http-client.ts`. `fileBrief()` picks inbox or draft from `inbox_token`. | S2 | mode-switch and path tests pass | coding |
-| S5 | Agent route: AI SDK `streamText` with tools `updateBrief`, `fileBrief`, `addOffer`, `compareOffers`. The next question comes from the gap list. Scripted fixture agent when there is no model key. | S3, S4 | tests pass with no key | coding |
-| S6 | UI shell with shadcn: Chat (text and Web Speech input), Results grid, History (`localStorage`). Plain styling only. | S5 | `pnpm build` passes and the flow works on fixtures | coding |
-| S7 | Fresh-context review of plan and diff, plus a `layout-content-view` pass on the three views. Update [journey.md](journey.md) and [worklog.md](worklog.md). | S6 | pass/fail and gaps listed | review |
-| D1 | **Design session (separate):** look and feel and the nature of the app with `impeccable`, shadcn theming, `layout-content-view`. | S6 | user-led | human + deep |
+| id | step | depends_on | done when |
+| --- | --- | --- | --- |
+| S1 | Scaffold at the repository root: Next.js, TypeScript, Tailwind, Vitest, Zod, `ai`. | — | `pnpm build` on an empty page |
+| S2 | Zod from `openapi.json` via `@adaptate/utils`. Check the JSON loader. Fixtures: companies with token and null, 3 proposals, 2 briefs. | S1 | contract test passes |
+| S3 | `PlannerBrief`, `VenueOffer`, `brief:fileable`, `brief:comparable`, `offerGridRowConfig`, `normaliseProposal()`, `findGaps()`. | S2 | tests pass |
+| S4 | `ProposalesClient` fixture and http, chosen by `PROPOSALES_MODE`. Tolerant readers. `fileBrief()` picks inbox or draft from `inbox_token`. | S2 | mode and path tests pass |
+| S5 | `streamText` tools `updateBrief`, `fileBrief`, `addOffer`, `compareOffers`. Next question from the gap list. Scripted agent when there is no model key. | S3, S4 | tests pass with no key |
+| S6 | shadcn shell: chat, speech, results, history. | S5 | `pnpm build`, fixture flow works |
+| S7 | Fresh review and a `layout-content-view` pass. Update [journey.md](journey.md) and [worklog.md](worklog.md). | S6 | pass or gaps listed |
+| D1 | Look and feel, separate, with `impeccable`. | S6 | user-led |
 
 S3 and S4 can run in parallel after S2.
 
-## HITL later, not now
-- Vercel deploy (production).
-- Adding `PROPOSALES_API_KEY` or `XAI_API_KEY` (secrets). The user does this in a separate session.
+## Later, not this card
 
-## last progress
-- S1 through S6 are committed on `main`. `pnpm typecheck`, `pnpm test`, and `pnpm build` pass at the repository root.
-- Fixture mode was driven in Chromium on `localhost:3456`: typed brief → inbox filing → Harbour House, Ridge Hall, and Canal Loft on the grid → history entry. Quiet Court filed a draft.
+Deploy, and adding `PROPOSALES_API_KEY` or `XAI_API_KEY`, stay with the owner.
+
+## Progress
+
+- S1–S6 are on `main`. `pnpm typecheck`, `pnpm test`, and `pnpm build` pass at the repository root.
+- Fixture Chromium on the dev server, port 3456: typed brief, inbox filing, Harbour House, Ridge Hall, Canal Loft, history entry. Quiet Court filed a draft.
 - S7 and the design session were left alone.
-- `typecheck` still needs `next typegen` first, because `LayoutProps` is a generated type.
+- `typecheck` needs `next typegen` first, because `LayoutProps` is generated.
 
-## open decisions
-- 2026-10-06: `getDereferencedOpenAPIDocument` loads the committed `src/contract/openapi.json`. js-yaml accepts the JSON, so the component-schema fallback was not used. A company with `tax_mode: "nope"` fails, which shows `$ref` resolution is in effect. Generated schemas check fixtures in contract tests. Live responses are checked by the tolerant readers in `http-client.ts`.
-- `openAPISchemaToZod` drops `additionalProperties`. Known fields on fixtures are still checked with the generated schemas. The draft post sends `draftBody`: the inbox fields plus `planner_bench_brief`. It does not forward a stored `Proposal.data` object.
-- Offer totals use `value_without_tax` when present, otherwise `value_with_tax`, multiplied by block `quantity` (default 1). Minor units stay branded until the view model formats them.
+## Open
+
+- `getDereferencedOpenAPIDocument` loads `src/contract/openapi.json`. js-yaml accepts the JSON. A company with `tax_mode: "nope"` fails, so `$ref` resolution is in effect. Generated schemas check fixtures. Live responses use the tolerant readers.
+- `openAPISchemaToZod` drops `additionalProperties`. The draft post sends `draftBody`: the inbox fields plus `planner_bench_brief`. It does not forward a stored `Proposal.data` object.
+- Totals use `value_without_tax` when present, otherwise `value_with_tax`, times block `quantity` (default 1).
 - No `XAI_API_KEY` keeps the scripted extractor. A set key calls xAI through `@ai-sdk/xai`. The model id is `grok-4.7` unless `PLANNER_MODEL` is set. There is no `AI_GATEWAY_API_KEY`.
-- The spec path is `src/contract/openapi.json`. Contract tests load it. API routes leave the file unread.
-- `pnpm audit` reports one high advisory in `braces@3.0.3`. It is reached only through `eslint-config-next`, used for linting in development. No patched version exists. Do not override it; re-run audit before deploy.
-- Web Speech still depends on the browser. Typed input is always available.
+- Contract tests load the spec. API routes leave the file unread.
+- `pnpm audit`: high advisory in `braces@3.0.3`, reached only through `eslint-config-next`. No patched version. Do not override it.
+- Web Speech depends on the browser. Typed input is always available.
 
-## compact context for any new agent
-- Read only: this card, [workflow.md](./workflow.md), and `src/contract/openapi.json`.
-- Do not read: [proposales-report.md](proposales-report.md), [review.md](review.md), [journey.md](journey.md), or agent transcripts, unless a step needs a fact that is missing here.
-- Workspace and app: repository root. Node 22, pnpm 9.
-- The Git root is this workspace. Do not run `git init`. Small steps can commit to `main`. Larger features go on a branch and a pull request.
-- No secrets exist yet. Fixture mode is the default. Never ask the human during EXECUTE; log open decisions on this card.
+## Handoff
 
-## pause reason
-- none
-
-## handoff
-- artifacts: [control-card.md](control-card.md), [proposales-report.md](proposales-report.md), [review.md](review.md), `src/contract/openapi.json`
-- open_risks: `additionalProperties` are not kept by the generated Zod schemas (the adapter sends the original metadata); Web Speech support varies by browser (text input is always available); `braces` audit advisory is dev-only and has no patch
+Read this card, [workflow.md](./workflow.md), and `src/contract/openapi.json`. Node 22, pnpm 9, repository root. Do not run `git init`. Fixture mode is the default. Pause: none.
