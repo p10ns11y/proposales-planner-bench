@@ -8,8 +8,8 @@ export function briefDraftFromPlanner(brief: PlannerBrief, companyId: number): B
     companyName: brief.organisationName ?? "",
     message: brief.notes ?? brief.eventTitle ?? "",
     language: brief.language ?? "",
-    startDate: brief.startDate === undefined ? null : `${brief.startDate}T00:00:00.000Z`,
-    endDate: brief.endDate === undefined ? null : `${brief.endDate}T00:00:00.000Z`,
+    startDate: brief.startDate === undefined ? null : clockStamp(brief.startDate, brief.startTime),
+    endDate: brief.endDate === undefined ? null : clockStamp(brief.endDate, brief.endTime),
     eventTitle: brief.eventTitle,
     attendeeCount: brief.attendeeCount,
     roomCount: brief.roomCount,
@@ -17,4 +17,8 @@ export function briefDraftFromPlanner(brief: PlannerBrief, companyId: number): B
     city: brief.city,
     foodRequired: brief.foodRequired,
   };
+}
+
+function clockStamp(date: string, time: string | undefined): string {
+  return `${date}T${time ?? "00:00"}:00.000Z`;
 }

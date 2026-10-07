@@ -11,9 +11,10 @@ Times are local (UTC+2). Time spent is active time and is approximate. Prompts c
 
 | 2026-10-06 | 14:56–15:16 | 20 min | 1 | Cursor (build subagent, Grok 4.7) | S1 scaffold committed (`14eb334`); stopped when the session closed |
 | 2026-10-06 | 15:27– | | 2 | Grok build (S2 onward) + Cursor (consultant) | Handover recorded on the control card |
+| 2026-10-07 | 10:56–12:00 | 64 min | 1 | Cursor cloud agent, Grok 4.7 | Sticky composer, comparable brief, fixture path, and the check workflow |
 
 ## Totals
 
 | Time spent | Prompts | Harnesses |
 |---|---|---|
-| ~90 min | 23 | Cursor, Grok build |
+| ~154 min | 24 | Cursor, Grok build, Cursor cloud agent |

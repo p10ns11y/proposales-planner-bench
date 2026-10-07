@@ -10,6 +10,24 @@ function roomsRequiredWhenTheStayContinues(data: unknown): boolean {
   return stayNeedsRooms(plannerBriefSchema.parse(data));
 }
 
+function needsClockEnd(data: unknown): boolean {
+  const brief = plannerBriefSchema.parse(data);
+  if (brief.durationMinutes !== undefined) {
+    return false;
+  }
+  if (brief.endTime !== undefined) {
+    return false;
+  }
+  if (
+    brief.endDate !== undefined &&
+    brief.startDate !== undefined &&
+    brief.endDate > brief.startDate
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export const briefFileableConfig = {
   eventTitle: true,
   contactEmail: true,
@@ -21,13 +39,11 @@ export const briefFileableConfig = {
 } as const;
 
 export const briefComparableConfig = {
-  startDate: true,
-  endDate: true,
-  attendeeCount: true,
   city: true,
-  meetingRoomCount: true,
-  foodRequired: true,
-  roomCount: { requiredIf: roomsRequiredWhenTheStayContinues },
+  startDate: true,
+  startTime: true,
+  attendeeCount: true,
+  endTime: { requiredIf: needsClockEnd },
 } as const;
 
 export const offerGridRowConfig = {
@@ -77,7 +93,10 @@ const questionByField: Record<string, string> = {
   attendeeCount: "How many people are coming?",
   language: "Which two-letter language should the request use?",
   roomCount: "The stay runs past the start date. How many rooms do you need?",
-  city: "Which city should the venues be in?",
+  city: "Which city is the event in?",
+  startTime: "What time does it start?",
+  endTime: "When does it end, or how long does it run?",
+  durationMinutes: "How long does it run?",
   meetingRoomCount: "How many meeting rooms do you need?",
   foodRequired: "Do you need food and drink included?",
   venueName: "Which venue sent this offer?",

@@ -22,7 +22,7 @@ export async function runFixtureTurn(input: {
   let offers = input.snapshot.offers;
   const notes: string[] = [];
   const selectedCompanyId = input.snapshot.selectedCompanyId;
-  let favoriteVenueNames = input.snapshot.favoriteVenueNames;
+  const favoriteVenueNames = input.snapshot.favoriteVenueNames;
 
   if (intent === "file") {
     const fileableGaps = findBriefGaps(brief, "brief:fileable");
@@ -98,6 +98,7 @@ export async function runFixtureTurn(input: {
       favoriteVenueNames,
       visibleRowCount: input.snapshot.visibleRowCount,
       openVenueName: null,
+      notice: null,
     },
   };
 }

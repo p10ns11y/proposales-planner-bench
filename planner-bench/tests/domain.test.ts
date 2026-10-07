@@ -31,13 +31,94 @@ describe("brief fitness", () => {
 
   it("lists comparable gaps in config order", () => {
     expect(findBriefGaps({ eventTitle: "Workshop" }, "brief:comparable")).toEqual([
-      "startDate",
-      "endDate",
-      "attendeeCount",
       "city",
-      "meetingRoomCount",
-      "foodRequired",
+      "startDate",
+      "startTime",
+      "attendeeCount",
+      "endTime",
     ]);
+  });
+
+  it("compares a same-day brief that has a start, an end, and a headcount", () => {
+    expect(
+      findBriefGaps(
+        {
+          city: "Stockholm",
+          startDate: "2026-11-12",
+          endDate: "2026-11-12",
+          startTime: "09:00",
+          endTime: "17:00",
+          attendeeCount: 40,
+        },
+        "brief:comparable",
+      ),
+    ).toEqual([]);
+  });
+
+  it("accepts a duration in place of an end", () => {
+    expect(
+      findBriefGaps(
+        {
+          city: "Stockholm",
+          startDate: "2026-11-12",
+          startTime: "09:00",
+          durationMinutes: 480,
+          attendeeCount: 40,
+        },
+        "brief:comparable",
+      ),
+    ).toEqual([]);
+  });
+
+  it("accepts a later end date without a clock end", () => {
+    expect(
+      findBriefGaps(
+        {
+          city: "Gothenburg",
+          startDate: "2026-06-01",
+          endDate: "2026-06-03",
+          startTime: "15:00",
+          attendeeCount: 18,
+        },
+        "brief:comparable",
+      ),
+    ).toEqual([]);
+  });
+
+  it("still asks for an end when only a start time is known", () => {
+    expect(
+      findBriefGaps(
+        {
+          city: "Stockholm",
+          startDate: "2026-11-12",
+          endDate: "2026-11-12",
+          startTime: "09:00",
+          attendeeCount: 40,
+        },
+        "brief:comparable",
+      ),
+    ).toEqual(["endTime"]);
+  });
+
+  it("does not gate a match on meeting rooms, food, or overnight rooms", () => {
+    const gaps = findBriefGaps(
+      {
+        city: "Stockholm",
+        startDate: "2026-11-12",
+        startTime: "09:00",
+        endTime: "17:00",
+        attendeeCount: 40,
+      },
+      "brief:comparable",
+    );
+    expect(gaps).not.toContain("meetingRoomCount");
+    expect(gaps).not.toContain("foodRequired");
+    expect(gaps).not.toContain("roomCount");
+  });
+
+  it("still requires email before a brief is fileable", () => {
+    const withoutEmail = { ...northwindDayBrief, contactEmail: undefined };
+    expect(findBriefGaps(withoutEmail, "brief:fileable")).toEqual(["contactEmail"]);
   });
 
   it("keeps an explicit false when merging a brief", () => {

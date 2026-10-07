@@ -33,6 +33,7 @@ export const plannerSnapshotSchema = z.object({
   favoriteVenueNames: z.array(z.string()),
   visibleRowCount: z.number().int().positive(),
   openVenueName: z.string().nullable(),
+  notice: z.string().nullable().default(null),
 });
 
 export type PlannerSnapshot = z.infer<typeof plannerSnapshotSchema>;
@@ -59,5 +60,6 @@ export function emptySnapshot(
     favoriteVenueNames: [],
     visibleRowCount: defaultVisibleRowCount,
     openVenueName: null,
+    notice: null,
   };
 }

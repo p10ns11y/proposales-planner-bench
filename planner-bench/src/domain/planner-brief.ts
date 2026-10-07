@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { minorUnitsSchema } from "./minor-units";
 
+const clockTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
 export const plannerBriefSchema = z.object({
   eventTitle: z.string().optional(),
   contactEmail: z.string().optional(),
@@ -15,6 +17,9 @@ export const plannerBriefSchema = z.object({
   budgetMinor: minorUnitsSchema.optional(),
   notes: z.string().optional(),
   language: z.string().optional(),
+  startTime: clockTimeSchema.optional(),
+  endTime: clockTimeSchema.optional(),
+  durationMinutes: z.number().int().positive().optional(),
 });
 
 export type PlannerBrief = z.infer<typeof plannerBriefSchema>;
@@ -41,5 +46,8 @@ export function mergeBrief(current: PlannerBrief, patch: PlannerBrief): PlannerB
     budgetMinor: patch.budgetMinor ?? current.budgetMinor,
     notes: patch.notes ?? current.notes,
     language: patch.language ?? current.language,
+    startTime: patch.startTime ?? current.startTime,
+    endTime: patch.endTime ?? current.endTime,
+    durationMinutes: patch.durationMinutes ?? current.durationMinutes,
   });
 }

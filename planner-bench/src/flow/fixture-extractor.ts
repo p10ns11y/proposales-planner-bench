@@ -88,7 +88,31 @@ export function extractBriefPatch(text: string): PlannerBrief {
     patch.budgetMinor = minorUnits(Number(budget[1]));
   }
   if (notes?.[1]) {
-    patch.notes = notes[1].trim();
+    const noteText = notes[1]
+      .replace(/\s+Start time\s+.*/i, "")
+      .replace(/\s+End time\s+.*/i, "")
+      .replace(/\s+Duration\s+\d+\b.*/i, "")
+      .trim();
+    if (noteText !== "") {
+      patch.notes = noteText;
+    }
+  }
+  const labeledStart = /Start time\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i.exec(text);
+  const labeledEnd = /End time\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i.exec(text);
+  const labeledDuration = /Duration\s+(\d+)\b/i.exec(text);
+  const startClock = labeledStart?.[1] === undefined ? undefined : normaliseClock(labeledStart[1]);
+  const endClock = labeledEnd?.[1] === undefined ? undefined : normaliseClock(labeledEnd[1]);
+  if (startClock !== undefined) {
+    patch.startTime = startClock;
+  }
+  if (endClock !== undefined) {
+    patch.endTime = endClock;
+  }
+  if (labeledDuration?.[1]) {
+    const minutes = Number(labeledDuration[1]);
+    if (Number.isInteger(minutes) && minutes > 0) {
+      patch.durationMinutes = minutes;
+    }
   }
   return mergePlainEnglish(patch, text);
 }
@@ -146,26 +170,34 @@ function mergePlainEnglish(patch: PlannerBrief, text: string): PlannerBrief {
       next.attendeeCount = Number(peopleMatch[1]);
     }
   }
-  if (next.startDate === undefined) {
-    const isoDate = /\b(\d{4}-\d{2}-\d{2})\b/.exec(text);
-    const dayMonthYear =
-      /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/i.exec(
-        text,
-      );
-    const monthDayYear =
-      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/i.exec(
-        text,
-      );
-    if (isoDate?.[1]) {
-      next.startDate = isoDate[1];
-    } else if (dayMonthYear?.[1] && dayMonthYear[2] && dayMonthYear[3]) {
-      next.startDate = toIsoDate(dayMonthYear[3], dayMonthYear[2], dayMonthYear[1]);
-    } else if (monthDayYear?.[1] && monthDayYear[2] && monthDayYear[3]) {
-      next.startDate = toIsoDate(monthDayYear[3], monthDayYear[1], monthDayYear[2]);
-    }
+  const dates = collectIsoDates(text);
+  if (next.startDate === undefined && dates[0] !== undefined) {
+    next.startDate = dates[0];
+  }
+  if (next.endDate === undefined && dates[1] !== undefined) {
+    next.endDate = dates[1];
   }
   if (next.endDate === undefined && next.startDate !== undefined) {
     next.endDate = next.startDate;
+  }
+  const clocks = readClockRange(text);
+  if (next.startTime === undefined && clocks.startTime !== undefined) {
+    next.startTime = clocks.startTime;
+  }
+  if (next.endTime === undefined && clocks.endTime !== undefined) {
+    next.endTime = clocks.endTime;
+  }
+  if (next.startTime === undefined) {
+    const single = readSingleClock(text);
+    if (single !== undefined) {
+      next.startTime = single;
+    }
+  }
+  if (next.durationMinutes === undefined) {
+    const duration = readDurationMinutes(text);
+    if (duration !== undefined) {
+      next.durationMinutes = duration;
+    }
   }
   if (next.foodRequired === undefined && /\b(dinner|lunch|breakfast|catering|food)\b/i.test(text)) {
     next.foodRequired = true;
@@ -186,6 +218,86 @@ function mergePlainEnglish(patch: PlannerBrief, text: string): PlannerBrief {
     }
   }
   return next;
+}
+
+const clockToken = "(\\d{1,2}:\\d{2}\\s*(?:am|pm)?|\\d{1,2}\\s*(?:am|pm))";
+
+export function readClockRange(text: string): { startTime?: string; endTime?: string } {
+  const range = new RegExp(
+    `\\b(?:from\\s+)?${clockToken}\\s*(?:to|until|–|-)\\s*${clockToken}\\b`,
+    "i",
+  ).exec(text);
+  if (!range?.[1] || !range[2]) {
+    return {};
+  }
+  const startTime = normaliseClock(range[1]);
+  const endTime = normaliseClock(range[2]);
+  if (startTime === undefined || endTime === undefined) {
+    return {};
+  }
+  return { startTime, endTime };
+}
+
+export function readSingleClock(text: string): string | undefined {
+  const whole = /^\s*(\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm))\s*$/i.exec(text);
+  const prefixed = /\b(?:at|from)\s+(\d{1,2}:\d{2}|\d{1,2}\s*(?:am|pm))\b/i.exec(text);
+  const token = whole?.[1] ?? prefixed?.[1];
+  if (token === undefined) {
+    return undefined;
+  }
+  return normaliseClock(token);
+}
+
+export function readDurationMinutes(text: string): number | undefined {
+  const hours = /(\d+)\s+hours?\b/i.exec(text);
+  if (hours?.[1]) {
+    return Number(hours[1]) * 60;
+  }
+  const minutes = /(\d+)\s+minutes?\b/i.exec(text);
+  if (minutes?.[1]) {
+    return Number(minutes[1]);
+  }
+  return undefined;
+}
+
+function normaliseClock(raw: string): string | undefined {
+  const match = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/i.exec(raw.trim());
+  if (!match?.[1]) {
+    return undefined;
+  }
+  let hour = Number(match[1]);
+  const minute = match[2] === undefined ? 0 : Number(match[2]);
+  const suffix = match[3]?.toLowerCase();
+  if (suffix === "pm" && hour < 12) {
+    hour += 12;
+  }
+  if (suffix === "am" && hour === 12) {
+    hour = 0;
+  }
+  if (hour > 23 || minute > 59) {
+    return undefined;
+  }
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function collectIsoDates(text: string): string[] {
+  const pattern =
+    /\b(\d{4}-\d{2}-\d{2})\b|\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b|\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/gi;
+  const dates: string[] = [];
+  for (const match of text.matchAll(pattern)) {
+    if (match[1]) {
+      dates.push(match[1]);
+      continue;
+    }
+    if (match[2] && match[3] && match[4]) {
+      dates.push(toIsoDate(match[4], match[3], match[2]));
+      continue;
+    }
+    if (match[5] && match[6] && match[7]) {
+      dates.push(toIsoDate(match[7], match[5], match[6]));
+    }
+  }
+  return dates;
 }
 
 function toIsoDate(year: string, monthName: string, day: string): string {

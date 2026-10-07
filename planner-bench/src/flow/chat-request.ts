@@ -1,4 +1,3 @@
-import { findBriefGaps, questionForGap } from "../domain/fitness";
 import { emptySnapshot, plannerSnapshotSchema, type PlannerSnapshot } from "./planner-snapshot";
 
 export type ChatTurnMessage = {
@@ -35,13 +34,7 @@ export function latestUserText(messages: ChatTurnMessage[]): string {
 }
 
 export function openingSnapshot(companies: PlannerSnapshot["companies"]): PlannerSnapshot {
-  const gaps = findBriefGaps({}, "brief:fileable");
-  const firstGap = gaps[0];
-  return emptySnapshot(
-    companies,
-    firstGap === undefined ? "" : questionForGap(firstGap),
-    gaps,
-  );
+  return emptySnapshot(companies, "", []);
 }
 
 function readChatMessage(value: unknown): ChatTurnMessage {
