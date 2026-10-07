@@ -21,6 +21,7 @@ const proposalForOfferSchema = z.object({
   expires_at: z.number().nullable().optional(),
   blocks: z.array(
     z.object({
+      title: z.string().nullable().optional(),
       quantity: z.number().optional(),
       package_split: z
         .array(
@@ -58,12 +59,20 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
   const spaceMinor = minorUnits(Math.round(totals.spaceMinor));
   const extrasMinor = minorUnits(Math.round(totals.extrasMinor));
   const venueName = venueNameFromTitle(parsed.title);
+  const blocks = parsed.blocks.flatMap((block) => {
+    const title = block.title?.trim() ?? "";
+    if (title === "") {
+      return [];
+    }
+    return [{ title, quantity: block.quantity === undefined ? 1 : block.quantity }];
+  });
 
   return {
     venueName,
     proposalUuid: parsed.uuid,
     companyId: parsed.company_id,
     currency: parsed.currency,
+    blocks,
     expiresAt:
       parsed.expires_at === undefined || parsed.expires_at === null
         ? undefined

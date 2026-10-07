@@ -1,6 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { Instrument_Sans } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
+
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  weight: "variable",
+  axes: ["wdth"],
+  variable: "--font-instrument-sans",
+  adjustFontFallback: true,
+  fallback: ["system-ui", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+});
 
 export const metadata: Metadata = {
   title: "Planner bench",
@@ -15,8 +26,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" className={instrumentSans.variable}>
+      <body className={instrumentSans.className}>{children}</body>
     </html>
   );
 }
