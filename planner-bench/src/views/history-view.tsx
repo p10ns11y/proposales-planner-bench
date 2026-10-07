@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "../design/ui/button";
+import { History } from "lucide-react";
 import { Sheet } from "../design/ui/sheet";
 import type { HistoryViewModel, PlannerViewEvent } from "../view-models/view-model";
 
@@ -15,26 +15,28 @@ export function HistoryView({ viewModel, onEvent }: HistoryViewProps) {
       open={viewModel.open}
       onOpenChange={(open) => onEvent({ type: "historyToggled", open })}
       title="History"
+      description="Past briefs on this browser."
       side="left"
       trigger={
-        <Button type="button" variant="ghost" className="min-h-12 px-4 text-sm text-muted">
-          History
-        </Button>
+        <button type="button" className="planner-pill" aria-label="History">
+          <History aria-hidden="true" />
+          <span className="planner-pill-label">History</span>
+        </button>
       }
     >
       {viewModel.entries.length === 0 ? (
-        <p className="text-sm text-muted">Past briefs show up here.</p>
+        <p className="planner-meta">Past briefs show up here.</p>
       ) : (
-        <ul className="flex flex-col gap-3" data-history-count={viewModel.entries.length}>
+        <ul className="planner-history-list" data-history-count={viewModel.entries.length}>
           {viewModel.entries.map((entry) => (
-            <li key={entry.id} className="border border-border p-3">
+            <li key={entry.id}>
               <button
                 type="button"
-                className="flex w-full flex-col items-start gap-1 text-left"
+                className="planner-history-item"
                 onClick={() => onEvent({ type: "historyEntryChosen", entryId: entry.id })}
               >
-                <span>{entry.title}</span>
-                <span className="text-sm text-muted">
+                <span className="planner-offer-name">{entry.title}</span>
+                <span className="planner-meta">
                   {entry.venueCount} venues · {entry.savedAt}
                 </span>
               </button>

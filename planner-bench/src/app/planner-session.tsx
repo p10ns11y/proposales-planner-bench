@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { readHistoryLog, historyStorageKey, upsertHistory, type HistoryEntry } from "../flow/history-log";
 import { plannerSnapshotSchema, type PlannerSnapshot } from "../flow/planner-snapshot";
 import type { ViewportAction } from "../flow/viewport-turn";
@@ -15,27 +15,34 @@ export function PlannerSession() {
   const [historyOverride, setHistoryOverride] = useState<HistoryEntry[] | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [pendingKind, setPendingKind] = useState<"read" | "search" | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const loadGeneration = useRef(0);
   const speechAvailable = useSpeechAvailable();
   const storedHistory = useStoredHistory();
   const history = historyOverride ?? storedHistory;
 
   useEffect(() => {
-    let cancelled = false;
-    void fetch("/api/session").then(async (response) => {
-      const payload: unknown = await response.json();
-      if (cancelled || typeof payload !== "object" || payload === null) {
-        return;
-      }
-      const parsed = plannerSnapshotSchema.safeParse(Reflect.get(payload, "snapshot"));
-      if (parsed.success) {
-        setSnapshot((current) => current ?? parsed.data);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
+    const generation = ++loadGeneration.current;
+    void loadOpening(generation, false);
   }, []);
+
+  async function loadOpening(generation: number, force: boolean) {
+    const response = await fetch("/api/session");
+    const payload: unknown = await response.json();
+    if (generation !== loadGeneration.current) {
+      return;
+    }
+    const parsed = readTurnSnapshot(payload);
+    if (parsed === null) {
+      return;
+    }
+    if (force) {
+      setSnapshot(parsed);
+      return;
+    }
+    setSnapshot((current) => current ?? parsed);
+  }
 
   function rememberSnapshot(next: PlannerSnapshot) {
     setSnapshot(next);
@@ -49,10 +56,11 @@ export function PlannerSession() {
     });
   }
 
-  async function sendAction(action: ViewportAction) {
+  async function sendAction(action: ViewportAction, kind: "read" | "search" | null) {
     if (busy) {
       return;
     }
+    setPendingKind(kind);
     setBusy(true);
     setErrorText(null);
     try {
@@ -62,28 +70,21 @@ export function PlannerSession() {
         body: JSON.stringify({ action, snapshot: snapshot ?? undefined }),
       });
       const payload: unknown = await response.json();
-      if (!response.ok) {
-        setErrorText("Something went wrong. Try again.");
+      const parsed = readTurnSnapshot(payload);
+      if (!response.ok || parsed === null) {
+        setErrorText("Couldn't reach Proposales. Your brief is saved.");
         return;
       }
-      if (typeof payload !== "object" || payload === null) {
-        setErrorText("Something went wrong. Try again.");
-        return;
-      }
-      const parsed = plannerSnapshotSchema.safeParse(Reflect.get(payload, "snapshot"));
-      if (!parsed.success) {
-        setErrorText("Something went wrong. Try again.");
-        return;
-      }
-      rememberSnapshot(parsed.data);
+      rememberSnapshot(parsed);
     } catch {
-      setErrorText("Something went wrong. Try again.");
+      setErrorText("Couldn't reach Proposales. Your brief is saved.");
     } finally {
       setBusy(false);
+      setPendingKind(null);
     }
   }
 
-  function onEvent(event: PlannerViewEvent) {
+  function onEvent(event: PlannerViewEvent, pending?: "read" | "search") {
     if (event.type === "historyToggled") {
       setHistoryOpen(event.open);
       return;
@@ -96,32 +97,39 @@ export function PlannerSession() {
       }
       return;
     }
+    if (event.type === "sessionReset") {
+      setSnapshot(null);
+      setErrorText(null);
+      const generation = ++loadGeneration.current;
+      void loadOpening(generation, true);
+      return;
+    }
     if (event.type === "composerSubmitted") {
-      void sendAction({ type: "composerSubmitted", text: event.text });
+      void sendAction({ type: "composerSubmitted", text: event.text }, pending ?? null);
       return;
     }
     if (event.type === "briefConfirmed") {
-      void sendAction({ type: "briefConfirmed" });
+      void sendAction({ type: "briefConfirmed" }, pending ?? null);
       return;
     }
     if (event.type === "favoritesSubmitted") {
-      void sendAction({ type: "favoritesSubmitted", text: event.text });
+      void sendAction({ type: "favoritesSubmitted", text: event.text }, pending ?? null);
       return;
     }
     if (event.type === "moreEdited") {
-      void sendAction({ type: "moreEdited", details: event.details });
+      void sendAction({ type: "moreEdited", details: event.details }, null);
       return;
     }
     if (event.type === "showMore") {
-      void sendAction({ type: "showMore" });
+      void sendAction({ type: "showMore" }, null);
       return;
     }
     if (event.type === "rowOpened") {
-      void sendAction({ type: "rowOpened", venueName: event.venueName });
+      void sendAction({ type: "rowOpened", venueName: event.venueName }, null);
       return;
     }
     if (event.type === "rowClosed") {
-      void sendAction({ type: "rowClosed" });
+      void sendAction({ type: "rowClosed" }, null);
     }
   }
 
@@ -135,6 +143,7 @@ export function PlannerSession() {
           speechAvailable,
         })}
         onEvent={onEvent}
+        pendingKind={pendingKind}
         historyControl={
           <HistoryView
             viewModel={{
@@ -153,6 +162,14 @@ export function PlannerSession() {
       />
     </main>
   );
+}
+
+export function readTurnSnapshot(payload: unknown): PlannerSnapshot | null {
+  if (typeof payload !== "object" || payload === null) {
+    return null;
+  }
+  const parsed = plannerSnapshotSchema.safeParse(Reflect.get(payload, "snapshot"));
+  return parsed.success ? parsed.data : null;
 }
 
 function useSpeechAvailable(): boolean {

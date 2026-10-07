@@ -4,12 +4,12 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md border border-border px-3 py-2 text-sm disabled:opacity-50",
+  "inline-flex min-h-11 items-center justify-center rounded-full px-4 text-[15px] leading-[22px] disabled:opacity-50",
   {
     variants: {
       variant: {
-        primary: "bg-primary text-primary-foreground",
-        ghost: "bg-card text-foreground",
+        primary: "border-0 bg-primary font-semibold text-primary-foreground",
+        ghost: "border border-border bg-card font-medium text-foreground",
       },
     },
     defaultVariants: {

@@ -1,389 +1,603 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Button } from "../design/ui/button";
-import type { MoreFieldValues, PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
+import { ArrowDown, ArrowUp, Briefcase, CircleAlert, Mic, Plus, SlidersHorizontal } from "lucide-react";
+import { LayoutGroup } from "motion/react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
+import { bestNonExpiredIndex } from "../contract/offer-group";
+import { renderPart } from "../transport/render-part";
+import { toOfferDataPart } from "../transport/ai-sdk-offers";
+import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
+import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
+import { MoreDrawer } from "./more-drawer";
+import { OfferDetail } from "./offer-detail";
 import { startSpeechCapture } from "./speech-input";
 
 type PlannerShellProps = {
   viewModel: ShellViewModel;
-  onEvent: (event: PlannerViewEvent) => void;
+  onEvent: (event: PlannerViewEvent, pending?: "read" | "search") => void;
   historyControl: ReactNode;
+  pendingKind?: "read" | "search" | null;
 };
 
-export function PlannerShell({ viewModel, onEvent, historyControl }: PlannerShellProps) {
+type Line = {
+  id: number;
+  role: "user" | "assistant";
+  text: string;
+};
+
+const suggestions = [
+  {
+    label: "40 people in Stockholm, 12 Nov",
+    text: "I need a place in Stockholm for 40 people on 12 November 2026, from 09:00 to 17:00.",
+  },
+  {
+    label: "Day meeting for 12 in Gothenburg",
+    text: "I need a place in Gothenburg for 12 people on 1 June 2026, from 09:00 to 17:00.",
+  },
+  {
+    label: "Offsite with rooms for 20",
+    text: "I need a place in Stockholm for 20 people on 12 November 2026, from 09:00 to 17:00, with 20 rooms.",
+  },
+];
+
+export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind = null }: PlannerShellProps) {
   const [draft, setDraft] = useState("");
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [grown, setGrown] = useState(false);
+  const [lines, setLines] = useState<Line[]>([]);
+  const [jump, setJump] = useState(false);
+  const [pendingTick, setPendingTick] = useState(0);
+  const [slowTick, setSlowTick] = useState(-1);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [holdEmpty, setHoldEmpty] = useState(false);
+  const idRef = useRef(1);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const moreOpener = useRef<HTMLButtonElement | null>(null);
+  const stick = useRef(true);
+  const scrollLock = useRef<number | null>(null);
+  const previousOpen = useRef<string | null>(null);
+  const pushedOffer = useRef<string | null>(null);
+  const heldDraft = useRef("");
+  const lastKind = useRef<"read" | "search">("read");
+
+  const pending = viewModel.busy && pendingKind !== null;
+  const slow = pending && slowTick === pendingTick;
+  const empty =
+    holdEmpty ||
+    (lines.length === 0 && !pending && viewModel.phase === "capture" && viewModel.errorText === null);
+  const group = holdEmpty ? null : offerGroupFromShell(viewModel);
+  const part = group === null ? null : toOfferDataPart(group);
+  const bestIndex = bestNonExpiredIndex(viewModel.rows);
+  const openIndex = viewModel.openRow === null ? -1 : viewModel.rows.findIndex((row) => row.venueName === viewModel.openRow?.venueName);
+  const openOffer = viewModel.openRow === null ? null : offerPartFromRow(viewModel.openRow, openIndex === bestIndex && bestIndex >= 0);
+  const includeExtras = (group?.offers.some((offer) => offer.extras !== 0) ?? false) || (openOffer?.extras ?? 0) !== 0;
 
   useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog === null) {
+    function onKey(event: globalThis.KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        composerRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    if (!viewModel.busy) {
       return;
     }
-    if (viewModel.openRow !== null && !dialog.open) {
-      dialog.showModal();
+    const timer = window.setTimeout(() => setSlowTick(pendingTick), 8000);
+    return () => window.clearTimeout(timer);
+  }, [viewModel.busy, pendingTick]);
+
+  useEffect(() => {
+    if (viewModel.busy || viewModel.errorText === null || heldDraft.current === "") {
+      return;
     }
-    if (viewModel.openRow === null && dialog.open) {
-      dialog.close();
+    setDraft(heldDraft.current);
+  }, [viewModel.busy, viewModel.errorText]);
+
+  useEffect(() => {
+    const name = viewModel.openRow === null ? null : offerKey(viewModel.openRow.proposalUuid, viewModel.openRow.venueName);
+    if (name !== null) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("offer") !== name) {
+        url.searchParams.set("offer", name);
+        window.history.pushState({ offer: name }, "", hrefOf(url));
+        pushedOffer.current = name;
+      }
+      return;
+    }
+    const closed = pushedOffer.current;
+    if (closed === null) {
+      return;
+    }
+    pushedOffer.current = null;
+    if (historyOffer() !== closed) {
+      return;
+    }
+    window.history.back();
+    const timer = window.setTimeout(() => {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("offer") !== closed) {
+        return;
+      }
+      url.searchParams.delete("offer");
+      window.history.replaceState({}, "", hrefOf(url));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [viewModel.openRow]);
+
+  useEffect(() => {
+    function onPop() {
+      const offer = new URL(window.location.href).searchParams.get("offer");
+      if (offer === null && viewModel.openRow !== null) {
+        pushedOffer.current = null;
+        onEvent({ type: "rowClosed" });
+      }
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [onEvent, viewModel.openRow]);
+
+  useLayoutEffect(() => {
+    const element = composerRef.current;
+    if (element === null) {
+      return;
+    }
+    element.style.height = "0px";
+    const next = Math.min(element.scrollHeight, 22 * 6);
+    element.style.height = `${next}px`;
+    setGrown(element.scrollHeight > 46);
+  }, [draft]);
+
+  useLayoutEffect(() => {
+    const current = viewModel.openRow?.venueName ?? null;
+    const previous = previousOpen.current;
+    previousOpen.current = current;
+    if (previous !== null && current === null) {
+      document.querySelector<HTMLButtonElement>(`[data-offer-card][data-venue="${cssEscape(previous)}"]`)?.focus();
     }
   }, [viewModel.openRow]);
 
+  useLayoutEffect(() => {
+    const element = threadRef.current;
+    if (element === null) {
+      return;
+    }
+    if (viewModel.openRow !== null) {
+      if (scrollLock.current === null) {
+        scrollLock.current = element.scrollTop;
+      }
+      element.scrollTop = scrollLock.current;
+      return;
+    }
+    scrollLock.current = null;
+    if (stick.current) {
+      element.scrollTop = element.scrollHeight;
+    }
+  }, [lines, pending, viewModel.ask, viewModel.rows, viewModel.notice, viewModel.openRow, viewModel.draftConfirmation]);
+
+  function pushTurn(userText: string) {
+    const live = viewModel.ask;
+    setLines((current) => {
+      const next = [...current];
+      const lastAssistant = [...next].reverse().find((line) => line.role === "assistant");
+      if (live !== "" && lastAssistant?.text !== live) {
+        next.push({ id: idRef.current++, role: "assistant", text: live });
+      }
+      next.push({ id: idRef.current++, role: "user", text: userText });
+      return next;
+    });
+  }
+
+  function submitText(text: string, kind: "read" | "search") {
+    const trimmed = text.trim();
+    if (trimmed === "" || viewModel.busy || !viewModel.ready) {
+      return;
+    }
+    setHoldEmpty(false);
+    pushTurn(trimmed);
+    lastKind.current = kind;
+    setPendingTick((value) => value + 1);
+    heldDraft.current = trimmed;
+    setDraft("");
+    onEvent({ type: "composerSubmitted", text: trimmed }, kind);
+  }
+
+  function submitDraft() {
+    const kind = viewModel.phase === "favorites" || viewModel.phase === "results" ? "search" : "read";
+    submitText(draft, kind);
+  }
+
+  function onComposerKey(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      submitDraft();
+    }
+  }
+
+  function onThreadScroll() {
+    const element = threadRef.current;
+    if (element === null) {
+      return;
+    }
+    const distance = element.scrollHeight - element.scrollTop - element.clientHeight;
+    stick.current = distance < 48;
+    setJump(distance >= 48);
+  }
+
+  function openMore(event: MouseEvent<HTMLButtonElement>) {
+    moreOpener.current = event.currentTarget;
+    setMoreOpen(true);
+  }
+
+  function newChat() {
+    setLines([]);
+    setDraft("");
+    setHoldEmpty(true);
+    setMoreOpen(false);
+    onEvent({ type: "sessionReset" });
+  }
+
+  const showLive = !holdEmpty && (pending || (!empty && liveIsNew(lines, viewModel.ask, viewModel)));
+  const labelled = empty || (showLive && !pending && viewModel.askLabelsComposer);
+
   return (
-    <div className="planner-frame" data-phase={viewModel.phase}>
-      <div className="planner-thread">
-        {viewModel.notice ? (
-          <p role="status" className="mb-4 text-base">
-            {viewModel.notice}
-          </p>
-        ) : null}
-        {viewModel.draftConfirmation ? (
-          <p role="status" className="mb-4 text-base">
-            {viewModel.draftConfirmation}
-          </p>
-        ) : null}
-        <h1
-          id="planner-ask"
-          className="mb-4 text-2xl leading-tight text-balance"
-          data-must-show={viewModel.phase === "results" ? "facts" : undefined}
-        >
-          {viewModel.askLabelsComposer ? <label htmlFor="composer">{viewModel.ask}</label> : viewModel.ask}
-        </h1>
-        {viewModel.showFacts ? (
-          <p className="mb-4 text-base" data-must-show="facts">
-            {viewModel.factsSentence}
-          </p>
-        ) : null}
-        {viewModel.showConfirm ? (
-          <div className="mb-6">
-            <Button
-              type="button"
-              className="min-h-12 px-4"
-              disabled={viewModel.busy || !viewModel.ready}
-              onClick={() => onEvent({ type: "briefConfirmed" })}
-            >
-              Yes
-            </Button>
-          </div>
-        ) : null}
-        {viewModel.showFavorites ? (
-          <div className="mb-6">
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-12 px-4"
-              disabled={viewModel.busy || !viewModel.ready}
-              onClick={() => onEvent({ type: "favoritesSubmitted", text: "skip" })}
-            >
-              Skip
-            </Button>
-          </div>
-        ) : null}
-        {viewModel.offerLabel ? (
-          <p className="mb-3 text-sm text-muted">{viewModel.offerLabel}</p>
-        ) : null}
-        {viewModel.rows.length > 0 ? (
-          <ul className="mb-6 flex flex-col">
-            {viewModel.rows.map((row) => (
-              <li key={row.venueName}>
-                <button
-                  type="button"
-                  className="flex min-h-12 w-full items-start justify-between gap-4 border-b border-border py-3 text-left"
-                  data-venue={row.venueName}
-                  data-gap={row.gaps.length > 0 ? "missing" : "clear"}
-                  data-favorite={row.favorite ? "yes" : "no"}
-                  onClick={() => onEvent({ type: "rowOpened", venueName: row.venueName })}
-                >
-                  <span className="min-w-0">
-                    <span className="block text-base">
-                      {row.venueName}
-                      {row.favorite ? <span className="ml-2 text-sm text-muted">Favorite</span> : null}
-                    </span>
-                    {row.heldByCompanyName ? (
-                      <span className="mt-0.5 block text-sm text-muted">Held by {row.heldByCompanyName}</span>
-                    ) : null}
-                    {row.gaps.length > 0 ? (
-                      <span className="mt-1 block text-sm text-muted">{row.gaps.map(gapLabel).join(", ")}</span>
-                    ) : null}
-                  </span>
-                  <span className="shrink-0 text-sm tabular-nums">{row.total}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {viewModel.hiddenCount > 0 ? (
-          <div className="mb-6">
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-12 px-4"
-              onClick={() => onEvent({ type: "showMore" })}
-            >
-              Further matches
-            </Button>
-          </div>
-        ) : null}
-        {viewModel.errorText ? (
-          <p role="alert" className="mb-4 text-sm">
-            {viewModel.errorText}
-          </p>
-        ) : null}
-        <details className="mb-8 border border-border bg-card" data-must-show="more">
-          <summary className="min-h-12 cursor-pointer px-3 py-3 text-base">More</summary>
-          <MoreForm
-            key={viewModel.moreStamp}
-            more={viewModel.more}
-            disabled={viewModel.busy || !viewModel.ready}
-            onSave={(details) => onEvent({ type: "moreEdited", details })}
-          />
-        </details>
-      </div>
-      <form
-        className="planner-composer"
-        data-must-show="composer"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const text = draft.trim();
-          if (text === "" || viewModel.busy || !viewModel.ready) {
-            return;
-          }
-          onEvent({ type: "composerSubmitted", text });
-          setDraft("");
-        }}
-      >
-        <input
-          id="composer"
-          name="composer"
-          className="planner-field min-h-12 min-w-0 flex-1 border border-border bg-card px-3 text-base outline-none"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder={viewModel.composerPlaceholder}
-          enterKeyHint="send"
-          type={viewModel.inputType}
-          inputMode={viewModel.inputMode}
-          autoComplete={viewModel.autoComplete}
-          disabled={!viewModel.ready}
-        />
-        <Button type="submit" className="min-h-12 px-4" disabled={viewModel.busy || !viewModel.ready}>
-          {viewModel.busy ? "Working" : "Send"}
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          className="min-h-12 px-4"
-          disabled={!viewModel.speechAvailable || viewModel.busy || !viewModel.ready}
-          onClick={() => {
-            startSpeechCapture((transcript) => setDraft(transcript));
-          }}
-        >
-          Speak
-        </Button>
-        {historyControl}
-      </form>
-      <dialog
-        ref={dialogRef}
-        className="planner-detail"
-        aria-label={viewModel.openRow?.venueName ?? "Venue"}
-        onClose={() => {
-          if (viewModel.openRow !== null) {
-            onEvent({ type: "rowClosed" });
-          }
-        }}
-      >
-        {viewModel.openRow ? (
-          <div>
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-xl">{viewModel.openRow.venueName}</h2>
-                {viewModel.openRow.heldByCompanyName ? (
-                  <p className="mt-1 text-sm text-muted">Held by {viewModel.openRow.heldByCompanyName}</p>
-                ) : null}
-                {viewModel.openRow.favorite ? <p className="mt-1 text-sm text-muted">Favorite</p> : null}
-              </div>
-              <Button type="button" variant="ghost" className="min-h-12 px-4" onClick={() => dialogRef.current?.close()}>
-                Close
-              </Button>
+    <LayoutGroup>
+      <div className="planner-frame" data-phase={viewModel.phase}>
+        <a className="planner-skip" href="#composer">
+          Skip to the composer
+        </a>
+        <aside className="planner-rail">
+          <span className="planner-brand" title="Planner bench">
+            <Briefcase aria-hidden="true" />
+          </span>
+          <button type="button" className="planner-rail-button" aria-label="New chat" onClick={newChat}>
+            <Plus aria-hidden="true" />
+          </button>
+        </aside>
+        <div className="planner-main">
+          <header className="planner-header">
+            <span className="planner-mobile-mark" aria-hidden="true">
+              <Briefcase />
+            </span>
+            <div className="planner-header-actions">
+              {historyControl}
+              <button type="button" className="planner-pill planner-pill-strong" data-must-show="more" onClick={openMore}>
+                <SlidersHorizontal aria-hidden="true" />
+                <span className="planner-pill-label">More</span>
+              </button>
             </div>
-            <dl className="grid gap-2 text-sm">
-              <DetailLine label="Rooms" value={viewModel.openRow.rooms} />
-              <DetailLine label="Food" value={viewModel.openRow.foodAndBeverage} />
-              <DetailLine label="Space" value={viewModel.openRow.space} />
-              <DetailLine label="Extras" value={viewModel.openRow.extras} />
-              <DetailLine label="Total" value={viewModel.openRow.total} />
-              <DetailLine label="Expires" value={viewModel.openRow.expires} />
-              <DetailLine
-                label="Gaps"
-                value={viewModel.openRow.gaps.length === 0 ? "None" : viewModel.openRow.gaps.map(gapLabel).join(", ")}
-              />
-            </dl>
+          </header>
+          <div className="planner-thread" ref={threadRef} onScroll={onThreadScroll}>
+            <div className="planner-column">
+              {empty ? (
+                <div className="planner-empty">
+                  <h1 className="planner-display" id="planner-ask">
+                    <label htmlFor="composer">{holdEmpty ? "What are you planning?" : viewModel.ask}</label>
+                  </h1>
+                  <div className="planner-suggestions">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.label}
+                        type="button"
+                        className="planner-suggestion"
+                        disabled={viewModel.busy || !viewModel.ready}
+                        onClick={() => submitText(suggestion.text, "read")}
+                      >
+                        {suggestion.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="planner-log">
+                  {lines.map((line) =>
+                    line.role === "user" ? (
+                      <div key={line.id} className="planner-user">
+                        <div className="planner-user-bubble">
+                          <p className="planner-text">{line.text}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={line.id} className="planner-assistant">
+                        <div className="planner-assistant-bubble">
+                          <p className="planner-text">{line.text}</p>
+                        </div>
+                      </div>
+                    ),
+                  )}
+                  {showLive ? (
+                    <div className="planner-assistant">
+                      <div className="planner-assistant-bubble">
+                        {pending ? (
+                          <Pending kind={pendingKind ?? "read"} slow={slow} />
+                        ) : (
+                          <LiveCopy
+                            viewModel={viewModel}
+                            onConfirm={() => {
+                              pushTurn("Yes");
+                              lastKind.current = "search";
+                              setPendingTick((value) => value + 1);
+                              onEvent({ type: "briefConfirmed" }, "search");
+                            }}
+                            onSkip={() => {
+                              pushTurn("Skip");
+                              lastKind.current = "search";
+                              setPendingTick((value) => value + 1);
+                              onEvent({ type: "favoritesSubmitted", text: "skip" }, "search");
+                            }}
+                            onRefine={(text) => {
+                              setDraft(text);
+                              composerRef.current?.focus();
+                            }}
+                            onRetry={() => submitText(heldDraft.current, lastKind.current)}
+                          />
+                        )}
+                      </div>
+                      {pending && pendingKind === "search" ? <SkeletonGroup /> : null}
+                      {!pending && part ? (
+                        renderPart(part, {
+                          hiddenCount: viewModel.hiddenCount,
+                          openName: viewModel.openRow?.venueName ?? null,
+                          onOpen: (venueName) => onEvent({ type: "rowOpened", venueName }),
+                          onShowMore: () => onEvent({ type: "showMore" }),
+                        })
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
           </div>
-        ) : null}
-      </dialog>
-    </div>
-  );
-}
-
-function MoreForm({
-  more,
-  disabled,
-  onSave,
-}: {
-  more: MoreFieldValues;
-  disabled: boolean;
-  onSave: (details: MoreFieldValues) => void;
-}) {
-  return (
-    <form
-      className="grid gap-3 border-t border-border px-3 py-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        onSave({
-          eventTitle: fieldText(data, "eventTitle"),
-          organisationName: fieldText(data, "organisationName"),
-          contactEmail: fieldText(data, "contactEmail"),
-          language: fieldText(data, "language"),
-          roomCount: fieldText(data, "roomCount"),
-          meetingRoomCount: fieldText(data, "meetingRoomCount"),
-          foodRequired: foodField(data),
-          notes: fieldText(data, "notes"),
-          budget: fieldText(data, "budget"),
-        });
-      }}
-    >
-      <Field label="Event name" name="eventTitle" defaultValue={more.eventTitle} />
-      <Field label="Organisation" name="organisationName" defaultValue={more.organisationName} />
-      <Field label="Email" name="contactEmail" defaultValue={more.contactEmail} type="email" autoComplete="email" />
-      <Field label="Language" name="language" defaultValue={more.language} />
-      <Field label="Rooms" name="roomCount" defaultValue={more.roomCount} inputMode="numeric" />
-      <Field label="Meeting rooms" name="meetingRoomCount" defaultValue={more.meetingRoomCount} inputMode="numeric" />
-      <label className="grid gap-1 text-sm" htmlFor="more-food">
-        Food
-        <select
-          id="more-food"
-          name="foodRequired"
-          defaultValue={more.foodRequired}
-          className="planner-field min-h-12 border border-border bg-card px-3 text-base"
-        >
-          <option value="">Unset</option>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
-        </select>
-      </label>
-      <label className="grid gap-1 text-sm" htmlFor="more-notes">
-        Notes
-        <textarea
-          id="more-notes"
-          name="notes"
-          defaultValue={more.notes}
-          rows={3}
-          className="planner-field min-h-12 border border-border bg-card px-3 py-2 text-base"
+          {jump ? (
+            <button
+              type="button"
+              className="planner-jump"
+              aria-label="Latest messages"
+              onClick={() => {
+                const element = threadRef.current;
+                if (element === null) {
+                  return;
+                }
+                element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
+              }}
+            >
+              <ArrowDown />
+            </button>
+          ) : null}
+          <div className="planner-dock">
+            <form
+              className="planner-composer"
+              data-must-show="composer"
+              data-grown={grown ? "true" : "false"}
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitDraft();
+              }}
+            >
+              <button type="button" className="planner-icon-button" aria-label="Add details" onClick={openMore}>
+                <Plus aria-hidden="true" />
+              </button>
+              <textarea
+                id="composer"
+                ref={composerRef}
+                name="composer"
+                rows={1}
+                value={draft}
+                placeholder={viewModel.composerPlaceholder}
+                enterKeyHint="send"
+                inputMode={viewModel.inputMode}
+                autoComplete={viewModel.autoComplete}
+                disabled={!viewModel.ready}
+                aria-label={labelled ? undefined : viewModel.ask}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={onComposerKey}
+              />
+              <button
+                type="button"
+                className="planner-icon-button"
+                aria-label="Speak"
+                disabled={!viewModel.speechAvailable || viewModel.busy || !viewModel.ready}
+                onClick={() => startSpeechCapture((transcript) => setDraft(transcript))}
+              >
+                <Mic aria-hidden="true" />
+              </button>
+              <button
+                type="submit"
+                className="planner-send"
+                aria-label="Send"
+                disabled={viewModel.busy || !viewModel.ready || draft.trim() === ""}
+              >
+                <span className="planner-send-face">
+                  <ArrowUp aria-hidden="true" />
+                </span>
+              </button>
+            </form>
+          </div>
+        </div>
+        <MoreDrawer
+          more={viewModel.more}
+          moreStamp={viewModel.moreStamp}
+          open={moreOpen}
+          disabled={viewModel.busy || !viewModel.ready}
+          onOpenChange={setMoreOpen}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            moreOpener.current?.focus();
+          }}
+          onEvent={onEvent}
+          onApplied={(line) => {
+            setLines((current) => [...current, { id: idRef.current++, role: "user", text: line }]);
+          }}
         />
-      </label>
-      <Field label="Budget" name="budget" defaultValue={more.budget} inputMode="numeric" />
-      <Button type="submit" className="min-h-12 px-4" disabled={disabled}>
-        Save
-      </Button>
-    </form>
+        <OfferDetail
+          offer={holdEmpty ? null : openOffer}
+          includeExtras={includeExtras}
+          contextChips={viewModel.contextChips}
+          confirmation={viewModel.draftConfirmation}
+          busy={viewModel.busy || !viewModel.ready}
+          onClose={() => onEvent({ type: "rowClosed" })}
+          onFile={() => {
+            setLines((current) => [...current, { id: idRef.current++, role: "user", text: "File this brief" }]);
+            onEvent({ type: "composerSubmitted", text: "file" });
+          }}
+        />
+      </div>
+    </LayoutGroup>
   );
 }
 
-function Field({
-  label,
-  name,
-  defaultValue,
-  type = "text",
-  inputMode,
-  autoComplete,
+function LiveCopy({
+  viewModel,
+  onConfirm,
+  onSkip,
+  onRefine,
+  onRetry,
 }: {
-  label: string;
-  name: string;
-  defaultValue: string;
-  type?: "text" | "email";
-  inputMode?: "numeric" | "text" | "email";
-  autoComplete?: string;
+  viewModel: ShellViewModel;
+  onConfirm: () => void;
+  onSkip: () => void;
+  onRefine: (text: string) => void;
+  onRetry: () => void;
 }) {
-  const id = `more-${name}`;
+  const factsMarked = viewModel.phase === "results" || viewModel.showFacts;
   return (
-    <label className="grid gap-1 text-sm" htmlFor={id}>
-      {label}
-      <input
-        id={id}
-        name={name}
-        type={type}
-        inputMode={inputMode}
-        autoComplete={autoComplete}
-        defaultValue={defaultValue}
-        className="planner-field min-h-12 border border-border bg-card px-3 text-base"
-      />
-    </label>
+    <>
+      {viewModel.notice ? (
+        <p className="planner-meta" role="status">
+          {viewModel.notice}
+        </p>
+      ) : null}
+      {viewModel.draftConfirmation ? (
+        <p className="planner-meta" role="status">
+          {viewModel.draftConfirmation}
+        </p>
+      ) : null}
+      {viewModel.askLabelsComposer ? (
+        <p className="planner-text" data-must-show={factsMarked ? "facts" : undefined}>
+          <label htmlFor="composer">{viewModel.ask}</label>
+        </p>
+      ) : (
+        <p className="planner-text" data-must-show={factsMarked ? "facts" : undefined}>
+          {viewModel.ask}
+        </p>
+      )}
+      {viewModel.showFacts && viewModel.factsSentence !== viewModel.ask ? (
+        <p className="planner-text" data-must-show="facts">
+          {viewModel.factsSentence}
+        </p>
+      ) : null}
+      {viewModel.showConfirm ? (
+        <div className="planner-actions">
+          <button type="button" className="planner-primary" disabled={viewModel.busy || !viewModel.ready} onClick={onConfirm}>
+            Yes
+          </button>
+        </div>
+      ) : null}
+      {viewModel.showFavorites ? (
+        <div className="planner-actions">
+          <button type="button" className="planner-secondary" disabled={viewModel.busy || !viewModel.ready} onClick={onSkip}>
+            Skip
+          </button>
+        </div>
+      ) : null}
+      {viewModel.phase === "results" && viewModel.rows.length === 0 ? (
+        <div className="planner-suggestions">
+          <button type="button" className="planner-suggestion" onClick={() => onRefine("Widen the date")}>
+            Widen the date
+          </button>
+          <button type="button" className="planner-suggestion" onClick={() => onRefine("Fewer people")}>
+            Fewer people
+          </button>
+        </div>
+      ) : null}
+      {viewModel.errorText ? (
+        <div role="alert">
+          <p className="planner-danger">
+            <CircleAlert aria-hidden="true" />
+            <span>{viewModel.errorText}</span>
+          </p>
+          <div className="planner-actions">
+            <button type="button" className="planner-secondary" onClick={onRetry}>
+              Try again
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
-function fieldText(data: FormData, name: string): string {
-  const value = data.get(name);
-  return typeof value === "string" ? value : "";
-}
-
-function foodField(data: FormData): MoreFieldValues["foodRequired"] {
-  const value = fieldText(data, "foodRequired");
-  if (value === "yes" || value === "no") {
-    return value;
-  }
-  return "";
-}
-
-function gapLabel(gap: string): string {
-  if (gap === "foodAndBeverage") {
-    return "No food";
-  }
-  if (gap === "expired") {
-    return "Expired";
-  }
-  if (gap === "space") {
-    return "No meeting space";
-  }
-  if (gap === "rooms") {
-    return "No rooms";
-  }
-  if (gap === "breakout") {
-    return "No breakout";
-  }
-  if (gap === "budget") {
-    return "Over budget";
-  }
-  if (gap === "vegetarian") {
-    return "Vegetarian";
-  }
-  if (gap === "vegan") {
-    return "Vegan";
-  }
-  if (gap === "gluten-free") {
-    return "Gluten-free";
-  }
-  if (gap === "dairy-free") {
-    return "Dairy-free";
-  }
-  if (gap === "nut-free") {
-    return "Nut-free";
-  }
-  if (gap === "halal") {
-    return "Halal";
-  }
-  if (gap === "kosher") {
-    return "Kosher";
-  }
-  if (gap === "pescatarian") {
-    return "Pescatarian";
-  }
-  return gap;
-}
-
-function DetailLine({ label, value }: { label: string; value: string }) {
+function Pending({ kind, slow }: { kind: "read" | "search"; slow: boolean }) {
+  const label = kind === "search" ? (slow ? "Still searching…" : "Searching Proposales…") : slow ? "Still reading…" : "Reading the brief…";
   return (
-    <div className="grid grid-cols-[6rem_1fr] gap-2">
-      <dt className="text-muted">{label}</dt>
-      <dd>{value}</dd>
+    <>
+      <p className="planner-shimmer" role="status">
+        {label}
+      </p>
+      {kind === "search" ? <p className="planner-meta">Ranking places…</p> : null}
+    </>
+  );
+}
+
+function SkeletonGroup() {
+  return (
+    <div className="planner-offer-group" aria-hidden="true">
+      <div className="planner-skeleton" />
+      <div className="planner-skeleton" />
+      <div className="planner-skeleton" />
     </div>
   );
+}
+
+function liveIsNew(lines: Line[], live: string, viewModel: ShellViewModel): boolean {
+  if (
+    viewModel.rows.length > 0 ||
+    viewModel.showConfirm ||
+    viewModel.showFavorites ||
+    viewModel.notice !== null ||
+    viewModel.draftConfirmation !== null ||
+    viewModel.errorText !== null ||
+    viewModel.phase === "results"
+  ) {
+    return true;
+  }
+  const lastAssistant = [...lines].reverse().find((line) => line.role === "assistant");
+  return lastAssistant?.text !== live;
+}
+
+function cssEscape(value: string): string {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(value);
+  }
+  return value.replace(/["\\]/g, "\\$&");
+}
+
+function offerKey(proposalUuid: string, venueName: string): string {
+  return proposalUuid === "" ? venueName : proposalUuid;
+}
+
+function historyOffer(): string | null {
+  const state: unknown = window.history.state;
+  if (typeof state !== "object" || state === null) {
+    return null;
+  }
+  const offer = Reflect.get(state, "offer");
+  return typeof offer === "string" ? offer : null;
+}
+
+function hrefOf(url: URL): string {
+  const search = url.searchParams.toString();
+  return `${url.pathname}${search === "" ? "" : `?${search}`}${url.hash}`;
 }

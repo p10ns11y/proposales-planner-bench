@@ -95,6 +95,7 @@ function comparisonRow(
   const venueName = offer.venueName ?? "";
   return {
     venueName,
+    proposalUuid: offer.proposalUuid,
     currency: offer.currency ?? "",
     roomsMinor: offer.roomsMinor ?? minorUnits(0),
     foodAndBeverageMinor: offer.foodAndBeverageMinor ?? minorUnits(0),
@@ -107,6 +108,7 @@ function comparisonRow(
       (favoriteName) => favoriteName.toLowerCase() === venueName.toLowerCase(),
     ),
     heldByCompanyName: heldByCompanyName(offer, companies, venueName),
+    blocks: offer.blocks ?? [],
   };
 }
 

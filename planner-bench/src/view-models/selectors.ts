@@ -1,7 +1,8 @@
-import type { MinorUnits } from "../domain/minor-units";
+import { formatBudgetMajor, type MinorUnits } from "../domain/minor-units";
 import type { PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
 import { draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
+import { placesSentence } from "../contract/offer-group";
 import type { MoreFieldValues, ResultsViewModel, ShellViewModel } from "./view-model";
 
 const monthNames = [
@@ -19,8 +20,10 @@ const monthNames = [
   "December",
 ];
 
-const composerPlaceholder =
-  "I need a place in Stockholm for 40 people on 12 November 2026, from 09:00 to 17:00.";
+const composerPlaceholder = "Describe the event: place, people, date, time";
+
+const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export function formatMinorUnits(value: MinorUnits, currency: string): string {
   const negative = value.amount < 0;
@@ -48,6 +51,7 @@ export function shellViewModel(input: {
   const rows = rankedRows(snapshot);
   const visibleRowCount = snapshot?.visibleRowCount ?? 5;
   const visibleRows = phase === "results" ? rows.slice(0, visibleRowCount) : [];
+  const offerCount = phase === "results" ? rows.length : 0;
   const openVenueName = snapshot?.openVenueName ?? null;
   const openRow = openVenueName === null ? null : (rows.find((row) => row.venueName === openVenueName) ?? null);
   const more = moreFields(brief);
@@ -58,7 +62,7 @@ export function shellViewModel(input: {
     ready: snapshot !== null,
     errorText: input.errorText,
     speechAvailable: input.speechAvailable,
-    ask: askFor(phase, question, facts, readyToConfirm),
+    ask: askFor(phase, question, readyToConfirm, visibleRows),
     askLabelsComposer: phase === "capture" || askingGap || phase === "favorites" || phase === "results",
     notice: visibleNotice(snapshot),
     draftConfirmation: snapshot?.filing?.path === "draft" ? draftCreatedNotice : null,
@@ -73,6 +77,8 @@ export function shellViewModel(input: {
     more,
     moreStamp: moreStamp(more),
     composerPlaceholder,
+    offerSummary: offerSummary(brief, offerCount, phase),
+    contextChips: phase === "results" ? briefContextChips(brief) : [],
     ...inputHints(question),
   };
 }
@@ -94,7 +100,14 @@ export function resultsViewModel(snapshot: PlannerSnapshot | null): ResultsViewM
 function rankedRows(snapshot: PlannerSnapshot | null): ResultsViewModel["rows"] {
   return (snapshot?.grid ?? []).map((row) => ({
     venueName: row.venueName,
+    proposalUuid: row.proposalUuid ?? "",
     heldByCompanyName: row.heldByCompanyName ?? null,
+    currency: row.currency,
+    roomsMinor: row.roomsMinor.amount,
+    foodMinor: row.foodAndBeverageMinor.amount,
+    spaceMinor: row.spaceMinor.amount,
+    extrasMinor: row.extrasMinor.amount,
+    totalMinor: row.totalMinor.amount,
     rooms: formatMinorUnits(row.roomsMinor, row.currency),
     foodAndBeverage: formatMinorUnits(row.foodAndBeverageMinor, row.currency),
     space: formatMinorUnits(row.spaceMinor, row.currency),
@@ -103,6 +116,7 @@ function rankedRows(snapshot: PlannerSnapshot | null): ResultsViewModel["rows"] 
     expires: row.expiresAt === undefined ? "No expiry" : row.expiresAt.slice(0, 10),
     gaps: row.gaps,
     favorite: row.favorite,
+    blocks: row.blocks ?? [],
   }));
 }
 
@@ -144,11 +158,11 @@ function noticeText(snapshot: PlannerSnapshot | null): string | null {
 function askFor(
   phase: ShellViewModel["phase"],
   question: string,
-  facts: string,
   readyToConfirm: boolean,
+  rows: ResultsViewModel["rows"],
 ): string {
   if (phase === "capture") {
-    return "What do you need?";
+    return "What are you planning?";
   }
   if (phase === "confirm" && !readyToConfirm) {
     return question;
@@ -159,7 +173,73 @@ function askFor(
   if (phase === "favorites") {
     return question === "" ? "Which places do you already have in mind? You can skip." : question;
   }
-  return facts === "" ? "The brief" : facts;
+  return placesSentence(rows);
+}
+
+function offerSummary(brief: PlannerBrief, count: number, phase: ShellViewModel["phase"]): string | null {
+  if (phase !== "results" || count === 0) {
+    return null;
+  }
+  const parts = [`${count} ${count === 1 ? "offer" : "offers"}`];
+  if (brief.city !== undefined && brief.city !== "") {
+    parts.push(brief.city);
+  }
+  if (brief.startDate !== undefined) {
+    const when = shortWeekday(brief.startDate);
+    if (when !== "") {
+      parts.push(when);
+    }
+  }
+  if (brief.attendeeCount !== undefined) {
+    const guests = brief.attendeeCount === 1 ? "guest" : "guests";
+    parts.push(`${brief.attendeeCount} ${guests}`);
+  }
+  return parts.join(" · ");
+}
+
+function briefContextChips(brief: PlannerBrief): string[] {
+  const chips: string[] = [];
+  if (brief.city !== undefined && brief.city !== "") {
+    chips.push(brief.city);
+  }
+  if (brief.attendeeCount !== undefined) {
+    chips.push(brief.attendeeCount === 1 ? "1 person" : `${brief.attendeeCount} people`);
+  }
+  const when = contextWhen(brief);
+  if (when !== "") {
+    chips.push(when);
+  }
+  return chips;
+}
+
+function contextWhen(brief: PlannerBrief): string {
+  const day = brief.startDate === undefined ? "" : shortWeekday(brief.startDate);
+  const clocks =
+    brief.startTime !== undefined && brief.endTime !== undefined ? `${brief.startTime}-${brief.endTime}` : "";
+  if (day !== "" && clocks !== "") {
+    return `${day} ${clocks}`;
+  }
+  return day;
+}
+
+function shortWeekday(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match === null) {
+    return "";
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return "";
+  }
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const weekday = weekdays[date.getUTCDay()];
+  const monthLabel = shortMonths[month - 1];
+  if (weekday === undefined || monthLabel === undefined) {
+    return "";
+  }
+  return `${weekday} ${day} ${monthLabel}`;
 }
 
 function factsSentence(brief: PlannerBrief): string {
@@ -248,7 +328,7 @@ function moreFields(brief: PlannerBrief): MoreFieldValues {
     meetingRoomCount: brief.meetingRoomCount === undefined ? "" : String(brief.meetingRoomCount),
     foodRequired: brief.foodRequired === undefined ? "" : brief.foodRequired ? "yes" : "no",
     notes: brief.notes ?? "",
-    budget: brief.budgetMinor === undefined ? "" : String(brief.budgetMinor.amount),
+    budget: brief.budgetMinor === undefined ? "" : formatBudgetMajor(brief.budgetMinor.amount),
   };
 }
 

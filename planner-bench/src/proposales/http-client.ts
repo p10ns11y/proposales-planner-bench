@@ -7,32 +7,32 @@ export const plannerUserAgent = `planner-bench/${packageJson.version}`;
 
 export const proposalFetchLimit = 5;
 
-const companyReader = z.object({
+export const companyReader = z.object({
   id: z.number(),
   name: z.string(),
   inbox_token: z.string().nullable().optional(),
 });
 
-const rfpReader = z.object({
+export const rfpReader = z.object({
   id: z.number(),
 });
 
-const draftReader = z.object({
+export const draftReader = z.object({
   proposal: z.object({
     uuid: z.string(),
     url: z.string(),
   }),
 });
 
-const proposalEnvelopeReader = z.object({
+export const proposalEnvelopeReader = z.object({
   data: z.unknown(),
 });
 
-const searchEnvelopeReader = z.object({
+export const searchEnvelopeReader = z.object({
   data: z.array(z.unknown()),
 });
 
-const searchIdentityReader = z.object({
+export const searchIdentityReader = z.object({
   uuid: z.string(),
   data: z.unknown().optional(),
 });

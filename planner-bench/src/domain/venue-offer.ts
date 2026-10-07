@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { offerBlockSchema } from "./comparison-row";
 import { minorUnitsSchema } from "./minor-units";
 
 export const offerDayPartSchema = z.enum([
@@ -28,6 +29,7 @@ export const venueOfferSchema = z.object({
   totalMinor: minorUnitsSchema.optional(),
   breakoutRoomCount: z.number().int().nonnegative().optional(),
   dietaryNeeds: z.array(z.string()).optional(),
+  blocks: z.array(offerBlockSchema).optional(),
 });
 
 export type VenueOffer = z.infer<typeof venueOfferSchema>;
