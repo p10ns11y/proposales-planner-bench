@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { addMinorUnits, minorUnits } from "./minor-units";
+import type { DayPart } from "./planner-brief";
 import type { VenueOffer } from "./venue-offer";
 
 const packageSplitTypeSchema = z.enum(["accommodation", "meetingRoom", "food", "other"]);
@@ -19,6 +20,7 @@ const proposalForOfferSchema = z.object({
   company_id: z.number().int().optional(),
   currency: z.string().optional(),
   expires_at: z.number().nullable().optional(),
+  data: z.unknown().optional(),
   blocks: z.array(
     z.object({
       quantity: z.number().optional(),
@@ -58,11 +60,13 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
   const spaceMinor = minorUnits(Math.round(totals.spaceMinor));
   const extrasMinor = minorUnits(Math.round(totals.extrasMinor));
   const venueName = venueNameFromTitle(parsed.title);
+  const facts = readProposalData(parsed.data);
 
   return {
     venueName,
     proposalUuid: parsed.uuid,
     companyId: parsed.company_id,
+    ...facts,
     currency: parsed.currency,
     expiresAt:
       parsed.expires_at === undefined || parsed.expires_at === null
@@ -74,6 +78,53 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
     extrasMinor,
     totalMinor: addMinorUnits([roomsMinor, foodAndBeverageMinor, spaceMinor, extrasMinor]),
   };
+}
+
+const dayPartAliases: Record<string, DayPart> = {
+  "full-day": "full-day",
+  "all-day": "all-day",
+  "half-day": "half-day",
+  morning: "morning",
+  afternoon: "afternoon",
+};
+
+function readProposalData(data: unknown): Pick<VenueOffer, "city" | "capacity" | "dayPart"> {
+  if (typeof data !== "object" || data === null) {
+    return {};
+  }
+  const record = data as Record<string, unknown>;
+  const city = readCity(record.city);
+  const capacity = readCapacity(record.capacity);
+  const dayPart = readDayPart(record.day_part);
+  return {
+    ...(city !== undefined ? { city } : {}),
+    ...(capacity !== undefined ? { capacity } : {}),
+    ...(dayPart !== undefined ? { dayPart } : {}),
+  };
+}
+
+function readCity(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const city = value.trim();
+  return city === "" ? undefined : city;
+}
+
+function readCapacity(value: unknown): number | undefined {
+  const numeric = typeof value === "number" ? value : typeof value === "string" ? Number(value.trim()) : Number.NaN;
+  if (!Number.isInteger(numeric) || numeric < 1) {
+    return undefined;
+  }
+  return numeric;
+}
+
+function readDayPart(value: unknown): DayPart | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const key = value.trim().toLowerCase().replace(/[\s_]+/g, "-");
+  return dayPartAliases[key];
 }
 
 const demoVenueSuffix = " (demo venue)";

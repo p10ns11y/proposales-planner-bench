@@ -28,13 +28,61 @@ export function compareOffers(
   );
 }
 
-export function rankComparisonRows(rows: ComparisonRow[]): ComparisonRow[] {
-  return [...rows].sort((left, right) => {
-    if (left.gaps.length !== right.gaps.length) {
-      return left.gaps.length - right.gaps.length;
+export function rankComparisonRows(rows: ComparisonRow[], referenceCurrency?: string): ComparisonRow[] {
+  const home = homeCurrency(rows, referenceCurrency);
+  return [...rows].sort((left, right) => compareRankedRows(left, right, home));
+}
+
+function compareRankedRows(left: ComparisonRow, right: ComparisonRow, home: string): number {
+  if (left.gaps.length !== right.gaps.length) {
+    return left.gaps.length - right.gaps.length;
+  }
+  const leftHome = currencyMatches(left.currency, home);
+  const rightHome = currencyMatches(right.currency, home);
+  if (leftHome !== rightHome) {
+    return leftHome ? -1 : 1;
+  }
+  const leftCurrency = normaliseCurrency(left.currency);
+  const rightCurrency = normaliseCurrency(right.currency);
+  if (leftCurrency !== rightCurrency) {
+    return leftCurrency < rightCurrency ? -1 : 1;
+  }
+  return left.totalMinor.amount - right.totalMinor.amount;
+}
+
+function homeCurrency(rows: ComparisonRow[], referenceCurrency: string | undefined): string {
+  const stated = normaliseCurrency(referenceCurrency);
+  if (stated !== "") {
+    return stated;
+  }
+  const counts = new Map<string, number>();
+  const pool = rows.some((row) => !row.gaps.includes("expired"))
+    ? rows.filter((row) => !row.gaps.includes("expired"))
+    : rows;
+  for (const row of pool) {
+    const currency = normaliseCurrency(row.currency);
+    if (currency === "") {
+      continue;
     }
-    return left.totalMinor.amount - right.totalMinor.amount;
-  });
+    counts.set(currency, (counts.get(currency) ?? 0) + 1);
+  }
+  let home = "";
+  let best = 0;
+  for (const [currency, count] of counts) {
+    if (count > best || (count === best && (home === "" || currency < home))) {
+      home = currency;
+      best = count;
+    }
+  }
+  return home;
+}
+
+function currencyMatches(currency: string, home: string): boolean {
+  return home !== "" && normaliseCurrency(currency) === home;
+}
+
+function normaliseCurrency(value: string | undefined): string {
+  return value?.trim().toUpperCase() ?? "";
 }
 
 function comparisonRow(
@@ -156,18 +204,26 @@ export function briefGapsForStage(
   return findBriefGaps(brief, "brief:comparable");
 }
 
+export function offersForBrief(brief: PlannerBrief, offers: VenueOffer[]): VenueOffer[] {
+  return offersMatchingCity(brief, offers).filter((offer) => capacityAllows(brief, offer));
+}
+
 export function offersMatchingCity(brief: PlannerBrief, offers: VenueOffer[]): VenueOffer[] {
-  const city = brief.city?.trim().toLowerCase();
-  if (city === undefined || city === "") {
-    return offers;
+  return offers.filter((offer) => citiesAgree(brief, offer));
+}
+
+function citiesAgree(brief: PlannerBrief, offer: VenueOffer): boolean {
+  const briefCity = brief.city?.trim().toLowerCase() ?? "";
+  const offerCity = offer.city?.trim().toLowerCase() ?? "";
+  if (briefCity === "" || offerCity === "") {
+    return true;
   }
-  const offersWithCity = offers.filter(
-    (offer) => offer.city !== undefined && offer.city.trim() !== "",
-  );
-  if (offersWithCity.length === 0) {
-    return offers;
+  return briefCity === offerCity;
+}
+
+function capacityAllows(brief: PlannerBrief, offer: VenueOffer): boolean {
+  if (brief.attendeeCount === undefined || offer.capacity === undefined) {
+    return true;
   }
-  return offersWithCity.filter(
-    (offer) => offer.city !== undefined && offer.city.trim().toLowerCase() === city,
-  );
+  return offer.capacity >= brief.attendeeCount;
 }

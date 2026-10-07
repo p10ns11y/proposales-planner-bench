@@ -1,5 +1,4 @@
-import { compareOffers } from "../domain/compare-offers";
-import { briefGapsForStage } from "../domain/compare-offers";
+import { briefGapsForStage, compareOffers, offersForBrief, rankComparisonRows } from "../domain/compare-offers";
 import { findBriefGaps, questionForGap } from "../domain/fitness";
 import { mergeBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
@@ -9,7 +8,6 @@ import { briefDraftFromPlanner } from "./brief-draft";
 import { projectBriefFlow } from "./brief-flow";
 import { extractBriefPatch, extractPastedOffer, turnIntent } from "./fixture-extractor";
 import type { PlannerSnapshot } from "./planner-snapshot";
-import { rankComparisonRows } from "../domain/compare-offers";
 
 export async function runFixtureTurn(input: {
   text: string;
@@ -79,14 +77,16 @@ export async function runFixtureTurn(input: {
       : projected.stage === "collecting" || projected.stage === "fileable"
         ? []
         : briefGapsForStage(brief, projected.stage);
+  const matchedOffers = offersForBrief(brief, projected.offers);
   const grid =
-    projected.offers.length === 0
+    matchedOffers.length === 0
       ? []
       : rankComparisonRows(
-          compareOffers(brief, projected.offers, input.today, {
+          compareOffers(brief, matchedOffers, input.today, {
             favoriteVenueNames,
             companies: input.snapshot.companies,
           }),
+          brief.budget?.currency,
         );
   const nextQuestion =
     blockingGap !== undefined

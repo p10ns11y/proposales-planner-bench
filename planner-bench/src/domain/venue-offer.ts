@@ -1,11 +1,14 @@
 import { z } from "zod";
 import { minorUnitsSchema } from "./minor-units";
+import { dayPartSchema } from "./planner-brief";
 
 export const venueOfferSchema = z.object({
   venueName: z.string().optional(),
   proposalUuid: z.string().optional(),
   companyId: z.number().int().optional(),
   city: z.string().optional(),
+  capacity: z.number().int().positive().optional(),
+  dayPart: dayPartSchema.optional(),
   currency: z.string().optional(),
   expiresAt: z.string().optional(),
   roomsMinor: minorUnitsSchema.optional(),

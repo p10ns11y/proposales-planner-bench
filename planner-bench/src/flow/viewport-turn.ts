@@ -1,7 +1,7 @@
 import {
   briefGapsForStage,
   compareOffers,
-  offersMatchingCity,
+  offersForBrief,
   rankComparisonRows,
 } from "../domain/compare-offers";
 import { findBriefGaps, questionForGap } from "../domain/fitness";
@@ -304,12 +304,13 @@ async function rankSnapshot(
   const normalised = normaliseLoaded(loaded.proposals);
   const sample = loaded.sample || normalised.sample;
   const offerSource = sample ? "sample" : loaded.source;
-  const offers = offersMatchingCity(snapshot.brief, normalised.offers);
+  const offers = offersForBrief(snapshot.brief, normalised.offers);
   const grid = rankComparisonRows(
     compareOffers(snapshot.brief, offers, today, {
       favoriteVenueNames: snapshot.favoriteVenueNames,
       companies: snapshot.companies,
     }),
+    snapshot.brief.budget?.currency,
   );
   const projected = projectBriefFlow({
     brief: snapshot.brief,
