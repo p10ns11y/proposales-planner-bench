@@ -10,6 +10,8 @@ import { mergeBrief, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import type { ProposalesClient } from "../proposales/types";
 import { briefDraftFromPlanner } from "./brief-draft";
+import { loadComparableProposals, sampleProposalRecords } from "../proposales/comparable-proposals";
+import { draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
@@ -171,10 +173,19 @@ async function confirmBrief(
   }
   let filing = snapshot.filing;
   let selectedCompanyId = snapshot.selectedCompanyId;
+  let filingAvailable = snapshot.filingAvailable;
+  let notice: string | null = null;
   if (filing === null && findBriefGaps(snapshot.brief, "brief:fileable").length === 0) {
     selectedCompanyId = selectedCompanyId ?? snapshot.companies[0]?.id ?? null;
-    if (selectedCompanyId !== null) {
-      filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
+    if (selectedCompanyId === null) {
+      notice = filingAvailable ? null : filingUnavailableNotice;
+    } else {
+      try {
+        filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
+      } catch {
+        filingAvailable = false;
+        notice = filingUnavailableNotice;
+      }
     }
   }
   const projected = projectBriefFlow({
@@ -187,10 +198,11 @@ async function confirmBrief(
     filing: projected.filing,
     stage: projected.stage,
     selectedCompanyId,
+    filingAvailable,
     phase: "favorites",
     gaps: [],
     nextQuestion: "Which places do you already have in mind? You can skip.",
-    notice: null,
+    notice,
     openVenueName: null,
   };
 }
@@ -206,21 +218,33 @@ async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Pro
   }
   const selectedCompanyId = snapshot.selectedCompanyId ?? snapshot.companies[0]?.id ?? null;
   if (selectedCompanyId === null) {
-    return { ...snapshot, notice: "Which company should receive the brief?" };
+    return {
+      ...snapshot,
+      notice: snapshot.filingAvailable ? "Which company should receive the brief?" : filingUnavailableNotice,
+    };
   }
-  const filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
-  const projected = projectBriefFlow({
-    brief: snapshot.brief,
-    filing,
-    offers: snapshot.offers,
-  });
-  return {
-    ...snapshot,
-    filing: projected.filing,
-    stage: projected.stage,
-    selectedCompanyId,
-    notice: "The brief is filed.",
-  };
+  try {
+    const filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
+    const projected = projectBriefFlow({
+      brief: snapshot.brief,
+      filing,
+      offers: snapshot.offers,
+    });
+    return {
+      ...snapshot,
+      filing: projected.filing,
+      stage: projected.stage,
+      selectedCompanyId,
+      filingAvailable: true,
+      notice: filing.path === "draft" ? draftCreatedNotice : "The brief is filed.",
+    };
+  } catch {
+    return {
+      ...snapshot,
+      filingAvailable: false,
+      notice: filingUnavailableNotice,
+    };
+  }
 }
 
 async function submitFavorites(
@@ -256,14 +280,30 @@ async function rerank(
   return rankSnapshot(snapshot, client, today);
 }
 
+function normaliseLoaded(proposals: unknown[]): {
+  offers: ReturnType<typeof normaliseProposal>[];
+  sample: boolean;
+} {
+  try {
+    return { offers: proposals.map((proposal) => normaliseProposal(proposal)), sample: false };
+  } catch {
+    return {
+      offers: sampleProposalRecords().map((proposal) => normaliseProposal(proposal)),
+      sample: true,
+    };
+  }
+}
+
 async function rankSnapshot(
   snapshot: PlannerSnapshot,
   client: ProposalesClient,
   today: string,
 ): Promise<PlannerSnapshot> {
-  const proposals = await client.loadVenueProposals();
-  const normalised = proposals.map((proposal) => normaliseProposal(proposal));
-  const offers = offersMatchingCity(snapshot.brief, normalised);
+  const loaded = await loadComparableProposals(client);
+  const normalised = normaliseLoaded(loaded.proposals);
+  const sample = loaded.sample || normalised.sample;
+  const offerSource = sample ? "sample" : loaded.source;
+  const offers = offersMatchingCity(snapshot.brief, normalised.offers);
   const grid = rankComparisonRows(
     compareOffers(snapshot.brief, offers, today, {
       favoriteVenueNames: snapshot.favoriteVenueNames,
@@ -285,6 +325,8 @@ async function rankSnapshot(
     phase: "results",
     nextQuestion: "",
     notice: null,
+    sampleOffers: sample,
+    offerSource,
     visibleRowCount: snapshot.visibleRowCount || defaultVisibleRowCount,
     openVenueName: null,
   };

@@ -36,6 +36,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl }: PlannerShel
             {viewModel.notice}
           </p>
         ) : null}
+        {viewModel.draftConfirmation ? (
+          <p role="status" className="mb-4 text-base">
+            {viewModel.draftConfirmation}
+          </p>
+        ) : null}
         <h1
           id="planner-ask"
           className="mb-4 text-2xl leading-tight text-balance"
@@ -72,6 +77,9 @@ export function PlannerShell({ viewModel, onEvent, historyControl }: PlannerShel
               Skip
             </Button>
           </div>
+        ) : null}
+        {viewModel.offerLabel ? (
+          <p className="mb-3 text-sm text-muted">{viewModel.offerLabel}</p>
         ) : null}
         {viewModel.rows.length > 0 ? (
           <ul className="mb-6 flex flex-col">

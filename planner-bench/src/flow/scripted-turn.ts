@@ -3,6 +3,7 @@ import { briefGapsForStage } from "../domain/compare-offers";
 import { findBriefGaps, questionForGap } from "../domain/fitness";
 import { mergeBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
+import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
 import { briefDraftFromPlanner } from "./brief-draft";
 import { projectBriefFlow } from "./brief-flow";
@@ -19,6 +20,7 @@ export async function runFixtureTurn(input: {
   const intent = turnIntent(input.text);
   const brief = mergeBrief(input.snapshot.brief, extractBriefPatch(input.text));
   let filing = input.snapshot.filing;
+  let filingAvailable = input.snapshot.filingAvailable;
   let offers = input.snapshot.offers;
   const notes: string[] = [];
   const selectedCompanyId = input.snapshot.selectedCompanyId;
@@ -30,10 +32,16 @@ export async function runFixtureTurn(input: {
       const firstGap = fileableGaps[0];
       notes.push(firstGap === undefined ? "The brief is still missing details." : questionForGap(firstGap));
     } else if (selectedCompanyId === null) {
-      notes.push("Which company should receive the brief?");
+      notes.push(filingAvailable ? "Which company should receive the brief?" : filingUnavailableNotice);
     } else {
-      filing = await input.client.fileBrief(briefDraftFromPlanner(brief, selectedCompanyId));
-      notes.push("The brief is filed.");
+      try {
+        filing = await input.client.fileBrief(briefDraftFromPlanner(brief, selectedCompanyId));
+        filingAvailable = true;
+        notes.push(filing.path === "draft" ? "A draft was created in Proposales." : "The brief is filed.");
+      } catch {
+        filingAvailable = false;
+        notes.push(filingUnavailableNotice);
+      }
     }
   }
 
@@ -98,7 +106,10 @@ export async function runFixtureTurn(input: {
       favoriteVenueNames,
       visibleRowCount: input.snapshot.visibleRowCount,
       openVenueName: null,
-      notice: null,
+      notice: filingAvailable ? null : filingUnavailableNotice,
+      sampleOffers: false,
+      offerSource: input.snapshot.offerSource,
+      filingAvailable,
     },
   };
 }

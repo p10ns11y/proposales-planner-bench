@@ -27,6 +27,7 @@ export type FileBriefResult =
   | { path: "draft"; uuid: string };
 
 export type ProposalesClient = {
+  readsLiveProposals: boolean;
   listCompanies(): Promise<CompanyRecord[]>;
   fileBrief(brief: BriefDraft): Promise<FileBriefResult>;
   getProposal(uuid: string): Promise<unknown>;

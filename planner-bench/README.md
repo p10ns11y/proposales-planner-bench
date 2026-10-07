@@ -22,15 +22,24 @@ Say yes, then skip favorites. Three ranked rows appear. Filing still needs an em
 
 ## Live Proposales
 
-Set `PROPOSALES_MODE=live` and `PROPOSALES_API_KEY`. Leave both unset to stay on the fixture. The key is added later, outside this repo.
+Copy `.env.example` to `.env.local` in `planner-bench/` and set the values there. Leave the mode unset to stay on the fixture.
+
+```
+PROPOSALES_MODE=live
+PROPOSALES_API_KEY=
+```
+
+Put the API key in `PROPOSALES_API_KEY`. Do not commit `.env.local`.
+
+Restart `pnpm dev`, then open localhost port 3000. Use the same Stockholm line, confirm, and skip favorites. Company lookup and filing use the live API. When the account has proposals, those rows are live Proposales data and the screen says `Live offers`. A title that ends with ` (demo venue)` is shown without that suffix, and the total is the sum of each block's package split times its quantity. The account company name is not used as a venue name. If the search is empty or the live load fails, the rows are sample offers and the screen says `Sample offers`. If company lookup fails, ranking still runs and the screen says `Filing is unavailable right now.` A failed filing stays on that sentence and does not say a draft was created. Under More, set Email and Language, save, and say `file`. Leave Event name empty to title the draft with the city and date, or set Event name to use that instead. The screen says `A draft was created in Proposales.`
+
+Leave `XAI_API_KEY` and `PLANNER_MODEL` empty to keep the scripted extractor.
 
 ## Model
 
-With no gateway credential, every turn stays on the scripted extractor. A non-empty `AI_GATEWAY_API_KEY`, a `VERCEL_OIDC_TOKEN`, or `VERCEL=1` tries the model. Any gateway error falls back to the scripted extractor, so the screen still returns a brief and rows.
+Grok runs through xAI only when `XAI_API_KEY` is set on the server. The default model id is `grok-4.7`. `PLANNER_MODEL` overrides that id. A missing key, a model error, or a timeout falls back to the scripted extractor within about 8 seconds. A Vercel deploy without `XAI_API_KEY` stays scripted.
 
-`PLANNER_MODEL` overrides the default `openai/gpt-4.1-mini`.
-
-On Vercel, set the project root to `planner-bench`. Fixture mode needs no secrets. When the deployment can use Vercel OIDC, the gateway is treated as usable even without `AI_GATEWAY_API_KEY`.
+On Vercel, set the project root to `planner-bench`. Fixture mode needs no secrets.
 
 Speech uses the browser speech API when the browser has it. Typing always works.
 

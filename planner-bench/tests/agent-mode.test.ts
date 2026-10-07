@@ -1,31 +1,56 @@
 import { describe, expect, it } from "vitest";
-import { gatewayAttemptMs, gatewayAttemptSignal, gatewayIsUsable, resolveBriefPatch } from "../src/flow/agent-mode";
-import { completeChatTurn } from "../src/flow/planner-chat";
+import {
+  defaultPlannerModelId,
+  modelAttemptMs,
+  modelAttemptSignal,
+  modelIsUsable,
+  plannerModelChoice,
+  resolveBriefPatch,
+} from "../src/flow/agent-mode";
+import { completeChatTurn, currentChatEnv } from "../src/flow/planner-chat";
 import { openingSnapshot } from "../src/flow/chat-request";
 import { createFixtureClient } from "../src/proposales/fixture-client";
 
 const stockholm = "I need a place in Stockholm for 40 people on 12 November 2026.";
+const presentKey = "present";
 
 describe("model and scripted switch", () => {
-  it("stays scripted when no gateway credential exists", () => {
-    expect(gatewayIsUsable({})).toBe(false);
-    expect(gatewayIsUsable({ AI_GATEWAY_API_KEY: "" })).toBe(false);
-    expect(gatewayIsUsable({ VERCEL: "0" })).toBe(false);
+  it("stays scripted when no xAI key is set", () => {
+    expect(modelIsUsable({})).toBe(false);
+    expect(modelIsUsable({ XAI_API_KEY: "" })).toBe(false);
+    withEnv({ VERCEL: "1", VERCEL_OIDC_TOKEN: presentKey, XAI_API_KEY: undefined }, () => {
+      expect(modelIsUsable(currentChatEnv())).toBe(false);
+    });
   });
 
-  it("treats an API key, an OIDC token, or a Vercel runtime as a usable gateway", () => {
-    expect(gatewayIsUsable({ AI_GATEWAY_API_KEY: "test-key" })).toBe(true);
-    expect(gatewayIsUsable({ VERCEL_OIDC_TOKEN: "test-token" })).toBe(true);
-    expect(gatewayIsUsable({ VERCEL: "1" })).toBe(true);
+  it("selects xAI and the default model when a key is set", () => {
+    expect(modelIsUsable({ XAI_API_KEY: presentKey })).toBe(true);
+    expect(plannerModelChoice({ XAI_API_KEY: presentKey })).toEqual({
+      provider: "xai",
+      modelId: defaultPlannerModelId,
+    });
+    expect(defaultPlannerModelId).toBe("grok-4.7");
   });
 
-  it("keeps the scripted patch when the gateway throws", async () => {
+  it("lets PLANNER_MODEL override the xAI model id", () => {
+    expect(
+      plannerModelChoice({
+        XAI_API_KEY: presentKey,
+        PLANNER_MODEL: "grok-4.6",
+      }),
+    ).toEqual({
+      provider: "xai",
+      modelId: "grok-4.6",
+    });
+  });
+
+  it("keeps the scripted patch when the model throws", async () => {
     const patch = await resolveBriefPatch({
       text: stockholm,
       brief: {},
-      env: { VERCEL_OIDC_TOKEN: "test-token" },
+      env: { XAI_API_KEY: presentKey },
       extractWithModel: async () => {
-        throw new Error("gateway down");
+        throw new Error("model down");
       },
     });
     expect(patch.city).toBe("Stockholm");
@@ -38,7 +63,7 @@ describe("model and scripted switch", () => {
     const patch = await resolveBriefPatch({
       text: stockholm,
       brief: {},
-      env: { AI_GATEWAY_API_KEY: "test-key" },
+      env: { XAI_API_KEY: presentKey },
       extractWithModel: async () => {
         calls += 1;
         return { city: "Oslo", organisationName: "Northwind" };
@@ -49,7 +74,7 @@ describe("model and scripted switch", () => {
     expect(patch.organisationName).toBe("Northwind");
   });
 
-  it("does not call the model when the gateway is not usable", async () => {
+  it("does not call the model when no xAI key is set", async () => {
     let calls = 0;
     await resolveBriefPatch({
       text: stockholm,
@@ -71,9 +96,9 @@ describe("model and scripted switch", () => {
       snapshot,
       client,
       today: "2026-10-06",
-      env: { VERCEL: "1" },
+      env: { XAI_API_KEY: presentKey },
       runLive: async () => {
-        throw new Error("gateway down");
+        throw new Error("model down");
       },
     });
     expect(turn.mode).toBe("scripted");
@@ -82,19 +107,43 @@ describe("model and scripted switch", () => {
   });
 
   it(
-    "aborts a gateway attempt within about four seconds",
+    "aborts a model attempt within about eight seconds",
     async () => {
-      expect(gatewayAttemptMs).toBe(4_000);
+      expect(modelAttemptMs).toBe(8_000);
       const started = Date.now();
-      const signal = gatewayAttemptSignal();
+      const signal = modelAttemptSignal();
       await new Promise<void>((resolve, reject) => {
         signal.addEventListener("abort", () => resolve(), { once: true });
-        setTimeout(() => reject(new Error("gateway attempt ran long")), 4_500);
+        setTimeout(() => reject(new Error("model attempt ran long")), 9_000);
       });
       const elapsed = Date.now() - started;
-      expect(elapsed).toBeGreaterThanOrEqual(3_500);
-      expect(elapsed).toBeLessThanOrEqual(4_500);
+      expect(elapsed).toBeGreaterThanOrEqual(7_500);
+      expect(elapsed).toBeLessThanOrEqual(8_500);
     },
-    8_000,
+    12_000,
   );
 });
+
+function withEnv(values: Record<string, string | undefined>, run: () => void): void {
+  const previous = new Map<string, string | undefined>();
+  for (const name of Object.keys(values)) {
+    previous.set(name, process.env[name]);
+    const next = values[name];
+    if (next === undefined) {
+      delete process.env[name];
+    } else {
+      process.env[name] = next;
+    }
+  }
+  try {
+    run();
+  } finally {
+    for (const [name, value] of previous) {
+      if (value === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = value;
+      }
+    }
+  }
+}

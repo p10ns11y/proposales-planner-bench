@@ -43,6 +43,8 @@ export type ShellViewModel = {
   ask: string;
   askLabelsComposer: boolean;
   notice: string | null;
+  draftConfirmation: string | null;
+  offerLabel: string | null;
   factsSentence: string;
   showFacts: boolean;
   showConfirm: boolean;

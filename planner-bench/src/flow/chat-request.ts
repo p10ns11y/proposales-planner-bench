@@ -1,3 +1,5 @@
+import { filingUnavailableNotice } from "../proposales/filing";
+import type { ProposalesClient } from "../proposales/types";
 import { emptySnapshot, plannerSnapshotSchema, type PlannerSnapshot } from "./planner-snapshot";
 
 export type ChatTurnMessage = {
@@ -35,6 +37,18 @@ export function latestUserText(messages: ChatTurnMessage[]): string {
 
 export function openingSnapshot(companies: PlannerSnapshot["companies"]): PlannerSnapshot {
   return emptySnapshot(companies, "", []);
+}
+
+export async function readSessionSnapshot(client: ProposalesClient): Promise<PlannerSnapshot> {
+  try {
+    return openingSnapshot(await client.listCompanies());
+  } catch {
+    return {
+      ...openingSnapshot([]),
+      filingAvailable: false,
+      notice: filingUnavailableNotice,
+    };
+  }
 }
 
 function readChatMessage(value: unknown): ChatTurnMessage {

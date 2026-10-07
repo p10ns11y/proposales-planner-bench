@@ -1,7 +1,7 @@
 import { plannerBriefSchema, type PlannerBrief } from "../domain/planner-brief";
 import { createClient } from "../proposales/client";
 import { resolveBriefPatch } from "./agent-mode";
-import { openingSnapshot } from "./chat-request";
+import { readSessionSnapshot } from "./chat-request";
 import { moreDetailsSchema } from "./more-details";
 import { currentChatEnv, type PlannerChatEnv } from "./planner-chat";
 import { plannerSnapshotSchema } from "./planner-snapshot";
@@ -26,13 +26,9 @@ export async function handlePlannerTurn(
   const client = createClient(env);
   const today = new Date().toISOString().slice(0, 10);
   const snapshotValue = Reflect.get(payload, "snapshot");
-  const companies =
-    snapshotValue === undefined || snapshotValue === null
-      ? await client.listCompanies()
-      : plannerSnapshotSchema.parse(snapshotValue).companies;
   const snapshot =
     snapshotValue === undefined || snapshotValue === null
-      ? openingSnapshot(companies)
+      ? await readSessionSnapshot(client)
       : plannerSnapshotSchema.parse(snapshotValue);
   const result = await runViewportAction({
     action,

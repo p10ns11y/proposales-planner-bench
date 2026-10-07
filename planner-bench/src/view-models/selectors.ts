@@ -1,6 +1,7 @@
 import type { MinorUnits } from "../domain/minor-units";
 import type { PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
+import { draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import type { MoreFieldValues, ResultsViewModel, ShellViewModel } from "./view-model";
 
 const monthNames = [
@@ -59,7 +60,9 @@ export function shellViewModel(input: {
     speechAvailable: input.speechAvailable,
     ask: askFor(phase, question, facts, readyToConfirm),
     askLabelsComposer: phase === "capture" || askingGap || phase === "favorites" || phase === "results",
-    notice: snapshot?.notice ?? null,
+    notice: visibleNotice(snapshot),
+    draftConfirmation: snapshot?.filing?.path === "draft" ? draftCreatedNotice : null,
+    offerLabel: offerLabel(snapshot, phase),
     factsSentence: facts,
     showFacts: facts !== "" && (askingGap || readyToConfirm || phase === "favorites"),
     showConfirm: readyToConfirm,
@@ -101,6 +104,41 @@ function rankedRows(snapshot: PlannerSnapshot | null): ResultsViewModel["rows"] 
     gaps: row.gaps,
     favorite: row.favorite,
   }));
+}
+
+function offerLabel(snapshot: PlannerSnapshot | null, phase: ShellViewModel["phase"]): string | null {
+  if (snapshot === null || phase !== "results") {
+    return null;
+  }
+  if (snapshot.offerSource === "live") {
+    return "Live offers";
+  }
+  if (snapshot.offerSource === "sample" || snapshot.sampleOffers) {
+    return "Sample offers";
+  }
+  return null;
+}
+
+function visibleNotice(snapshot: PlannerSnapshot | null): string | null {
+  const notice = noticeText(snapshot);
+  if (notice !== null) {
+    return notice;
+  }
+  if (snapshot?.filingAvailable === false) {
+    return filingUnavailableNotice;
+  }
+  return null;
+}
+
+function noticeText(snapshot: PlannerSnapshot | null): string | null {
+  const notice = snapshot?.notice ?? null;
+  if (notice === null) {
+    return null;
+  }
+  if (snapshot?.filing?.path === "draft" && notice === draftCreatedNotice) {
+    return null;
+  }
+  return notice;
 }
 
 function askFor(

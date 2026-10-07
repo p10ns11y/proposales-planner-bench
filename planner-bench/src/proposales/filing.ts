@@ -42,16 +42,52 @@ export function inboxBody(brief: BriefDraft): Record<string, string> {
   return body;
 }
 
+export const plannerBenchBriefKey = "planner_bench_brief";
+
+export function isPlannerBenchBrief(data: unknown): boolean {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  return Reflect.get(data, plannerBenchBriefKey) === true;
+}
+
+export const draftCreatedNotice = "A draft was created in Proposales.";
+
+export const filingUnavailableNotice = "Filing is unavailable right now.";
+
+export function draftTitle(brief: BriefDraft): string {
+  const eventTitle = brief.eventTitle?.trim() ?? "";
+  if (eventTitle !== "") {
+    return eventTitle;
+  }
+  const city = brief.city?.trim() ?? "";
+  const date = brief.startDate === null ? "" : brief.startDate.slice(0, 10);
+  if (city !== "" && date !== "") {
+    return `${city}, ${date}`;
+  }
+  if (city !== "") {
+    return city;
+  }
+  if (date !== "") {
+    return date;
+  }
+  const message = brief.message.trim();
+  return message === "" ? "Event" : message;
+}
+
 export function draftBody(brief: BriefDraft): {
   company_id: number;
   language: string;
   title_md: string;
-  data: Record<string, string>;
+  data: Record<string, string | boolean>;
 } {
   return {
     company_id: brief.companyId,
     language: brief.language,
-    title_md: brief.eventTitle ?? brief.message,
-    data: inboxBody(brief),
+    title_md: draftTitle(brief),
+    data: {
+      ...inboxBody(brief),
+      [plannerBenchBriefKey]: true,
+    },
   };
 }
