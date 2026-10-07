@@ -34,18 +34,18 @@ Required before a match. These three, and only these, may stop the flow to ask:
 - Date and time. A start, and an end or a duration. A single clock time with no end is not enough for a stay.
 - Number of people.
 
-Everything else lives in More, collapsed. Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Opening More shows form fields. It is not the first screen.
+Everything else lives in More, a drawer from the right. Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Opening More shows those fields. It is not the first screen. Saving More changes only the fields the person edited.
 
-Email still gates filing a brief to a company. It does not gate the match. Favorites stay a mark on the ranked list, not a field in More.
+Filing needs an email; matching does not. The email stays editable in More. Favorites stay a mark on the ranked list, not a field in More.
 
 Confirmed for this pass:
 
 - Free text, then clean, then confirm the required facts, then structured data, then AI-UI views. More is the form for the rest.
 - One sticky input. They type or talk. The input stays put while the thread above it carries the work.
 - The bench does the known flow behind that input. They do not have to know the steps.
-- A step renders a UI element inside the thread only when that step needs it: a missing required fact, the structured brief, favorites, then the ranked rows.
-- The thread is an AG-UI consumer. The flow is the producer. See below. This pass may still render the same elements in ordinary React. The protocol is the wire, not a blocker for the first shell.
-- Further detail for a result opens in an overlay or a modal. It does not become a new page in this pass.
+- A step renders a UI element inside the thread only when that step needs it: a missing required fact, the structured brief, favorites, then the ranked rows. The ranked rows are one `data-offer-group` part inside the assistant reply. Compare is a toggle on that group when two or three offers fit.
+- The thread is an AG-UI consumer. The flow is the producer. See below. This pass may still render the same elements in ordinary React. The protocol is the wire, not a blocker for the first shell. The card components take the offer payload as props. A thin adapter maps the message part onto those props.
+- Further detail for a result opens as an inset sheet on a wide screen and full screen on a phone. Closing it returns to the same place in the chat. It does not become a new page in this pass.
 - Photos, a page per venue, and the collab-finder decision model wait, as already written in the planner definition.
 - Fetch and rank stay as written there. Fetch fills known Proposales filters. Rank is the LLM for this pass. The mix is still open.
 
@@ -101,7 +101,7 @@ The screen is humble. The craft is in how little it asks them to do. Voice and r
 - One input does the asking. The thread shows only the element the current step needs.
 - The defined flow still runs once they are asking for a place.
 - Off-topic work stops at a hold. The service explains itself only when they ask what it is for.
-- Detail stays in an overlay or a modal until a later hydration says otherwise.
+- Detail stays in the inset sheet, or full screen on a phone, until a later hydration says otherwise.
 - Extensions hang off the same input. They do not add a second way in.
 
 ## Accessibility & Inclusion
