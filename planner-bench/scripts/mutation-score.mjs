@@ -13,6 +13,9 @@ const files = [
   "src/flow/brief-language.ts",
   "src/flow/filing-guard.ts",
   "src/views/file-brief-state.ts",
+  "src/views/speech-input.ts",
+  "src/views/more-update.ts",
+  "src/view-models/facts-line.ts",
 ];
 const detected = new Set(["Killed", "Timeout", "RuntimeError"]);
 const counted = new Set(["Killed", "Timeout", "RuntimeError", "Survived", "NoCoverage"]);

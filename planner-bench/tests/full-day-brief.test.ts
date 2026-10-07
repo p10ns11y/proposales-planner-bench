@@ -476,7 +476,7 @@ function assertConfirming(snapshot: PlannerSnapshot) {
   expect(view.showConfirm).toBe(true);
   expect(view.showFavorites).toBe(false);
   expect(view.factsSentence).toBe(
-    `Stockholm, 3 December 2026, 09:00\u201317:00, 25 people. ${fullDayStatement}`,
+    `Stockholm, 3 December 2026, 09:00\u201317:00, 25 people. ${fullDayStatement}. Budget EUR 300 total.`,
   );
   const sentence = view.confirmRuns
     .filter((run) => run.inSentence)

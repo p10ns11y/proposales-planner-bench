@@ -11,9 +11,9 @@ const fullDay =
 const labeledBrief =
   "City Stockholm. Attendees 25. Start 2026-12-03. End 2026-12-03. Start time 09:00. End time 17:00. Email planner@northwind.example.";
 
-const emailAsk = "Add an email under More so venues reply to this address.";
-const languageAsk = "Add a language under More.";
-const whyMore = "More opened so venues reply to this address.";
+const emailAsk = "Add an email under Add details so venues reply to this address.";
+const languageAsk = "Add a language under Add details.";
+const whyMore = "Add details opened so venues reply to this address.";
 const replyHint = "Venues reply to this address";
 const transportError = "Couldn't reach Proposales. Your brief is saved.";
 const filedNotice = "The brief is filed.";
@@ -22,8 +22,8 @@ test("keeps email optional while searching and requires it when File opens More"
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await reachResults(page);
-    await page.getByRole("button", { name: "More" }).click();
-    const optional = page.getByRole("dialog", { name: "Refine the brief" });
+    await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+    const optional = page.getByRole("dialog", { name: "Add details" });
     const optionalEmail = optional.getByLabel("Email");
     await expect(optionalEmail).not.toHaveAttribute("aria-required", "true");
     await expect(optional.getByText(replyHint)).toHaveCount(0);
@@ -31,7 +31,7 @@ test("keeps email optional while searching and requires it when File opens More"
     await expect(optional).toBeHidden();
 
     await page.getByRole("button", { name: "File this brief" }).click();
-    const required = page.getByRole("dialog", { name: "Refine the brief" });
+    const required = page.getByRole("dialog", { name: "Add details" });
     await expect(required.getByLabel("Email")).toHaveAttribute("aria-required", "true");
     await expect(required.getByText(replyHint)).toBeVisible();
     await shot(required.getByText(replyHint), "email-hint.png", viewport.width);
@@ -49,7 +49,7 @@ test("keeps email optional while searching and requires it when File opens More"
     await expect(detail).toBeVisible();
     await detail.getByRole("button", { name: "File this brief" }).click();
     await expect(page.locator(".planner-detail-sheet [role=status]")).toHaveText(whyMore);
-    const drawer = page.getByRole("dialog", { name: "Refine the brief" });
+    const drawer = page.getByRole("dialog", { name: "Add details" });
     await drawer.getByLabel("Email").fill("planner@northwind.example");
     const saved = waitForTurn(page);
     await drawer.locator("[data-lcv-event=save-more]").click();
@@ -80,8 +80,8 @@ test("asks for one missing fileable field at Yes and confirms the filing in chat
     await page.getByRole("button", { name: "Yes" }).click();
     await expect(page.getByRole("heading", { level: 2 })).toHaveText(languageAsk);
     await expect(page.getByText(filedNotice)).toHaveCount(0);
-    await page.getByRole("button", { name: "More" }).click();
-    const drawer = page.getByRole("dialog", { name: "Refine the brief" });
+    await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+    const drawer = page.getByRole("dialog", { name: "Add details" });
     await drawer.getByRole("button", { name: "Svenska" }).click();
     const saved = waitForTurn(page);
     await drawer.locator("[data-lcv-event=save-more]").click();
@@ -105,7 +105,7 @@ test("shows a transport error in the open detail and keeps File pressable", asyn
     await card.click();
     const detail = page.getByRole("dialog", { name: venue ?? "" });
     await detail.getByRole("button", { name: "File this brief" }).click();
-    const drawer = page.getByRole("dialog", { name: "Refine the brief" });
+    const drawer = page.getByRole("dialog", { name: "Add details" });
     await drawer.getByLabel("Email").fill("planner@northwind.example");
     const saved = waitForTurn(page);
     await drawer.locator("[data-lcv-event=save-more]").click();

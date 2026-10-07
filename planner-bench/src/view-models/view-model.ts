@@ -15,6 +15,7 @@ export type MoreFieldValues = {
   organisationName: string;
   contactEmail: string;
   language: string;
+  attendeeCount: string;
   roomCount: string;
   meetingRoomCount: string;
   foodRequired: "" | "yes" | "no";

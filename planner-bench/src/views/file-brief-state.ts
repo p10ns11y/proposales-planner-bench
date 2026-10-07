@@ -25,7 +25,7 @@ export function fileBriefDisabled(busy: boolean, filed: boolean): boolean {
 
 export const emailReplyHint = "Venues reply to this address";
 
-export const moreOpenedForEmail = "More opened so venues reply to this address.";
+export const moreOpenedForEmail = "Add details opened so venues reply to this address.";
 
 export function emailApplyDecision(input: { required: boolean; email: string }): "apply" | "need-email" {
   if (!input.required) {

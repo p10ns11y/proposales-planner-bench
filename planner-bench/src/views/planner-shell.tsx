@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Briefcase, CircleAlert, Mic, Plus, SlidersHorizontal } from "lucide-react";
+import { ArrowDown, ArrowUp, Briefcase, CircleAlert, ListPlus, Mic, Plus } from "lucide-react";
 import { LayoutGroup } from "motion/react";
 import {
   useEffect,
@@ -20,13 +20,13 @@ import { fileBriefChoice, fileBriefLabel, fileBriefPressable, moreOpenedForEmail
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
 import { OfferDetail } from "./offer-detail";
-import { startSpeechCapture } from "./speech-input";
+import { speechButtonState, toggleSpeechCapture, type SpeechListener, type SpeechRecognitionLike } from "./speech-input";
 
 type PlannerShellProps = {
   viewModel: ShellViewModel;
-  onEvent: (event: PlannerViewEvent, pending?: "read" | "search") => void;
+  onEvent: (event: PlannerViewEvent, pending?: "read" | "search" | "more") => void;
   historyControl: ReactNode;
-  pendingKind?: "read" | "search" | null;
+  pendingKind?: "read" | "search" | "more" | null;
 };
 
 type Line = {
@@ -58,6 +58,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const [pendingTick, setPendingTick] = useState(0);
   const [slowTick, setSlowTick] = useState(-1);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreDraft, setMoreDraft] = useState<string | null>(null);
+  const [moreNote, setMoreNote] = useState<string | null>(null);
   const [focusEmail, setFocusEmail] = useState(false);
   const [detailNote, setDetailNote] = useState<string | null>(null);
   const [holdEmpty, setHoldEmpty] = useState(false);
@@ -65,6 +67,9 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const moreOpener = useRef<HTMLButtonElement | null>(null);
+  const speechSession = useRef<SpeechRecognitionLike | null>(null);
+  const [listening, setListening] = useState(false);
+  const [speechReason, setSpeechReason] = useState<string | null>(null);
   const stick = useRef(true);
   const scrollLock = useRef<number | null>(null);
   const previousOpen = useRef<string | null>(null);
@@ -73,6 +78,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const lastKind = useRef<"read" | "search">("read");
 
   const pending = viewModel.busy && pendingKind !== null;
+  const moreLine = viewModel.busy || viewModel.errorText !== null ? null : (moreDraft ?? moreNote);
   const slow = pending && slowTick === pendingTick;
   const empty =
     holdEmpty ||
@@ -210,6 +216,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       return;
     }
     setHoldEmpty(false);
+    setMoreDraft(null);
+    setMoreNote(null);
     pushTurn(trimmed);
     lastKind.current = kind;
     setPendingTick((value) => value + 1);
@@ -280,6 +288,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     setDraft("");
     setHoldEmpty(true);
     setMoreOpen(false);
+    setMoreDraft(null);
+    setMoreNote(null);
     setFocusEmail(false);
     setDetailNote(null);
     onEvent({ type: "sessionReset" });
@@ -287,6 +297,22 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
 
   const showLive = !holdEmpty && (pending || (!empty && liveIsNew(lines, viewModel.ask, viewModel)));
   const labelled = empty || (showLive && !pending && viewModel.askLabelsComposer);
+  const speech = speechButtonState({
+    supported: viewModel.speechAvailable,
+    listening,
+    unavailable: speechReason,
+    busy: viewModel.busy,
+    ready: viewModel.ready,
+  });
+  const speechListener: SpeechListener = {
+    onTranscript: (transcript) => setDraft(transcript),
+    onListening: setListening,
+    onUnavailable: setSpeechReason,
+  };
+
+  function onSpeech() {
+    speechSession.current = toggleSpeechCapture(speechSession.current, listening, speechListener);
+  }
   const filePressable = fileBriefPressable({
     busy: viewModel.busy,
     filed: viewModel.filed,
@@ -314,7 +340,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           <span className="planner-brand" title="Planner bench">
             <Briefcase aria-hidden="true" />
           </span>
-          <button type="button" className="planner-rail-button" aria-label="New chat" onClick={newChat}>
+          <button type="button" className="planner-rail-button" aria-label="New chat" {...newChatEdge(viewModel.phase)} onClick={newChat}>
             <Plus aria-hidden="true" />
           </button>
         </nav>
@@ -324,16 +350,22 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
               <Briefcase />
             </span>
             <div className="planner-header-actions">
+              <button type="button" className="planner-pill" aria-label="New chat" {...newChatEdge(viewModel.phase)} onClick={newChat}>
+                <Plus aria-hidden="true" />
+                <span className="planner-pill-label">New chat</span>
+              </button>
               {historyControl}
               <button
                 type="button"
-                className="planner-pill planner-pill-strong"
+                className="planner-pill planner-pill-strong planner-detail-trigger"
                 data-must-show="more"
+                aria-label="Add details"
+                title="Add details"
                 {...openMoreEdge()}
                 onClick={openMore}
               >
-                <SlidersHorizontal aria-hidden="true" />
-                <span className="planner-pill-label">More</span>
+                <ListPlus aria-hidden="true" />
+                <span className="planner-pill-label">Add details</span>
               </button>
             </div>
           </header>
@@ -416,6 +448,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                         )}
                       </div>
                       {pending && pendingKind === "search" ? <SkeletonGroup /> : null}
+                      {!pending && moreLine ? (
+                        <p className="planner-more-update" role="status" data-more-update>
+                          {moreLine}
+                        </p>
+                      ) : null}
                       {!pending && part ? (
                         renderPart(part, {
                           hiddenCount: viewModel.hiddenCount,
@@ -448,6 +485,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             </button>
           ) : null}
           <div className="planner-dock">
+            {speech.shown === false && speech.reason !== null ? (
+              <p className="planner-speech-status" role="status" aria-label={speech.reason} data-speech-state="unavailable">
+                {speech.reason}
+              </p>
+            ) : null}
             <form
               className="planner-composer"
               data-must-show="composer"
@@ -457,8 +499,15 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 submitDraft();
               }}
             >
-              <button type="button" className="planner-icon-button" aria-label="Add details" {...openMoreEdge()} onClick={openMore}>
-                <Plus aria-hidden="true" />
+              <button
+                type="button"
+                className="planner-icon-button planner-detail-trigger"
+                aria-label="Add details"
+                title="Add details"
+                {...openMoreEdge()}
+                onClick={openMore}
+              >
+                <ListPlus aria-hidden="true" />
               </button>
               <textarea
                 id="composer"
@@ -475,22 +524,26 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={onComposerKey}
               />
-              <button
-                type="button"
-                className="planner-icon-button"
-                aria-label="Speak"
-                disabled={!viewModel.speechAvailable || viewModel.busy || !viewModel.ready}
-                {...lcvInteract({
-                  event: "dictate",
-                  from: chatState(viewModel.phase),
-                  success: "composer:dictate",
-                  fail: chatState(viewModel.phase),
-                  interrupted: chatState(viewModel.phase),
-                })}
-                onClick={() => startSpeechCapture((transcript) => setDraft(transcript))}
-              >
-                <Mic aria-hidden="true" />
-              </button>
+              {speech.shown ? (
+                <button
+                  type="button"
+                  className="planner-icon-button"
+                  aria-label={speech.name}
+                  aria-pressed={speech.pressed}
+                  disabled={speech.disabled}
+                  data-speech-state={speech.pressed ? "listening" : "ready"}
+                  {...lcvInteract({
+                    event: "dictate",
+                    from: chatState(viewModel.phase),
+                    success: "composer:dictate",
+                    fail: chatState(viewModel.phase),
+                    interrupted: chatState(viewModel.phase),
+                  })}
+                  onClick={onSpeech}
+                >
+                  <Mic aria-hidden="true" />
+                </button>
+              ) : null}
               <button
                 type="submit"
                 className="planner-send"
@@ -521,9 +574,21 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             }
             moreOpener.current?.focus();
           }}
-          onEvent={onEvent}
+          onEvent={(event) => {
+            if (event.type === "moreEdited") {
+              onEvent(event, "more");
+              return;
+            }
+            onEvent(event);
+          }}
           onApplied={(line) => {
-            setLines((current) => [...current, { id: idRef.current++, role: "user", text: line }]);
+            if (line === "Nothing changed") {
+              setMoreDraft(null);
+              setMoreNote(line);
+              return;
+            }
+            setMoreNote(null);
+            setMoreDraft(line);
             setDetailNote(null);
           }}
         />
@@ -695,8 +760,8 @@ function LiveCopy({
   );
 }
 
-function Pending({ kind, slow }: { kind: "read" | "search"; slow: boolean }) {
-  const label = kind === "search" ? (slow ? "Still searching…" : "Searching Proposales…") : slow ? "Still reading…" : "Reading the brief…";
+function Pending({ kind, slow }: { kind: "read" | "search" | "more"; slow: boolean }) {
+  const label = pendingLabel(kind, slow);
   return (
     <>
       <p className="planner-shimmer" role="status">
@@ -705,6 +770,16 @@ function Pending({ kind, slow }: { kind: "read" | "search"; slow: boolean }) {
       {kind === "search" ? <p className="planner-meta">Ranking places…</p> : null}
     </>
   );
+}
+
+function pendingLabel(kind: "read" | "search" | "more", slow: boolean): string {
+  if (kind === "more") {
+    return slow ? "Still updating…" : "Updating the brief…";
+  }
+  if (kind === "search") {
+    return slow ? "Still searching…" : "Searching Proposales…";
+  }
+  return slow ? "Still reading…" : "Reading the brief…";
 }
 
 function SkeletonGroup() {
@@ -747,6 +822,17 @@ function sendSuccess(phase: ShellViewModel["phase"]): string {
     return "chat:results";
   }
   return chatState(phase);
+}
+
+function newChatEdge(phase: ShellViewModel["phase"]) {
+  const state = chatState(phase);
+  return lcvInteract({
+    event: "new-chat",
+    from: state,
+    success: "chat:capture",
+    fail: state,
+    interrupted: state,
+  });
 }
 
 function openMoreEdge() {

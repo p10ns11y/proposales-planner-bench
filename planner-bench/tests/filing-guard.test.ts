@@ -186,7 +186,7 @@ describe("file brief control", () => {
 
   it("requires an email only when File opened More, and keeps File pressable after a transport error", () => {
     expect(emailReplyHint).toBe("Venues reply to this address");
-    expect(moreOpenedForEmail).toBe("More opened so venues reply to this address.");
+    expect(moreOpenedForEmail).toBe("Add details opened so venues reply to this address.");
     expect(emailApplyDecision({ required: false, email: "" })).toBe("apply");
     expect(emailApplyDecision({ required: false, email: "  " })).toBe("apply");
     expect(emailApplyDecision({ required: true, email: "" })).toBe("need-email");

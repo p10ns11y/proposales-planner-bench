@@ -246,7 +246,7 @@ The best compare card adds a 1.5px `{colors.ink}` outline. That outline follows 
 
 - **Style:** `{colors.card}` fill, 1px `{colors.input-border}`, 15px type, 44px tall, 10px radius.
 - **Focus:** the same 2px ink ring.
-- **The composer:** a pill, max-width 720px, hairline, e2. Placeholder: "Describe the event: place, people, date, time". The left plus opens More and is named Add details. The header pill is named More.
+- **The composer:** a pill, max-width 720px, hairline, e2. Placeholder: "Describe the event: place, people, date, time". The header control and the composer control both open the drawer, both use a list-plus icon, and both are named Add details.
 
 ### The thread
 
@@ -258,7 +258,7 @@ The best compare card adds a 1.5px `{colors.ink}` outline. That outline follows 
 
 ### Drawer and detail
 
-- **More:** a 400px right drawer, white, e3. Full width below 640px. Title "Refine the brief".
+- **More:** a 400px right drawer, white, e3. Full width below 640px. Title "Add details".
 - **Detail:** desktop inset 12px, radius 20, e4. Phone is full screen, radius 0. Overview shows the proposal block, who holds it, and the total. No invented amenities.
 
 ## Do's and Don'ts
