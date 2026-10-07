@@ -18,6 +18,7 @@ const emptyMore: MoreFieldValues = {
   organisationName: "",
   contactEmail: "",
   language: "",
+  attendeeCount: "",
   roomCount: "",
   meetingRoomCount: "",
   foodRequired: "",

@@ -24,9 +24,9 @@ import { speechButtonState, toggleSpeechCapture, type SpeechListener, type Speec
 
 type PlannerShellProps = {
   viewModel: ShellViewModel;
-  onEvent: (event: PlannerViewEvent, pending?: "read" | "search") => void;
+  onEvent: (event: PlannerViewEvent, pending?: "read" | "search" | "more") => void;
   historyControl: ReactNode;
-  pendingKind?: "read" | "search" | null;
+  pendingKind?: "read" | "search" | "more" | null;
 };
 
 type Line = {
@@ -58,6 +58,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const [pendingTick, setPendingTick] = useState(0);
   const [slowTick, setSlowTick] = useState(-1);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreDraft, setMoreDraft] = useState<string | null>(null);
+  const [moreNote, setMoreNote] = useState<string | null>(null);
   const [focusEmail, setFocusEmail] = useState(false);
   const [detailNote, setDetailNote] = useState<string | null>(null);
   const [holdEmpty, setHoldEmpty] = useState(false);
@@ -76,6 +78,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const lastKind = useRef<"read" | "search">("read");
 
   const pending = viewModel.busy && pendingKind !== null;
+  const moreLine = viewModel.busy || viewModel.errorText !== null ? null : (moreDraft ?? moreNote);
   const slow = pending && slowTick === pendingTick;
   const empty =
     holdEmpty ||
@@ -213,6 +216,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       return;
     }
     setHoldEmpty(false);
+    setMoreDraft(null);
+    setMoreNote(null);
     pushTurn(trimmed);
     lastKind.current = kind;
     setPendingTick((value) => value + 1);
@@ -283,6 +288,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     setDraft("");
     setHoldEmpty(true);
     setMoreOpen(false);
+    setMoreDraft(null);
+    setMoreNote(null);
     setFocusEmail(false);
     setDetailNote(null);
     onEvent({ type: "sessionReset" });
@@ -435,6 +442,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                         )}
                       </div>
                       {pending && pendingKind === "search" ? <SkeletonGroup /> : null}
+                      {!pending && moreLine ? (
+                        <p className="planner-more-update" role="status" data-more-update>
+                          {moreLine}
+                        </p>
+                      ) : null}
                       {!pending && part ? (
                         renderPart(part, {
                           hiddenCount: viewModel.hiddenCount,
@@ -548,9 +560,21 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             }
             moreOpener.current?.focus();
           }}
-          onEvent={onEvent}
+          onEvent={(event) => {
+            if (event.type === "moreEdited") {
+              onEvent(event, "more");
+              return;
+            }
+            onEvent(event);
+          }}
           onApplied={(line) => {
-            setLines((current) => [...current, { id: idRef.current++, role: "user", text: line }]);
+            if (line === "Nothing changed") {
+              setMoreDraft(null);
+              setMoreNote(line);
+              return;
+            }
+            setMoreNote(null);
+            setMoreDraft(line);
             setDetailNote(null);
           }}
         />
@@ -722,8 +746,8 @@ function LiveCopy({
   );
 }
 
-function Pending({ kind, slow }: { kind: "read" | "search"; slow: boolean }) {
-  const label = kind === "search" ? (slow ? "Still searching…" : "Searching Proposales…") : slow ? "Still reading…" : "Reading the brief…";
+function Pending({ kind, slow }: { kind: "read" | "search" | "more"; slow: boolean }) {
+  const label = pendingLabel(kind, slow);
   return (
     <>
       <p className="planner-shimmer" role="status">
@@ -732,6 +756,16 @@ function Pending({ kind, slow }: { kind: "read" | "search"; slow: boolean }) {
       {kind === "search" ? <p className="planner-meta">Ranking places…</p> : null}
     </>
   );
+}
+
+function pendingLabel(kind: "read" | "search" | "more", slow: boolean): string {
+  if (kind === "more") {
+    return slow ? "Still updating…" : "Updating the brief…";
+  }
+  if (kind === "search") {
+    return slow ? "Still searching…" : "Searching Proposales…";
+  }
+  return slow ? "Still reading…" : "Reading the brief…";
 }
 
 function SkeletonGroup() {

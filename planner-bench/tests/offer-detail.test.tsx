@@ -37,6 +37,7 @@ const emptyMore: MoreFieldValues = {
   organisationName: "",
   contactEmail: "",
   language: "",
+  attendeeCount: "",
   roomCount: "",
   meetingRoomCount: "",
   foodRequired: "",
@@ -365,6 +366,48 @@ describe("More drawer", () => {
       type: "moreEdited",
       details: { budget: "2600" },
     });
+  });
+
+  it("says nothing changed when Apply keeps every field", async () => {
+    installDomShims();
+    const user = userEvent.setup();
+    const events: PlannerViewEvent[] = [];
+    render(
+      <PlannerShell
+        viewModel={model({ phase: "results" })}
+        onEvent={(event) => events.push(event)}
+        historyControl={null}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "More" }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(events).toEqual([]);
+    expect(screen.getByRole("status").textContent).toBe("Nothing changed");
+  });
+
+  it("sends the new guest count and shows it after the turn", async () => {
+    installDomShims();
+    const user = userEvent.setup();
+    const events: { event: PlannerViewEvent; pending?: string }[] = [];
+    render(
+      <PlannerShell
+        viewModel={model({
+          phase: "results",
+          more: { ...emptyMore, attendeeCount: "25" },
+          moreStamp: "guests",
+        })}
+        onEvent={(event, pending) => events.push({ event, pending })}
+        historyControl={null}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "More" }));
+    await user.click(screen.getByRole("button", { name: "More guests" }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(events.at(-1)).toEqual({
+      event: { type: "moreEdited", details: { attendeeCount: "26" } },
+      pending: "more",
+    });
+    expect(screen.getByRole("status").textContent).toBe("Updated: 26 guests");
   });
 });
 

@@ -301,6 +301,7 @@ function resultsModel(rows: ShellRow[]): ShellViewModel {
       organisationName: "",
       contactEmail: "",
       language: "",
+      attendeeCount: "",
       roomCount: "",
       meetingRoomCount: "",
       foodRequired: "",

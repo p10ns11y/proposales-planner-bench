@@ -2,7 +2,7 @@ const strykerConfig = {
   testRunner: "command",
   commandRunner: {
     command:
-      "./node_modules/.bin/vitest run --bail=1 --reporter=dot tests/fitness.test.ts tests/day-part.test.ts tests/brief-flow.test.ts tests/compare-offers.test.ts tests/http-readers.test.ts tests/crap-score.test.ts tests/critical-path-titles.test.ts tests/filing-guard.test.ts tests/speech-input.test.ts",
+      "./node_modules/.bin/vitest run --bail=1 --reporter=dot tests/fitness.test.ts tests/day-part.test.ts tests/brief-flow.test.ts tests/compare-offers.test.ts tests/http-readers.test.ts tests/crap-score.test.ts tests/critical-path-titles.test.ts tests/filing-guard.test.ts tests/speech-input.test.ts tests/more-update.test.ts",
   },
   mutate: [
     "src/domain/fitness.ts",
@@ -14,6 +14,7 @@ const strykerConfig = {
     "src/flow/filing-guard.ts",
     "src/views/file-brief-state.ts",
     "src/views/speech-input.ts",
+    "src/views/more-update.ts",
   ],
   coverageAnalysis: "off",
   reporters: ["json", "clear-text"],
