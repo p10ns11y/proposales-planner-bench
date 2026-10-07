@@ -75,7 +75,7 @@ The same picture is the Turn sequence page of [diagrams/architecture.tldr](diagr
 
 A comparable brief needs a city, a start date, a start time, an attendee count, and an end time. The end time can be absent when a duration is set, or when the end date is after the start date. Favorites asks `Which places do you already have in mind? You can skip.`
 
-`MoreDrawer` edits event name, organisation, email, language, rooms, meeting rooms, food, notes, and budget. Apply sends `moreEdited` for the fields that changed. The budget field is labeled `Budget (EUR)` and writes `budgetMinor`. It does not set `budget.scope`. Speech uses the browser speech API when the browser has it. Typing always works. Compare shows for two or three visible offers when that group is at least 640 pixels wide. Show more adds five rows. History stays in `localStorage`.
+`MoreDrawer` edits event name, organisation, email, language, rooms, meeting rooms, food, notes, and budget. Apply sends `moreEdited` for the fields that changed. The budget field is labeled with the brief currency, for example `Budget (SEK)`, and writes `budgetMinor`. It does not set `budget.scope`. A named currency stays put when the city changes. Otherwise the label follows the city. Speech uses the browser speech API when the browser has it. Typing always works. Compare shows for two or three visible offers when that group is at least 640 pixels wide. Show more adds five rows. History stays in `localStorage`.
 
 ## Budget
 
@@ -92,7 +92,7 @@ flowchart TD
   pp --> same{Same currency, and the total is above the ceiling?}
   tot --> same
   same -->|yes| over[Over budget]
-  minor --> above{Total above budgetMinor? No currency check.}
+  minor --> above{Same currency, and the total is above budgetMinor?}
   above -->|yes| over
 ```
 

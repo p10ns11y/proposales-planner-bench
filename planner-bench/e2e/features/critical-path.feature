@@ -2,7 +2,7 @@ Feature: Planner critical path
   A full-day brief stays on confirm until the visitor says whether the budget is per person or total, and only then ranks offers.
 
   Scenario: brief confirms the assumed day, asks the budget basis, and ranks only after confirm
-    Given the planner is open with detail and More closed
+    Given the planner is open with detail and Add details closed
     When the visitor sends "Team offsite in Stockholm for 25 people on 3 Dec 2026, a full day with breakout space and vegetarian lunch. Budget around EUR 300."
     Then the city fact is "Stockholm"
     And the date fact contains "2026"
@@ -46,18 +46,18 @@ Feature: Planner critical path
 
   Scenario: saves a single More field
     Given a full-day brief waiting on confirm, with the budget basis answered as total
-    When the visitor opens More
-    Then the dialog "Refine the brief" is in state "more:open"
+    When the visitor opens Add details
+    Then the dialog "Add details" is in state "more:open"
     When the visitor sets Event name to "Harbour day" and saves
     Then the dialog closes
-    When the visitor opens More again
+    When the visitor opens Add details again
     Then Event name is "Harbour day"
     And Organisation, Email, Budget (EUR), Notes, English, Svenska, Rooms, Meeting rooms, and Food are unchanged
 
   Scenario: files an English brief from the detail after the email is filled
     Given a wide desktop viewport and the ranked results
     When the visitor opens the first offer and chooses File this brief
-    Then the dialog "Refine the brief" is visible
+    Then the dialog "Add details" is visible
     And Email is focused
     When the visitor sets Email to "planner@northwind.example" and saves
     And the visitor chooses File this brief
@@ -67,6 +67,11 @@ Feature: Planner critical path
     Then no turn is sent
     When a phone viewport files that same brief
     Then Filed is disabled and choosing Filed sends no turn
+
+  Scenario: shows Budget (SEK) for a Stockholm brief
+    Given a Stockholm brief that names no currency
+    When the visitor opens More at 390x844 and at 1280x800
+    Then the budget field is labeled "Budget (SEK)"
 
   Scenario: shows Compare for two or three wide offers only
     Given a wide desktop viewport and the ranked results
@@ -79,3 +84,55 @@ Feature: Planner critical path
     Then Compare is absent
     When the wide desktop viewport shows five offers
     Then Compare is absent
+
+  Scenario: fits the More drawer on a phone and a desktop
+    Given the ranked results
+    When the visitor opens Add details at 390 by 844
+    Then the drawer body does not scroll sideways
+    And Rooms and Meeting rooms are separate rows with 44 pixel controls
+    When the visitor opens Add details at 1280 by 800
+    Then the drawer body does not scroll sideways
+    And every field fits the drawer
+
+  Scenario: shows the chosen language after an English brief
+    Given the planner is open with detail and Add details closed
+    When the visitor opens Add details before a brief
+    Then neither language is pressed, both are enabled, and the hint says what the choice sets
+    When an English brief reaches the results and Add details opens
+    Then exactly one language control is pressed
+    And that choice stays pressed on a phone
+
+  Scenario: shows the updated headcount after More applies
+    Given the ranked results on a phone
+    When the visitor applies Add details without changes
+    Then the status says nothing changed
+    When the visitor sets guests to 30 and meeting rooms to 2
+    Then a busy state shows while the turn runs
+    And the update line is "Updated: 30 guests, 2 meeting rooms"
+    And the results header contains the new guest count
+    And the same line and count stay visible on a desktop
+
+  Scenario: starts a new chat from the header during a conversation
+    Given a phone or a desktop viewport and a full-day brief waiting on confirm
+    When the visitor chooses New chat in the header
+    Then the empty home asks "What are you planning?"
+    And the original brief is gone
+    And Yes is absent
+    And no offer cards are shown
+    And the chat state is "chat:capture"
+
+  Scenario: names the details control the same in the header, composer, and drawer
+    Given a phone or a desktop viewport on the empty home
+    Then the header and the composer both name the control "Add details"
+    And both use the list-plus icon at the same size
+    And both tooltips say "Add details"
+    When the visitor opens Add details from the header
+    Then the drawer title is "Add details"
+    When the visitor opens it from the composer
+    Then the same drawer is open
+
+  Scenario: separates the budget on the confirm step
+    Given a phone or a desktop viewport and a full-day brief waiting on confirm
+    Then the facts line is "Stockholm, 3 December 2026, 09:00–17:00, 25 people. Assumed 09:00–17:00 for a full day. Budget EUR 300 total."
+    And the budget fact is "EUR 300"
+    And the budget-basis fact is "total"

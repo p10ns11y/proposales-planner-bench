@@ -24,7 +24,7 @@ import {
   type OfferGroupPart,
   type OfferPart,
 } from "../contract/offer-group";
-import { gapLabel, neutralChipName } from "./offer-copy";
+import { gapLabel, neutralChipAttrs, neutralChipName, neutralChipText } from "./offer-copy";
 import { lcvInteract } from "./lcv";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
@@ -339,12 +339,12 @@ function OfferChips({ offer }: { offer: OfferPart }) {
       {(offer.neutral ?? []).map((mark) => (
         <span
           key={mark}
-          className="planner-chip planner-chip-not-stated"
+          className={mark === "not-compared" ? "planner-chip planner-chip-status" : "planner-chip planner-chip-not-stated"}
           data-facet={mark}
           aria-label={neutralChipName(mark)}
-          {...notStatedMark()}
+          {...neutralChipAttrs(mark)}
         >
-          Not stated
+          {neutralChipText(mark)}
         </span>
       ))}
     </span>
@@ -437,10 +437,6 @@ function chipMark(gap: string): { "data-lcv"?: "must-show"; "data-lcv-chip"?: st
     return { "data-lcv": "must-show", "data-lcv-chip": "over-budget" };
   }
   return {};
-}
-
-function notStatedMark(): { "data-lcv": "must-show"; "data-lcv-chip": "not-stated" } {
-  return { "data-lcv": "must-show", "data-lcv-chip": "not-stated" };
 }
 
 function monogram(name: string): string {

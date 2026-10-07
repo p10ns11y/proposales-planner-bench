@@ -185,10 +185,17 @@ describe("comparison gaps and marks", () => {
     expect(
       comparisonGaps(
         { city: "Stockholm", budgetMinor: minorUnits(100) },
-        offer({ venueName: "Minor", currency: "EUR", totalMinor: minorUnits(101) }),
+        offer({ venueName: "Minor", currency: "SEK", totalMinor: minorUnits(101) }),
         today,
       ),
     ).toContain("budget");
+    expect(
+      comparisonGaps(
+        { city: "Stockholm", budgetMinor: minorUnits(100) },
+        offer({ venueName: "Euro", currency: "EUR", totalMinor: minorUnits(9_000_000) }),
+        today,
+      ),
+    ).not.toContain("budget");
     expect(comparisonGaps({ ...brief, budget: undefined, attendeeCount: 0, budgetMinor: undefined }, offer({ venueName: "None", currency: "EUR", totalMinor: minorUnits(1) }), today)).not.toContain("budget");
     expect(
       comparisonGaps(

@@ -4,11 +4,14 @@ import { Minus, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Sheet } from "../design/ui/sheet";
 import type { MoreFieldValues, PlannerViewEvent } from "../view-models/view-model";
+import { emailApplyDecision, emailReplyHint } from "./file-brief-state";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
+import { moreUpdateLine } from "./more-update";
 
 type MoreDrawerProps = {
   more: MoreFieldValues;
   moreStamp: string;
+  currency: string;
   open: boolean;
   focusEmail: boolean;
   disabled: boolean;
@@ -23,6 +26,7 @@ const fieldKeys: (keyof MoreFieldValues)[] = [
   "organisationName",
   "contactEmail",
   "language",
+  "attendeeCount",
   "roomCount",
   "meetingRoomCount",
   "foodRequired",
@@ -33,6 +37,7 @@ const fieldKeys: (keyof MoreFieldValues)[] = [
 export function MoreDrawer({
   more,
   moreStamp,
+  currency,
   open,
   focusEmail,
   disabled,
@@ -45,14 +50,18 @@ export function MoreDrawer({
     <MoreForm
       key={moreStamp}
       more={more}
+      currency={currency}
       open={open}
       focusEmail={focusEmail}
       disabled={disabled}
       onOpenChange={onOpenChange}
       onCloseAutoFocus={onCloseAutoFocus}
       onApply={(details) => {
-        onEvent({ type: "moreEdited", details });
-        onApplied(updateLine(details));
+        const line = moreUpdateLine(details);
+        if (line !== "Nothing changed") {
+          onEvent({ type: "moreEdited", details });
+        }
+        onApplied(line);
         onOpenChange(false);
       }}
     />
@@ -61,6 +70,7 @@ export function MoreDrawer({
 
 function MoreForm({
   more,
+  currency,
   open,
   focusEmail,
   disabled,
@@ -69,6 +79,7 @@ function MoreForm({
   onApply,
 }: {
   more: MoreFieldValues;
+  currency: string;
   open: boolean;
   focusEmail: boolean;
   disabled: boolean;
@@ -77,22 +88,22 @@ function MoreForm({
   onApply: (details: Partial<MoreFieldValues>) => void;
 }) {
   const [values, setValues] = useState(more);
+  const [emailInvalid, setEmailInvalid] = useState(false);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const details = changedDetails(more, values);
-    if (Object.keys(details).length === 0) {
-      onOpenChange(false);
+    if (emailApplyDecision({ required: focusEmail, email: values.contactEmail }) === "need-email") {
+      setEmailInvalid(true);
       return;
     }
-    onApply(details);
+    onApply(changedDetails(more, values));
   }
   return (
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
       side="right"
-      title="Refine the brief"
-      description="Optional details for the venue request."
+      title="Add details"
+      description={focusEmail ? "Email is required." : "Optional details for the venue request."}
       onSubmit={submit}
       onOpenAutoFocus={focusEmail ? focusEmailField : undefined}
       onCloseAutoFocus={onCloseAutoFocus}
@@ -145,11 +156,22 @@ function MoreForm({
           type="email"
           autoComplete="email"
           value={values.contactEmail}
-          onChange={(contactEmail) => setValues({ ...values, contactEmail })}
+          required={focusEmail}
+          invalid={emailInvalid}
+          hint={focusEmail ? emailReplyHint : undefined}
+          onChange={(contactEmail) => {
+            setEmailInvalid(false);
+            setValues({ ...values, contactEmail });
+          }}
         />
         <div className="planner-field">
           <span id="more-language-label">Language</span>
-          <div className="planner-segment" role="group" aria-labelledby="more-language-label">
+          <div
+            className="planner-segment"
+            role="group"
+            aria-labelledby="more-language-label"
+            aria-describedby="more-language-hint"
+          >
             <button
               type="button"
               aria-pressed={values.language === "en"}
@@ -167,19 +189,25 @@ function MoreForm({
               Svenska
             </button>
           </div>
+          <p id="more-language-hint" className="planner-field-hint">
+            Language of the request venues receive
+          </p>
         </div>
-        <div className="planner-step-pair">
-          <CountStepper
-            label="Rooms"
-            value={values.roomCount}
-            onChange={(roomCount) => setValues({ ...values, roomCount })}
-          />
-          <CountStepper
-            label="Meeting rooms"
-            value={values.meetingRoomCount}
-            onChange={(meetingRoomCount) => setValues({ ...values, meetingRoomCount })}
-          />
-        </div>
+        <CountStepper
+          label="Guests"
+          value={values.attendeeCount}
+          onChange={(attendeeCount) => setValues({ ...values, attendeeCount })}
+        />
+        <CountStepper
+          label="Rooms"
+          value={values.roomCount}
+          onChange={(roomCount) => setValues({ ...values, roomCount })}
+        />
+        <CountStepper
+          label="Meeting rooms"
+          value={values.meetingRoomCount}
+          onChange={(meetingRoomCount) => setValues({ ...values, meetingRoomCount })}
+        />
         <div className="planner-switch-row">
           <span id="more-food-label">Food</span>
           <button
@@ -200,7 +228,7 @@ function MoreForm({
           </button>
         </div>
         <TextField
-          label="Budget (EUR)"
+          label={`Budget (${currency})`}
           name="budget"
           inputMode="decimal"
           value={values.budget}
@@ -283,6 +311,9 @@ function TextField({
   type = "text",
   inputMode,
   autoComplete,
+  required = false,
+  invalid = false,
+  hint,
 }: {
   label: string;
   name: string;
@@ -291,21 +322,40 @@ function TextField({
   type?: "text" | "email";
   inputMode?: "numeric" | "decimal" | "text" | "email";
   autoComplete?: string;
+  required?: boolean;
+  invalid?: boolean;
+  hint?: string;
 }) {
   const id = `more-${name}`;
+  const hintId = `${id}-hint`;
   return (
-    <label className="planner-field" htmlFor={id}>
-      {label}
-      <input
-        id={id}
-        name={name}
-        type={type}
-        inputMode={inputMode}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
+    <div className="planner-field-block" data-invalid={invalid ? "true" : "false"} data-required={required ? "true" : "false"}>
+      <label className="planner-field" htmlFor={id}>
+        {label}
+        <input
+          id={id}
+          name={name}
+          type={type}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
+          value={value}
+          aria-required={required ? "true" : undefined}
+          aria-invalid={invalid ? "true" : undefined}
+          aria-describedby={hint ? hintId : undefined}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </label>
+      {required ? (
+        <span className="planner-required" aria-hidden="true">
+          Required
+        </span>
+      ) : null}
+      {hint ? (
+        <p id={hintId} className="planner-field-note">
+          {hint}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -332,42 +382,9 @@ function assignDetail(details: Partial<MoreFieldValues>, key: keyof MoreFieldVal
   if (key === "organisationName") details.organisationName = value;
   if (key === "contactEmail") details.contactEmail = value;
   if (key === "language") details.language = value;
+  if (key === "attendeeCount") details.attendeeCount = value;
   if (key === "roomCount") details.roomCount = value;
   if (key === "meetingRoomCount") details.meetingRoomCount = value;
   if (key === "notes") details.notes = value;
   if (key === "budget") details.budget = value;
-}
-
-function updateLine(details: Partial<MoreFieldValues>): string {
-  const parts: string[] = [];
-  if (details.eventTitle !== undefined) {
-    parts.push(details.eventTitle === "" ? "event name cleared" : details.eventTitle);
-  }
-  if (details.organisationName !== undefined) {
-    parts.push(details.organisationName === "" ? "organisation cleared" : details.organisationName);
-  }
-  if (details.contactEmail !== undefined) {
-    parts.push(details.contactEmail === "" ? "email cleared" : details.contactEmail);
-  }
-  if (details.language !== undefined) {
-    parts.push(details.language === "" ? "language cleared" : `language ${details.language}`);
-  }
-  if (details.roomCount !== undefined) {
-    parts.push(details.roomCount === "" ? "rooms cleared" : `${details.roomCount} rooms`);
-  }
-  if (details.meetingRoomCount !== undefined) {
-    parts.push(
-      details.meetingRoomCount === "" ? "meeting rooms cleared" : `${details.meetingRoomCount} meeting rooms`,
-    );
-  }
-  if (details.foodRequired !== undefined) {
-    parts.push(details.foodRequired === "yes" ? "food on" : details.foodRequired === "no" ? "food off" : "food cleared");
-  }
-  if (details.notes !== undefined) {
-    parts.push(details.notes === "" ? "notes cleared" : "notes updated");
-  }
-  if (details.budget !== undefined) {
-    parts.push(details.budget === "" ? "budget cleared" : `budget ${details.budget}`);
-  }
-  return `Updated: ${parts.join(", ")}`;
 }

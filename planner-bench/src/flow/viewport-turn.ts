@@ -4,16 +4,14 @@ import {
   offersForBrief,
   rankComparisonRows,
 } from "../domain/compare-offers";
-import { briefConfirmHold, findBriefGaps, questionForGap } from "../domain/fitness";
+import { briefConfirmHold, findBriefGaps, isFileableGap } from "../domain/fitness";
 import { minorUnits } from "../domain/minor-units";
-import { mergeBrief, type PlannerBrief } from "../domain/planner-brief";
+import { mergeBrief, namedBriefCurrency, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import type { ProposalesClient } from "../proposales/types";
 import { addEnglishLanguage } from "./brief-language";
-import { noticeForFiling, noticeForMissingEmail, preserveOpenVenue, storedFilingSnapshot } from "./filing-guard";
-import { briefDraftFromPlanner } from "./brief-draft";
+import { attemptFiling, preserveOpenVenue } from "./filing-guard";
 import { loadComparableProposals, sampleProposalRecords } from "../proposales/comparable-proposals";
-import { filingUnavailableNotice } from "../proposales/filing";
 import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
@@ -112,6 +110,9 @@ async function ingestText(
     return answerGap(cleared, text, readPatch);
   }
   if (cleared.phase === "favorites") {
+    if (answersOpenFileableGap(cleared, text)) {
+      return answerGap(cleared, text, readPatch);
+    }
     return submitFavorites(cleared, text, client, today);
   }
   return reviseDuringResults(cleared, text, client, today, readPatch);
@@ -196,87 +197,81 @@ async function confirmBrief(
   if (briefConfirmHold(snapshot.brief) !== null) {
     return withConfirmState(snapshot, snapshot.brief);
   }
-  let filing = snapshot.filing;
-  let selectedCompanyId = snapshot.selectedCompanyId;
-  let filingAvailable = snapshot.filingAvailable;
-  let notice: string | null = null;
-  const fileableGaps = findBriefGaps(snapshot.brief, "brief:fileable");
-  if (filing === null && fileableGaps.length === 0) {
-    selectedCompanyId = selectedCompanyId ?? snapshot.companies[0]?.id ?? null;
-    if (selectedCompanyId === null) {
-      notice = filingAvailable ? null : filingUnavailableNotice;
-    } else {
-      try {
-        filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
-      } catch {
-        filingAvailable = false;
-        notice = filingUnavailableNotice;
-      }
-    }
-  } else {
-    notice = noticeForMissingEmail(filing, fileableGaps);
-  }
+  const attempt = await attemptFiling({
+    brief: snapshot.brief,
+    filing: snapshot.filing,
+    filingAvailable: snapshot.filingAvailable,
+    selectedCompanyId: snapshot.selectedCompanyId,
+    companies: snapshot.companies,
+    client,
+  });
+  const firstGap = findBriefGaps(snapshot.brief, "brief:fileable")[0];
+  const asking = attempt.filing === null && firstGap !== undefined;
   const projected = projectBriefFlow({
     brief: snapshot.brief,
-    filing,
+    filing: attempt.filing,
     offers: snapshot.offers,
   });
+  const favoritesQuestion = "Which places do you already have in mind? You can skip.";
   return {
     ...snapshot,
     filing: projected.filing,
     stage: projected.stage,
-    selectedCompanyId,
-    filingAvailable,
+    selectedCompanyId: attempt.selectedCompanyId,
+    filingAvailable: attempt.filingAvailable,
     phase: "favorites",
-    gaps: [],
-    nextQuestion: "Which places do you already have in mind? You can skip.",
-    notice,
+    gaps: asking && firstGap !== undefined ? [firstGap] : [],
+    nextQuestion: asking && attempt.notice !== null ? attempt.notice : favoritesQuestion,
+    notice: attempt.notice,
     openVenueName: null,
   };
 }
 
 async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Promise<PlannerSnapshot> {
-  const stored = storedFilingSnapshot(snapshot);
-  if (stored !== null) {
-    return stored;
+  const attempt = await attemptFiling({
+    brief: snapshot.brief,
+    filing: snapshot.filing,
+    filingAvailable: snapshot.filingAvailable,
+    selectedCompanyId: snapshot.selectedCompanyId,
+    companies: snapshot.companies,
+    client,
+  });
+  const projected = projectBriefFlow({
+    brief: snapshot.brief,
+    filing: attempt.filing,
+    offers: snapshot.offers,
+  });
+  const filed = attempt.filing !== null;
+  return {
+    ...snapshot,
+    filing: projected.filing,
+    stage: projected.stage,
+    selectedCompanyId: attempt.selectedCompanyId,
+    filingAvailable: attempt.filingAvailable,
+    notice: attempt.notice,
+    gaps: filed ? [] : snapshot.gaps,
+    nextQuestion: filed ? questionAfterFiling(snapshot) : snapshot.nextQuestion,
+  };
+}
+
+function questionAfterFiling(snapshot: PlannerSnapshot): string {
+  if (snapshot.phase === "favorites") {
+    return "Which places do you already have in mind? You can skip.";
   }
-  const gaps = findBriefGaps(snapshot.brief, "brief:fileable");
-  if (gaps.length > 0) {
-    const firstGap = gaps[0];
-    return {
-      ...snapshot,
-      notice: firstGap === undefined ? holdLine : questionForGap(firstGap),
-    };
+  if (snapshot.phase === "results") {
+    return "";
   }
-  const selectedCompanyId = snapshot.selectedCompanyId ?? snapshot.companies[0]?.id ?? null;
-  if (selectedCompanyId === null) {
-    return {
-      ...snapshot,
-      notice: snapshot.filingAvailable ? "Which company should receive the brief?" : filingUnavailableNotice,
-    };
+  return snapshot.nextQuestion;
+}
+
+function answersOpenFileableGap(snapshot: PlannerSnapshot, text: string): boolean {
+  if (!isFileableGap(snapshot.gaps[0])) {
+    return false;
   }
-  try {
-    const filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
-    const projected = projectBriefFlow({
-      brief: snapshot.brief,
-      filing,
-      offers: snapshot.offers,
-    });
-    return {
-      ...snapshot,
-      filing: projected.filing,
-      stage: projected.stage,
-      selectedCompanyId,
-      filingAvailable: true,
-      notice: noticeForFiling(filing.path),
-    };
-  } catch {
-    return {
-      ...snapshot,
-      filingAvailable: false,
-      notice: filingUnavailableNotice,
-    };
+  if (/\bskip\b/i.test(text)) {
+    return false;
   }
+  return true;
 }
 
 async function submitFavorites(
@@ -350,7 +345,7 @@ async function rankSnapshot(
       favoriteVenueNames: snapshot.favoriteVenueNames,
       companies: snapshot.companies,
     }),
-    snapshot.brief.budget?.currency,
+    namedBriefCurrency(snapshot.brief),
   );
   const projected = projectBriefFlow({
     brief: snapshot.brief,

@@ -15,6 +15,7 @@ export type MoreFieldValues = {
   organisationName: string;
   contactEmail: string;
   language: string;
+  attendeeCount: string;
   roomCount: string;
   meetingRoomCount: string;
   foodRequired: "" | "yes" | "no";
@@ -79,6 +80,7 @@ export type ShellViewModel = {
   openRow: ShellRow | null;
   more: MoreFieldValues;
   moreStamp: string;
+  budgetCurrency: string;
   composerPlaceholder: string;
   offerSummary: string | null;
   contextChips: string[];
