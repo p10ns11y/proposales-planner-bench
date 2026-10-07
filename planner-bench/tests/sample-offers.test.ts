@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { harbourHouseProposal } from "../src/contract/fixtures";
+import { harbourHouseProposal, northwindDayTranscript } from "../src/contract/fixtures";
 import { normaliseProposal } from "../src/domain/normalise-proposal";
 import { liveAccountCompanyName, liveDraftProposals } from "./live-draft-proposals";
 import { openingSnapshot } from "../src/flow/chat-request";
 import { runViewportAction } from "../src/flow/viewport-turn";
 import { loadComparableProposals } from "../src/proposales/comparable-proposals";
-import { draftBody, draftCreatedNotice, draftTitle } from "../src/proposales/filing";
+import { draftBody, draftCreatedNotice, draftTitle, filingUnavailableNotice } from "../src/proposales/filing";
 import { sampleBrief } from "../src/proposales/fixture-client";
 import type { BriefDraft, FileBriefResult, ProposalesClient } from "../src/proposales/types";
 import { shellViewModel } from "../src/view-models/selectors";
@@ -208,6 +208,53 @@ describe("seeded live drafts", () => {
       "Ridge Hall",
       "Canal Loft",
     ]);
+  });
+});
+
+describe("filing failures", () => {
+  it("keeps the ranked rows and does not report a created draft", async () => {
+    const stub = stubClient(async () => [harbourHouseProposal]);
+    const client = {
+      ...stub.client,
+      async fileBrief() {
+        throw new Error("draft failed");
+      },
+    };
+    const snapshot = openingSnapshot(await client.listCompanies());
+    const captured = await runViewportAction({
+      action: {
+        type: "captureSubmitted",
+        text: `${northwindDayTranscript} Start time 09:00. End time 17:00.`,
+      },
+      snapshot,
+      client,
+      today: "2026-10-06",
+    });
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: captured.snapshot,
+      client,
+      today: "2026-10-06",
+    });
+    expect(confirmed.snapshot.filing).toBeNull();
+    expect(confirmed.snapshot.filingAvailable).toBe(false);
+    expect(confirmed.snapshot.notice).toBe(filingUnavailableNotice);
+    const ranked = await runViewportAction({
+      action: { type: "favoritesSubmitted", text: "skip" },
+      snapshot: confirmed.snapshot,
+      client,
+      today: "2026-10-06",
+    });
+    expect(ranked.snapshot.filing).toBeNull();
+    expect(ranked.snapshot.grid.length).toBeGreaterThan(0);
+    const view = shellViewModel({
+      snapshot: ranked.snapshot,
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(view.notice).toBe(filingUnavailableNotice);
+    expect(view.draftConfirmation).toBeNull();
   });
 });
 

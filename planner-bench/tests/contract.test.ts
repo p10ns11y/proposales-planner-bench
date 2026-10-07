@@ -4,6 +4,7 @@ import {
   companyFixtures,
   companyWithInbox,
   companyWithoutInbox,
+  harbourHouseProposal,
   northwindRfpRequest,
   sampleBriefFixtures,
   venueProposalFixtures,
@@ -69,6 +70,26 @@ describe("proposales contract", () => {
       email: "ada@northwind.example",
       is_test: "1",
     });
+  });
+
+  it("rejects live quirks that the vendored schemas still describe as invalid", async () => {
+    const schemas = await proposalesSchemas();
+    expect(
+      schemas.company.safeParse({
+        ...companyWithInbox,
+        timezone: null,
+        website_url: "not a url",
+      }).success,
+    ).toBe(false);
+    expect(
+      schemas.proposal.safeParse({
+        ...harbourHouseProposal,
+        company_email: "not-an-email",
+        company_website: "not a url",
+        is_agreement: null,
+        pending: null,
+      }).success,
+    ).toBe(false);
   });
 
   it("ships two distinct sample briefs", () => {

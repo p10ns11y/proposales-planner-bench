@@ -384,6 +384,7 @@ describe("viewport flow without a model key", () => {
           action: { type: "captureSubmitted", text: timedNorthwindTranscript },
         }),
       }),
+      { env: {} },
     );
     const body: unknown = await response.json();
     expect(response.status).toBe(200);

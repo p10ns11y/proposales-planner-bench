@@ -36,6 +36,7 @@ export const plannerSnapshotSchema = z.object({
   notice: z.string().nullable().default(null),
   sampleOffers: z.boolean().default(false),
   offerSource: z.enum(["fixture", "live", "sample"]).default("fixture"),
+  filingAvailable: z.boolean().default(true),
 });
 
 export type PlannerSnapshot = z.infer<typeof plannerSnapshotSchema>;
@@ -65,5 +66,6 @@ export function emptySnapshot(
     notice: null,
     sampleOffers: false,
     offerSource: "fixture",
+    filingAvailable: true,
   };
 }

@@ -11,7 +11,7 @@ import { normaliseProposal } from "../domain/normalise-proposal";
 import type { ProposalesClient } from "../proposales/types";
 import { briefDraftFromPlanner } from "./brief-draft";
 import { loadComparableProposals, sampleProposalRecords } from "../proposales/comparable-proposals";
-import { draftCreatedNotice } from "../proposales/filing";
+import { draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
@@ -173,10 +173,19 @@ async function confirmBrief(
   }
   let filing = snapshot.filing;
   let selectedCompanyId = snapshot.selectedCompanyId;
+  let filingAvailable = snapshot.filingAvailable;
+  let notice: string | null = null;
   if (filing === null && findBriefGaps(snapshot.brief, "brief:fileable").length === 0) {
     selectedCompanyId = selectedCompanyId ?? snapshot.companies[0]?.id ?? null;
-    if (selectedCompanyId !== null) {
-      filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
+    if (selectedCompanyId === null) {
+      notice = filingAvailable ? null : filingUnavailableNotice;
+    } else {
+      try {
+        filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
+      } catch {
+        filingAvailable = false;
+        notice = filingUnavailableNotice;
+      }
     }
   }
   const projected = projectBriefFlow({
@@ -189,10 +198,11 @@ async function confirmBrief(
     filing: projected.filing,
     stage: projected.stage,
     selectedCompanyId,
+    filingAvailable,
     phase: "favorites",
     gaps: [],
     nextQuestion: "Which places do you already have in mind? You can skip.",
-    notice: null,
+    notice,
     openVenueName: null,
   };
 }
@@ -208,21 +218,33 @@ async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Pro
   }
   const selectedCompanyId = snapshot.selectedCompanyId ?? snapshot.companies[0]?.id ?? null;
   if (selectedCompanyId === null) {
-    return { ...snapshot, notice: "Which company should receive the brief?" };
+    return {
+      ...snapshot,
+      notice: snapshot.filingAvailable ? "Which company should receive the brief?" : filingUnavailableNotice,
+    };
   }
-  const filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
-  const projected = projectBriefFlow({
-    brief: snapshot.brief,
-    filing,
-    offers: snapshot.offers,
-  });
-  return {
-    ...snapshot,
-    filing: projected.filing,
-    stage: projected.stage,
-    selectedCompanyId,
-    notice: filing.path === "draft" ? draftCreatedNotice : "The brief is filed.",
-  };
+  try {
+    const filing = await client.fileBrief(briefDraftFromPlanner(snapshot.brief, selectedCompanyId));
+    const projected = projectBriefFlow({
+      brief: snapshot.brief,
+      filing,
+      offers: snapshot.offers,
+    });
+    return {
+      ...snapshot,
+      filing: projected.filing,
+      stage: projected.stage,
+      selectedCompanyId,
+      filingAvailable: true,
+      notice: filing.path === "draft" ? draftCreatedNotice : "The brief is filed.",
+    };
+  } catch {
+    return {
+      ...snapshot,
+      filingAvailable: false,
+      notice: filingUnavailableNotice,
+    };
+  }
 }
 
 async function submitFavorites(

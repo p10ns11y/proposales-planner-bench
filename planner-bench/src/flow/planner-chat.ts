@@ -2,7 +2,6 @@ import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
-  gateway,
   stepCountIs,
   streamText,
   tool,
@@ -11,22 +10,18 @@ import {
 import { z } from "zod";
 import { createClient } from "../proposales/client";
 import type { ProposalesClient } from "../proposales/types";
-import { gatewayAttemptSignal, gatewayIsUsable } from "./agent-mode";
-import { latestUserText, openingSnapshot, readChatRequest, type ChatTurnMessage } from "./chat-request";
+import { modelAttemptSignal, modelIsUsable, plannerLanguageModel } from "./agent-mode";
+import { latestUserText, readChatRequest, readSessionSnapshot, type ChatTurnMessage } from "./chat-request";
 import type { PlannerSnapshot } from "./planner-snapshot";
 import { runFixtureTurn } from "./scripted-turn";
 
 export type PlannerUIMessage = UIMessage<unknown, { snapshot: PlannerSnapshot }>;
 
-const plannerModelId = "openai/gpt-4.1-mini";
-
 export type PlannerChatEnv = {
   PROPOSALES_MODE?: string;
   PROPOSALES_API_KEY?: string;
-  AI_GATEWAY_API_KEY?: string;
+  XAI_API_KEY?: string;
   PLANNER_MODEL?: string;
-  VERCEL?: string;
-  VERCEL_OIDC_TOKEN?: string;
 };
 
 export type CompletedChatTurn = {
@@ -40,11 +35,7 @@ export async function handlePlannerChat(request: Request, env: PlannerChatEnv = 
   const chatRequest = readChatRequest(payload);
   const client = createClient(env);
   const today = new Date().toISOString().slice(0, 10);
-  const companies =
-    chatRequest.snapshot === null || chatRequest.snapshot.companies.length === 0
-      ? await client.listCompanies()
-      : chatRequest.snapshot.companies;
-  const snapshot = chatRequest.snapshot ?? openingSnapshot(companies);
+  const snapshot = await chatSnapshot(chatRequest.snapshot, client);
   const turn = await completeChatTurn({
     messages: chatRequest.messages,
     snapshot,
@@ -72,7 +63,7 @@ export async function completeChatTurn(input: {
   env: PlannerChatEnv;
   runLive?: () => Promise<{ reply: string; snapshot: PlannerSnapshot }>;
 }): Promise<CompletedChatTurn> {
-  if (!gatewayIsUsable(input.env)) {
+  if (!modelIsUsable(input.env)) {
     const turn = await scriptedChatTurn(input);
     return { ...turn, mode: "scripted" };
   }
@@ -91,10 +82,27 @@ export function currentChatEnv(): PlannerChatEnv {
   return {
     PROPOSALES_MODE: envValue("PROPOSALES_MODE"),
     PROPOSALES_API_KEY: envValue("PROPOSALES_API_KEY"),
-    AI_GATEWAY_API_KEY: envValue("AI_GATEWAY_API_KEY"),
+    XAI_API_KEY: envValue("XAI_API_KEY"),
     PLANNER_MODEL: envValue("PLANNER_MODEL"),
-    VERCEL: envValue("VERCEL"),
-    VERCEL_OIDC_TOKEN: envValue("VERCEL_OIDC_TOKEN"),
+  };
+}
+
+async function chatSnapshot(
+  snapshot: PlannerSnapshot | null,
+  client: ProposalesClient,
+): Promise<PlannerSnapshot> {
+  if (snapshot !== null && snapshot.companies.length > 0) {
+    return snapshot;
+  }
+  const opened = await readSessionSnapshot(client);
+  if (snapshot === null) {
+    return opened;
+  }
+  return {
+    ...snapshot,
+    companies: opened.companies,
+    filingAvailable: opened.filingAvailable,
+    notice: opened.filingAvailable ? snapshot.notice : opened.notice,
   };
 }
 
@@ -126,8 +134,8 @@ async function runLiveChat(
     parts: [{ type: "text", text: message.text }],
   }));
   const result = streamText({
-    model: gateway(env.PLANNER_MODEL ?? plannerModelId),
-    abortSignal: gatewayAttemptSignal(),
+    model: plannerLanguageModel(env),
+    abortSignal: modelAttemptSignal(),
     system: [
       "You are the planner bench agent.",
       "Call updateBrief, fileBrief, addOffer, and compareOffers.",

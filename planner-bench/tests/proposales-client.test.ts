@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { companyFixtures, harbourHouseProposal } from "../src/contract/fixtures";
+import { normaliseProposal } from "../src/domain/normalise-proposal";
 import { createClient, resolveMode } from "../src/proposales/client";
 import { draftBody, filingPath, inboxBody } from "../src/proposales/filing";
 import { createFixtureClient, sampleBrief } from "../src/proposales/fixture-client";
@@ -164,10 +165,59 @@ describe("http client", () => {
     expect(plannerUserAgent).toBe("planner-bench/0.1.0");
   });
 
-  it("rejects a company payload that misses the generated schema", async () => {
-    const fetchImpl: typeof fetch = async () => Response.json({ data: [{ id: 1, name: "Partial" }] });
-    const client = createHttpClient({ apiKey: "test-key", fetchImpl });
-    await expect(client.listCompanies()).rejects.toThrow();
+  it("reads a company and draft proposals when formats and nulls do not match the strict schema", async () => {
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.endsWith("/v3/companies")) {
+        return Response.json({
+          data: [
+            {
+              id: 9,
+              name: "Example Desk",
+              inbox_token: null,
+              currency: "EUR",
+              tax_mode: "standard",
+              timezone: null,
+              website_url: "not a url",
+              created_at: 1_700_000_000,
+            },
+          ],
+        });
+      }
+      if (url.includes("/v3/proposal-search")) {
+        return Response.json({ data: liveDraftProposals.map(liveSearchItem) });
+      }
+      const proposal = liveDraftProposals.find((item) => url.includes(item.uuid));
+      if (proposal !== undefined) {
+        return Response.json({
+          data: {
+            ...proposal,
+            company_email: "not-an-email",
+            company_website: "not a url",
+            is_agreement: null,
+            pending: null,
+          },
+        });
+      }
+      return Response.json({ data: [] }, { status: 404 });
+    };
+    const client = createHttpClient({
+      apiKey: "present",
+      fetchImpl,
+      baseUrl: "https://api.proposales.com",
+    });
+    const companies = await client.listCompanies();
+    expect(companies).toEqual([{ id: 9, name: "Example Desk", inboxToken: null }]);
+    const proposals = await client.loadVenueProposals();
+    expect(proposals).toHaveLength(3);
+    expect(proposals.map((proposal) => normaliseProposal(proposal).venueName)).toEqual([
+      "Harbour House",
+      "Ridge Hall",
+      "Canal Loft",
+    ]);
+    expect(JSON.stringify(proposals.map((proposal) => normaliseProposal(proposal)))).not.toContain(
+      "Example Desk",
+    );
   });
 });
 

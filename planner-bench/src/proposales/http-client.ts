@@ -1,6 +1,5 @@
 import { z } from "zod";
 import packageJson from "../../package.json";
-import { proposalesSchemas } from "../contract/proposales-schemas";
 import { draftBody, filingPath, inboxBody } from "./filing";
 import type { CompanyRecord, FileBriefResult, ProposalesClient } from "./types";
 
@@ -66,23 +65,23 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
   return {
     readsLiveProposals: true,
     async listCompanies() {
-      const schemas = await proposalesSchemas();
       const body = searchEnvelopeReader.parse(
         await request("/v3/companies", { method: "GET" }, true),
       );
-      return body.data.map((item) => {
-        schemas.company.parse(item);
-        const company = companyReader.parse(item);
+      return body.data.flatMap((item) => {
+        const company = companyReader.safeParse(item);
+        if (!company.success) {
+          return [];
+        }
         const record: CompanyRecord = {
-          id: company.id,
-          name: company.name,
-          inboxToken: company.inbox_token ?? null,
+          id: company.data.id,
+          name: company.data.name,
+          inboxToken: company.data.inbox_token ?? null,
         };
-        return record;
+        return [record];
       });
     },
     async fileBrief(brief) {
-      const schemas = await proposalesSchemas();
       const companies = await this.listCompanies();
       const company = companies.find((item) => item.id === brief.companyId);
       if (!company) {
@@ -95,59 +94,50 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
           throw new Error("Inbox token missing");
         }
         const body = inboxBody(brief);
-        schemas.createRfpRequest.parse(body);
         const payload = rfpReader.parse(
-          schemas.createRfpResponse.parse(
-            await request(
-              `/v1/inbox/${encodeURIComponent(token)}`,
-              { method: "POST", body: JSON.stringify(body) },
-              false,
-            ),
+          await request(
+            `/v1/inbox/${encodeURIComponent(token)}`,
+            { method: "POST", body: JSON.stringify(body) },
+            false,
           ),
         );
         const result: FileBriefResult = { path: "inbox", id: payload.id };
         return result;
       }
       const body = draftBody(brief);
-      schemas.createProposalRequest.parse({
-        company_id: body.company_id,
-        language: body.language,
-        title_md: body.title_md,
-      });
       const payload = draftReader.parse(
-        schemas.proposalMutationResponse.parse(
-          await request("/v3/proposals", { method: "POST", body: JSON.stringify(body) }, true),
-        ),
+        await request("/v3/proposals", { method: "POST", body: JSON.stringify(body) }, true),
       );
       const result: FileBriefResult = { path: "draft", uuid: payload.proposal.uuid };
       return result;
     },
     async getProposal(uuid) {
-      const schemas = await proposalesSchemas();
       const envelope = proposalEnvelopeReader.parse(
         await request(`/v3/proposals/${encodeURIComponent(uuid)}`, { method: "GET" }, true),
       );
-      schemas.proposal.parse(envelope.data);
       return envelope.data;
     },
     async loadVenueProposals() {
-      const schemas = await proposalesSchemas();
       const search = searchEnvelopeReader.parse(
         await request("/v3/proposal-search?limit=25", { method: "GET" }, true),
       );
       const proposals: unknown[] = [];
       for (const item of search.data) {
-        schemas.proposalSearchResult.parse(item);
-        const identity = searchIdentityReader.parse(item);
-        const envelope = proposalEnvelopeReader.parse(
+        const identity = searchIdentityReader.safeParse(item);
+        if (!identity.success) {
+          continue;
+        }
+        const envelope = proposalEnvelopeReader.safeParse(
           await request(
-            `/v3/proposals/${encodeURIComponent(identity.uuid)}`,
+            `/v3/proposals/${encodeURIComponent(identity.data.uuid)}`,
             { method: "GET" },
             true,
           ),
         );
-        schemas.proposal.parse(envelope.data);
-        proposals.push(envelope.data);
+        if (!envelope.success) {
+          continue;
+        }
+        proposals.push(envelope.data.data);
       }
       return proposals;
     },

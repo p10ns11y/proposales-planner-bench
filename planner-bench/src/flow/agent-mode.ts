@@ -1,18 +1,40 @@
-import { generateObject, gateway } from "ai";
+import { createXai } from "@ai-sdk/xai";
+import { generateObject, type LanguageModel } from "ai";
 import { mergeBrief, plannerBriefSchema, type PlannerBrief } from "../domain/planner-brief";
 import { extractBriefPatch } from "./fixture-extractor";
 import type { PlannerChatEnv } from "./planner-chat";
 
-const plannerModelId = "openai/gpt-4.1-mini";
+export const defaultPlannerModelId = "grok-4.20-0309-non-reasoning";
 
-export const gatewayAttemptMs = 4_000;
+export const modelAttemptMs = 4_000;
 
-export function gatewayAttemptSignal(): AbortSignal {
-  return AbortSignal.timeout(gatewayAttemptMs);
+export function modelAttemptSignal(): AbortSignal {
+  return AbortSignal.timeout(modelAttemptMs);
 }
 
-export function gatewayIsUsable(env: PlannerChatEnv): boolean {
-  return nonEmpty(env.AI_GATEWAY_API_KEY) || nonEmpty(env.VERCEL_OIDC_TOKEN) || env.VERCEL === "1";
+export function modelIsUsable(env: PlannerChatEnv): boolean {
+  return nonEmpty(env.XAI_API_KEY);
+}
+
+export function plannerLanguageModel(env: PlannerChatEnv): LanguageModel {
+  return createXai({ apiKey: env.XAI_API_KEY })(plannerModelId(env));
+}
+
+export function plannerModelChoice(env: PlannerChatEnv): { provider: string; modelId: string } {
+  const model: unknown = plannerLanguageModel(env);
+  if (typeof model !== "object" || model === null) {
+    throw new Error("Model is missing an id");
+  }
+  const modelId = Reflect.get(model, "modelId");
+  const provider = Reflect.get(model, "provider");
+  if (typeof modelId !== "string" || typeof provider !== "string") {
+    throw new Error("Model is missing an id");
+  }
+  return { provider, modelId };
+}
+
+function plannerModelId(env: PlannerChatEnv): string {
+  return nonEmpty(env.PLANNER_MODEL) ? env.PLANNER_MODEL : defaultPlannerModelId;
 }
 
 export async function resolveBriefPatch(input: {
@@ -22,10 +44,10 @@ export async function resolveBriefPatch(input: {
   extractWithModel?: (text: string, brief: PlannerBrief) => Promise<PlannerBrief>;
 }): Promise<PlannerBrief> {
   const scripted = extractBriefPatch(input.text);
-  if (!gatewayIsUsable(input.env)) {
+  if (!modelIsUsable(input.env)) {
     return scripted;
   }
-  const extract = input.extractWithModel ?? ((text, brief) => extractBriefWithGateway(text, brief, input.env));
+  const extract = input.extractWithModel ?? ((text, brief) => extractBriefWithModel(text, brief, input.env));
   try {
     const modelPatch = await extract(input.text, input.brief);
     const parsed = plannerBriefSchema.safeParse(modelPatch);
@@ -38,15 +60,15 @@ export async function resolveBriefPatch(input: {
   }
 }
 
-async function extractBriefWithGateway(
+async function extractBriefWithModel(
   text: string,
   brief: PlannerBrief,
   env: PlannerChatEnv,
 ): Promise<PlannerBrief> {
   const result = await generateObject({
-    model: gateway(env.PLANNER_MODEL ?? plannerModelId),
+    model: plannerLanguageModel(env),
     schema: plannerBriefSchema,
-    abortSignal: gatewayAttemptSignal(),
+    abortSignal: modelAttemptSignal(),
     prompt: [
       "Extract fields for an event brief.",
       "Location must be a city.",
@@ -60,6 +82,6 @@ async function extractBriefWithGateway(
   return plannerBriefSchema.parse(result.object);
 }
 
-function nonEmpty(value: string | undefined): boolean {
+function nonEmpty(value: string | undefined): value is string {
   return value !== undefined && value !== "";
 }

@@ -44,6 +44,8 @@ export function inboxBody(brief: BriefDraft): Record<string, string> {
 
 export const draftCreatedNotice = "A draft was created in Proposales.";
 
+export const filingUnavailableNotice = "Filing is unavailable right now.";
+
 export function draftTitle(brief: BriefDraft): string {
   const eventTitle = brief.eventTitle?.trim() ?? "";
   if (eventTitle !== "") {
