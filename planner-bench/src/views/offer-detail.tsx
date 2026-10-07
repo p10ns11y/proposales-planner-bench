@@ -9,7 +9,7 @@ import {
   offerBreakdown,
   type OfferPart,
 } from "../contract/offer-group";
-import { gapLabel } from "./offer-copy";
+import { gapLabel, neutralChipName } from "./offer-copy";
 import { GapIcon } from "./offer-group";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
@@ -124,6 +124,16 @@ export function OfferDetail({
                       <span key={gap} className="planner-chip planner-chip-status">
                         <GapIcon gap={gap} />
                         {gapLabel(gap)}
+                      </span>
+                    ))}
+                    {(offer.neutral ?? []).map((mark) => (
+                      <span
+                        key={mark}
+                        className="planner-chip planner-chip-not-stated"
+                        data-facet={mark}
+                        aria-label={neutralChipName(mark)}
+                      >
+                        Not stated
                       </span>
                     ))}
                   </div>

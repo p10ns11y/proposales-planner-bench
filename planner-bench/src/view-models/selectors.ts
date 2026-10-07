@@ -115,6 +115,7 @@ function rankedRows(snapshot: PlannerSnapshot | null): ResultsViewModel["rows"] 
     total: formatMinorUnits(row.totalMinor, row.currency),
     expires: row.expiresAt === undefined ? "No expiry" : row.expiresAt.slice(0, 10),
     gaps: row.gaps,
+    neutral: row.neutral ?? [],
     favorite: row.favorite,
     blocks: row.blocks ?? [],
   }));

@@ -430,16 +430,20 @@ function readFoodRequest(text: string): PlannerBrief["foodRequest"] {
 }
 
 function readSpokenBudget(text: string): PlannerBrief["budget"] {
-  const clause = /budget\b[^.\n]*/i.exec(text);
-  if (clause?.[0] === undefined) {
-    return undefined;
+  const labeled = /budget\b[^.\n]*/i.exec(text);
+  if (labeled?.[0] !== undefined) {
+    return budgetFromClause(labeled[0]);
   }
-  const money = readMoney(clause[0]);
+  return firstSpokenBudget(text);
+}
+
+function budgetFromClause(clause: string): PlannerBrief["budget"] {
+  const money = readMoney(clause);
   if (money === undefined) {
     return undefined;
   }
-  const scope = readBudgetScope(clause[0]);
-  const approximate = /\b(?:around|about|approx(?:imately)?|roughly)\b/i.test(clause[0]);
+  const scope = readBudgetScope(clause);
+  const approximate = /\b(?:around|about|approx(?:imately)?|roughly)\b/i.test(clause);
   return {
     amount: money.amount,
     currency: money.currency,
@@ -448,8 +452,27 @@ function readSpokenBudget(text: string): PlannerBrief["budget"] {
   };
 }
 
-function readBudgetScope(text: string): "total" | "per-person" | undefined {
-  if (/\bper\s+(?:person|head|attendee|guest)\b/i.test(text) || /\ba\s+head\b/i.test(text)) {
+function firstSpokenBudget(text: string): PlannerBrief["budget"] {
+  const patterns = [
+    /(?:around|about|approx(?:imately)?|roughly)\s+(?:€|\$|£|[A-Za-z]{3})\s*\d+(?:[.,]\d+)?(?:\s*(?:per[\s-]+(?:person|head|attendee|guest)|pp|each|total))?/gi,
+    /(?:€|\$|£|[A-Za-z]{3})\s*\d+(?:[.,]\d+)?(?:\s*(?:per[\s-]+(?:person|head|attendee|guest)|pp|each|total))?/gi,
+    /\d+(?:[.,]\d+)?\s*(?:€|\$|£|[A-Za-z]{3})(?:\s*(?:per[\s-]+(?:person|head|attendee|guest)|pp|each|total))?/gi,
+  ];
+  for (const pattern of patterns) {
+    for (const match of text.matchAll(pattern)) {
+      const budget = budgetFromClause(match[0]);
+      if (budget !== undefined) {
+        return budget;
+      }
+    }
+  }
+  return undefined;
+}
+
+const perPersonScope = /\bper[\s-]+(?:person|head|attendee|guest)\b|\ba\s+head\b|\bpp\b|\d\s*pp\b|\beach\b/i;
+
+export function readBudgetScope(text: string): "total" | "per-person" | undefined {
+  if (perPersonScope.test(text)) {
     return "per-person";
   }
   if (/\b(?:in\s+total|overall|total)\b/i.test(text)) {
@@ -459,13 +482,13 @@ function readBudgetScope(text: string): "total" | "per-person" | undefined {
 }
 
 function readMoney(text: string): { amount: number; currency: string } | undefined {
-  for (const match of text.matchAll(/(€|\$|£)\s*(\d+(?:[.,]\d+)?)/g)) {
+  for (const match of text.matchAll(/(€|\$|£)\s*(\d+(?:[.,]\d+)?)(?!\d)/g)) {
     const parsed = money(match[1] ?? "", match[2] ?? "");
     if (parsed !== undefined) {
       return parsed;
     }
   }
-  for (const match of text.matchAll(/\b([A-Za-z]{3})\s*(\d+(?:[.,]\d+)?)\b/g)) {
+  for (const match of text.matchAll(/\b([A-Za-z]{3})\s*(\d+(?:[.,]\d+)?)(?!\d)/g)) {
     const parsed = money(match[1] ?? "", match[2] ?? "");
     if (parsed !== undefined) {
       return parsed;

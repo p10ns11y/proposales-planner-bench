@@ -104,6 +104,10 @@ export function stayNeedsRooms(brief: PlannerBrief): boolean {
   return brief.endDate > brief.startDate;
 }
 
+export function budgetNeedsBasis(brief: PlannerBrief): boolean {
+  return brief.budget !== undefined && brief.budget.scope === undefined;
+}
+
 export function mergeBrief(current: PlannerBrief, patch: PlannerBrief): PlannerBrief {
   const foodRequest = mergeFoodRequest(current.foodRequest, patch.foodRequest);
   const schedule = mergeSchedule(current, patch);
@@ -126,7 +130,7 @@ export function mergeBrief(current: PlannerBrief, patch: PlannerBrief): PlannerB
       foodRequest,
       city: patch.city ?? current.city,
       budgetMinor: patch.budgetMinor ?? current.budgetMinor,
-      budget: canonicalBudget(patch.budget ?? current.budget),
+      budget: mergeBudget(current.budget, patch.budget),
       notes: patch.notes ?? current.notes,
       language: patch.language ?? current.language,
       startTime: schedule.startTime,
@@ -218,6 +222,35 @@ function canonicalDiet(value: string): string {
     return "";
   }
   return dietAliases[key] ?? key;
+}
+
+function mergeBudget(
+  current: PlannerBrief["budget"],
+  patch: PlannerBrief["budget"],
+): PlannerBrief["budget"] {
+  if (patch === undefined) {
+    return canonicalBudget(current);
+  }
+  const next = canonicalBudget(patch);
+  if (next === undefined) {
+    return canonicalBudget(current);
+  }
+  if (next.scope !== undefined || current?.scope === undefined) {
+    return next;
+  }
+  if (current.amount !== next.amount || current.currency !== next.currency) {
+    return next;
+  }
+  return canonicalBudget({
+    amount: next.amount,
+    currency: next.currency,
+    scope: current.scope,
+    ...(next.approximate !== undefined
+      ? { approximate: next.approximate }
+      : current.approximate !== undefined
+        ? { approximate: current.approximate }
+        : {}),
+  });
 }
 
 function canonicalBudget(budget: PlannerBrief["budget"]): PlannerBrief["budget"] {

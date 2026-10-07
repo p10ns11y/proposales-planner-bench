@@ -24,7 +24,7 @@ import {
   type OfferGroupPart,
   type OfferPart,
 } from "../contract/offer-group";
-import { gapLabel } from "./offer-copy";
+import { gapLabel, neutralChipName } from "./offer-copy";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
 
@@ -274,6 +274,16 @@ function OfferChips({ offer }: { offer: OfferPart }) {
           {gapLabel(gap)}
         </span>
       ))}
+      {(offer.neutral ?? []).map((mark) => (
+        <span
+          key={mark}
+          className="planner-chip planner-chip-not-stated"
+          data-facet={mark}
+          aria-label={neutralChipName(mark)}
+        >
+          Not stated
+        </span>
+      ))}
     </span>
   );
 }
@@ -336,6 +346,9 @@ function accessibleOffer(offer: OfferPart, price: string): string {
   }
   for (const gap of offer.gaps) {
     parts.push(gapLabel(gap));
+  }
+  for (const mark of offer.neutral ?? []) {
+    parts.push(neutralChipName(mark));
   }
   return parts.join(", ");
 }

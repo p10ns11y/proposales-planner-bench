@@ -102,6 +102,7 @@ function comparisonRow(
     totalMinor: offer.totalMinor ?? minorUnits(0),
     expiresAt: offer.expiresAt,
     gaps: comparisonGaps(brief, offer, today),
+    neutral: unstatedOfferMarks(brief),
     favorite: favoriteVenueNames.some(
       (favoriteName) => favoriteName.toLowerCase() === venueName.toLowerCase(),
     ),
@@ -155,6 +156,17 @@ export function comparisonGaps(brief: PlannerBrief, offer: VenueOffer, today: st
   return gaps;
 }
 
+export function unstatedOfferMarks(brief: PlannerBrief): string[] {
+  const marks: string[] = [];
+  if (brief.breakoutRoomCount === undefined) {
+    marks.push("breakout");
+  }
+  if ((brief.foodRequest?.dietaryNeeds ?? []).length === 0) {
+    marks.push("diet");
+  }
+  return marks;
+}
+
 function offerExceedsBudget(brief: PlannerBrief, offer: VenueOffer): boolean {
   const total = offer.totalMinor?.amount;
   if (total === undefined) {
@@ -184,6 +196,9 @@ function budgetCeilingMinor(
   budget: NonNullable<PlannerBrief["budget"]>,
   attendeeCount: number | undefined,
 ): number | undefined {
+  if (budget.scope === undefined) {
+    return undefined;
+  }
   const unitMinor = Math.round(budget.amount * 100);
   if (budget.scope === "per-person") {
     if (attendeeCount === undefined || attendeeCount <= 0) {
