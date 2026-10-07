@@ -1,5 +1,9 @@
 import { z } from "zod";
+import { applyDayPartClock, dayPartNames } from "./day-part";
 import { minorUnitsSchema } from "./minor-units";
+
+export { assumedSpan } from "./day-part";
+export type { DayPart } from "./day-part";
 
 const clockTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
@@ -19,38 +23,12 @@ export const briefBudgetSchema = z.object({
   approximate: z.boolean().optional(),
 });
 
-export const dayPartSchema = z.enum(["full-day", "all-day", "half-day", "morning", "afternoon"]);
+export const dayPartSchema = z.enum(dayPartNames);
 
 export const timeAssumptionSchema = z.object({
   dayPart: dayPartSchema,
   statement: z.string().min(1),
 });
-
-export type DayPart = z.infer<typeof dayPartSchema>;
-
-const dayPartDetails = {
-  "full-day": { startTime: "09:00", endTime: "17:00", phrase: "a full day" },
-  "all-day": { startTime: "09:00", endTime: "17:00", phrase: "all day" },
-  "half-day": { startTime: "09:00", endTime: "12:00", phrase: "a half day" },
-  morning: { startTime: "09:00", endTime: "12:00", phrase: "the morning" },
-  afternoon: { startTime: "13:00", endTime: "17:00", phrase: "the afternoon" },
-} as const satisfies Record<DayPart, { startTime: string; endTime: string; phrase: string }>;
-
-export function assumedSpan(dayPart: DayPart): {
-  startTime: string;
-  endTime: string;
-  timeAssumption: { dayPart: DayPart; statement: string };
-} {
-  const details = dayPartDetails[dayPart];
-  return {
-    startTime: details.startTime,
-    endTime: details.endTime,
-    timeAssumption: {
-      dayPart,
-      statement: `Assumed ${details.startTime}\u2013${details.endTime} for ${details.phrase}`,
-    },
-  };
-}
 
 export const plannerBriefSchema = z.object({
   eventTitle: z.string().optional(),
@@ -139,24 +117,6 @@ export function mergeBrief(current: PlannerBrief, patch: PlannerBrief): PlannerB
       timeAssumption: schedule.timeAssumption,
     }),
   );
-}
-
-function applyDayPartClock(brief: PlannerBrief): PlannerBrief {
-  const dayPart = brief.timeAssumption?.dayPart;
-  if (dayPart === undefined) {
-    return brief;
-  }
-  if (brief.startTime !== undefined && (brief.endTime !== undefined || brief.durationMinutes !== undefined)) {
-    return brief;
-  }
-  const assumed = assumedSpan(dayPart);
-  const startTime = brief.startTime ?? assumed.startTime;
-  const endTime = brief.endTime ?? (brief.durationMinutes === undefined ? assumed.endTime : undefined);
-  return {
-    ...brief,
-    startTime,
-    ...(endTime !== undefined ? { endTime } : {}),
-  };
 }
 
 function mergeSchedule(
