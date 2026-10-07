@@ -10,6 +10,9 @@ const files = [
   "src/flow/brief-flow.ts",
   "src/domain/day-part.ts",
   "src/proposales/http-client.ts",
+  "src/flow/brief-language.ts",
+  "src/flow/filing-guard.ts",
+  "src/views/file-brief-state.ts",
 ];
 const detected = new Set(["Killed", "Timeout", "RuntimeError"]);
 const counted = new Set(["Killed", "Timeout", "RuntimeError", "Survived", "NoCoverage"]);

@@ -13,6 +13,7 @@ Observations for the planner bench. Rows are clustered before a fix. A pointer t
 | `projectBriefFlow` also accepts the `comparing` state before it sends any offer | `planner-bench/src/flow/brief-flow.ts` | 2026-10-07 | The actor starts in `collecting`. `comparing` is entered from `offerAdded` after `filed`. |
 | A null or empty inbox token is rejected again after `filingPath`, which already returns `draft` for those values | `planner-bench/src/proposales/http-client.ts` | 2026-10-07 | `filingPath` returns `inbox` only for a non-empty token. |
 | `@stryker-mutator/vitest-runner` 10.0.0 selects no Vitest 5 tests when coverage is per test | StrykerJS issue 6210, against Vitest 5.0.3 in this bench | 2026-10-07 | Vitest 5 matches the full name chain joined with ` > `. That runner joins with a space, so covered mutants are reported as survived. |
+| The CRAP scorer parses every file as TypeScript, so JSX branches in a `.tsx` function are left out of the complexity count | `planner-bench/scripts/crap-score.mjs` | 2026-10-07 | `ts.createSourceFile` is called with `ScriptKind.TS`. The Filed control in `offer-detail.tsx` is scored from `file-brief-state.ts`, which has no JSX. |
 
 ## Clusters
 
@@ -20,3 +21,4 @@ Observations for the planner bench. Rows are clustered before a fix. A pointer t
 - Day-part complexity. `applyDayPartClock` and `completeDayPart` are the same theme: clock mapping above the threshold. Split them, and keep the two outcomes (leave a stored assumption, or rewrite it).
 - Unreachable checks. The early `comparing` disjunct and the second inbox-token check. Fold the token check into a helper the tests can call, and project offers only from `filed`.
 - Mutation runner. Do not use the Vitest runner until it speaks Vitest 5. Score with Stryker's command runner on the focused suite.
+- Complexity parser. JSX needs `ScriptKind.TSX` before a `.tsx` file can be scored on its own. Until then, score the plain TypeScript module that holds the decision.

@@ -11,6 +11,7 @@ import {
 } from "../contract/offer-group";
 import { gapLabel, neutralChipName } from "./offer-copy";
 import { GapIcon } from "./offer-group";
+import { fileBriefDisabled, fileBriefLabel } from "./file-brief-state";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
@@ -244,11 +245,11 @@ export function OfferDetail({
                 <button
                   type="button"
                   className="planner-apply"
-                  disabled={busy || filed}
+                  disabled={fileBriefDisabled(busy, filed)}
                   {...lcvStay("file-brief", "detail:open")}
                   onClick={onFile}
                 >
-                  {filed ? "Filed" : "File this brief"}
+                  {fileBriefLabel(filed)}
                 </button>
               </div>
             </div>

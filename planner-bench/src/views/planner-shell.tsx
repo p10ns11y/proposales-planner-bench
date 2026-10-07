@@ -16,6 +16,7 @@ import { renderPart } from "../transport/render-part";
 import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
 import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
+import { fileBriefChoice } from "./file-brief-state";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
 import { OfferDetail } from "./offer-detail";
@@ -252,10 +253,16 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   }
 
   function fileBrief() {
-    if (viewModel.filed || viewModel.busy || !viewModel.ready) {
+    const choice = fileBriefChoice({
+      filed: viewModel.filed,
+      busy: viewModel.busy,
+      ready: viewModel.ready,
+      email: viewModel.more.contactEmail,
+    });
+    if (choice === "ignore") {
       return;
     }
-    if (viewModel.more.contactEmail.trim() === "") {
+    if (choice === "ask-email") {
       setFocusEmail(true);
       setMoreOpen(true);
       return;

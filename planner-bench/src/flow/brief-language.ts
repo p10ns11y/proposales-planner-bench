@@ -58,11 +58,15 @@ const otherLanguageWords = new Set([
   "personen",
 ]);
 
+function textWords(text: string): Set<string> {
+  return new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
+}
+
 export function briefWrittenInEnglish(text: string): boolean {
   if (/[À-ÖØ-öø-ÿ]/.test(text)) {
     return false;
   }
-  const words = new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
+  const words = textWords(text);
   for (const word of otherLanguageWords) {
     if (words.has(word)) {
       return false;
