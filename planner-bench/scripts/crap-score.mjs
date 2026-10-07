@@ -29,6 +29,7 @@ const scope = [
   { file: "src/views/file-brief-state.ts" },
   { file: "src/views/speech-input.ts" },
   { file: "src/views/more-update.ts" },
+  { file: "src/view-models/facts-line.ts" },
 ];
 
 const branchKinds = new Set([

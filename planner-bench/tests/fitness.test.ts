@@ -63,12 +63,12 @@ describe("brief and offer gaps", () => {
   it("asks one question for a known gap, a basis, or an unknown field", () => {
     const questions: Record<string, string> = {
       eventTitle: "What should we call this event?",
-      contactEmail: "Add an email under More so venues reply to this address.",
+      contactEmail: "Add an email under Add details so venues reply to this address.",
       startDate: "Add the start date in the message, as YYYY-MM-DD.",
       endDate: "Add the end date in the message, as YYYY-MM-DD.",
       attendeeCount: "Add how many people are coming in the message.",
-      language: "Add a language under More.",
-      roomCount: "Add how many rooms you need under More for this multi-day stay.",
+      language: "Add a language under Add details.",
+      roomCount: "Add how many rooms you need under Add details for this multi-day stay.",
       city: "Which city is the event in?",
       startTime: "What time does it start?",
       endTime: "When does it end, or how long does it run?",
