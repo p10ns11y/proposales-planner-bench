@@ -1,6 +1,6 @@
 # Product — planner bench
 
-This file is the planner definition: the flow, the names, and fetch and rank. The shell, the hold, and the later extensions are in [PRODUCT.md](./PRODUCT.md). Voice is in [TASTE.md](./TASTE.md). Visual materials are in [DESIGN.md](./DESIGN.md).
+This file is the planner definition: the flow, the names, and fetch and rank. The shell, the hold, and the later extensions are in [PRODUCT.md](./planner-bench/PRODUCT.md). Voice is in [TASTE.md](./planner-bench/TASTE.md). Visual materials are in [DESIGN.md](./planner-bench/DESIGN.md).
 
 One screen. A planner says what they want into one sticky input. The bench turns that into a short brief, finds the best-fitting venues from Proposales, and shows them ranked in the thread. Favorites they already have in mind sit on that same list, marked.
 
@@ -32,7 +32,11 @@ Harbour House is both a company and a venue name. Ridge Hall and Canal Loft are 
 
 ## Flow
 
-Capture → clean → confirm → favorites → fetch → rank → show.
+Free text → clean → confirm → structured data → AI-UI views.
+
+Favorites → fetch → rank → show still follow the structured brief.
+
+Required to reach a match: location, date and time (a start, and an end or a duration), and the number of people. The rest sits in More, collapsed, as form fields. Email is required to file, not to match.
 
 Input to result, few beats, same page. Extra views (overlays, dialogs, popovers) sit off this spine and open only where they are needed.
 
@@ -51,7 +55,7 @@ Input to result, few beats, same page. Extra views (overlays, dialogs, popovers)
 
 - One sticky input at the bottom. They type or talk. The input stays put.
 - The thread above it shows the current step, and it is the part that may move.
-- A step renders an element in the thread only when they need to see it. AG-UI is an allowed shape for that element. Ordinary React is enough for this pass.
+- A step renders an element in the thread only when they need to see it. AG-UI is the event stream for that thread. The components stay the ones in the design note. Ordinary React can render the first shell.
 - Detail for a result opens in an overlay or a modal.
 - Company is not the first control.
 
@@ -61,13 +65,13 @@ The screen is humble and simple. The craft is extreme. Beauty comes from the one
 
 Mode is Operate: a person finishes a task. The first thing they meet is the input.
 
-Tailwind and shadcn stay the materials. The recorded materials are in [DESIGN.md](./DESIGN.md).
+Tailwind and shadcn stay the materials. The recorded materials are in [DESIGN.md](./planner-bench/DESIGN.md).
 
 Wrong even if polished: a dashboard of labels, a loud marketing page, a form of every brief field, or a thread that makes them guess a magic phrase.
 
 ## This pass
 
-Make the defined flow work behind the sticky input. Simple on the surface. The cleaning, the fetch, and the rank stay the hard work. Off-topic asks stop at the hold in [TASTE.md](./TASTE.md).
+Make the defined flow work behind the sticky input. Simple on the surface. The cleaning, the fetch, and the rank stay the hard work. Off-topic asks stop at the hold in [TASTE.md](./planner-bench/TASTE.md).
 
 ## Next hydration
 

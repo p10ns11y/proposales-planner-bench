@@ -12,7 +12,7 @@ Use the words they would use: place, event, people, date, city. Use Organisation
 
 The sticky line accepts a dump, a sentence, or speech. It does not ask them to learn a phrase. "File" is enough when they mean file. A partial reply is enough.
 
-When a fact is missing, ask that one fact. When the brief is complete, show it back in a sentence and ask if it is right. They can change a detail in the same line.
+When a required fact is missing, ask that one fact. Required means location, date and time, and how many people. When those are complete, show them back and ask if that is right. Everything else waits in More.
 
 ## The hold
 

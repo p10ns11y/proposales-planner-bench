@@ -1,6 +1,6 @@
 # Workflow — planner bench, built with the plugin ecosystem
 
-The [control card](./control-card.md) owns phases, budgets, and verify commands. This file says which plugin does what at each phase. At most four loads per phase. Plugins are loaded, not copied.
+The [control card](./control-card.md) owns the finished S1–S6 build. The next session is [control-card-productize.md](./control-card-productize.md): sticky input, three required facts, More collapsed, and AG-UI as the wire to the thread. This file says which plugin does what at each phase. At most four loads per phase. Plugins are loaded, not copied.
 
 Credit: playbooks and principles from [pstack](https://github.com/cursor/plugins/tree/main/pstack) by Lauren Tan (MIT).
 
