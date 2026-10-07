@@ -452,7 +452,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           ) : null}
           <div className="planner-dock">
             {speech.shown === false && speech.reason !== null ? (
-              <p className="planner-speech-status" role="status" data-speech-state="unavailable">
+              <p className="planner-speech-status" role="status" aria-label={speech.reason} data-speech-state="unavailable">
                 {speech.reason}
               </p>
             ) : null}
