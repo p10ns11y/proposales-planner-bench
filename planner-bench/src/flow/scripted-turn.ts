@@ -1,10 +1,10 @@
 import { briefGapsForStage, compareOffers, offersForBrief, rankComparisonRows } from "../domain/compare-offers";
-import { briefConfirmHold, findBriefGaps, questionForGap } from "../domain/fitness";
+import { briefConfirmHold, questionForGap } from "../domain/fitness";
 import { mergeBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
-import { briefDraftFromPlanner } from "./brief-draft";
+import { attemptFiling } from "./filing-guard";
 import { projectBriefFlow } from "./brief-flow";
 import { addEnglishLanguage } from "./brief-language";
 import { extractBriefPatch, extractPastedOffer, readBudgetScope, turnIntent } from "./fixture-extractor";
@@ -15,6 +15,7 @@ export async function runFixtureTurn(input: {
   snapshot: PlannerSnapshot;
   client: ProposalesClient;
   today: string;
+  filingSettled?: boolean;
 }): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
   const intent = turnIntent(input.text);
   const brief = briefWithAnsweredBasis(input.snapshot.brief, input.text);
@@ -22,25 +23,32 @@ export async function runFixtureTurn(input: {
   let filingAvailable = input.snapshot.filingAvailable;
   let offers = input.snapshot.offers;
   const notes: string[] = [];
-  const selectedCompanyId = input.snapshot.selectedCompanyId;
+  let selectedCompanyId = input.snapshot.selectedCompanyId;
   const favoriteVenueNames = input.snapshot.favoriteVenueNames;
+  let filingNotice: string | null = null;
 
   if (intent === "file") {
-    const fileableGaps = findBriefGaps(brief, "brief:fileable");
-    if (fileableGaps.length > 0) {
-      const firstGap = fileableGaps[0];
-      notes.push(firstGap === undefined ? "The brief is still missing details." : questionForGap(firstGap));
-    } else if (selectedCompanyId === null) {
-      notes.push(filingAvailable ? "Which company should receive the brief?" : filingUnavailableNotice);
-    } else {
-      try {
-        filing = await input.client.fileBrief(briefDraftFromPlanner(brief, selectedCompanyId));
-        filingAvailable = true;
-        notes.push(filing.path === "draft" ? "A draft was created in Proposales." : "The brief is filed.");
-      } catch {
-        filingAvailable = false;
-        notes.push(filingUnavailableNotice);
-      }
+    const attempt = input.filingSettled
+      ? {
+          filing,
+          notice: input.snapshot.notice,
+          filingAvailable,
+          selectedCompanyId,
+        }
+      : await attemptFiling({
+          brief,
+          filing,
+          filingAvailable,
+          selectedCompanyId,
+          companies: input.snapshot.companies,
+          client: input.client,
+        });
+    filing = attempt.filing;
+    filingAvailable = attempt.filingAvailable;
+    selectedCompanyId = attempt.selectedCompanyId;
+    filingNotice = attempt.notice;
+    if (attempt.notice !== null) {
+      notes.push(attempt.notice);
     }
   }
 
@@ -127,7 +135,7 @@ export async function runFixtureTurn(input: {
       favoriteVenueNames,
       visibleRowCount: input.snapshot.visibleRowCount,
       openVenueName: null,
-      notice: filingAvailable ? null : filingUnavailableNotice,
+      notice: intent === "file" ? filingNotice : filingAvailable ? null : filingUnavailableNotice,
       sampleOffers: false,
       offerSource: input.snapshot.offerSource,
       filingAvailable,

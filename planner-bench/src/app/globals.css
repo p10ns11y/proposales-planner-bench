@@ -396,6 +396,20 @@ h2.planner-text {
   background: linear-gradient(to top, var(--bg-canvas) 62%, rgba(249, 249, 249, 0));
 }
 
+.planner-speech-status {
+  position: absolute;
+  right: 16px;
+  bottom: 84px;
+  left: 16px;
+  margin: 0 auto;
+  width: min(720px, calc(100% - 32px));
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+
 .planner-composer {
   display: flex;
   width: min(720px, 100%);
@@ -472,6 +486,11 @@ h2.planner-text {
 .planner-icon-button:hover,
 .planner-round:hover {
   background: var(--surface-chip);
+}
+
+.planner-icon-button[aria-pressed="true"] {
+  background: var(--surface-selected);
+  color: var(--text-primary);
 }
 
 .planner-round {
@@ -1126,6 +1145,32 @@ h2.planner-text {
 .planner-field textarea {
   min-height: 88px;
   resize: vertical;
+}
+
+.planner-field-block {
+  display: grid;
+  gap: 8px;
+}
+
+.planner-required,
+.planner-field-note {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.planner-required {
+  color: var(--danger-text);
+}
+
+.planner-field-note {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.planner-field-block[data-invalid="true"] input {
+  border-color: var(--danger-text);
 }
 
 .planner-segment {

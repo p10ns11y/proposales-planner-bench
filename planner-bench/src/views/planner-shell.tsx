@@ -16,11 +16,11 @@ import { renderPart } from "../transport/render-part";
 import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
 import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
-import { fileBriefChoice } from "./file-brief-state";
+import { fileBriefChoice, fileBriefLabel, fileBriefPressable, moreOpenedForEmail } from "./file-brief-state";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
 import { OfferDetail } from "./offer-detail";
-import { startSpeechCapture } from "./speech-input";
+import { speechButtonState, toggleSpeechCapture, type SpeechListener, type SpeechRecognitionLike } from "./speech-input";
 
 type PlannerShellProps = {
   viewModel: ShellViewModel;
@@ -61,11 +61,15 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const [moreDraft, setMoreDraft] = useState<string | null>(null);
   const [moreNote, setMoreNote] = useState<string | null>(null);
   const [focusEmail, setFocusEmail] = useState(false);
+  const [detailNote, setDetailNote] = useState<string | null>(null);
   const [holdEmpty, setHoldEmpty] = useState(false);
   const idRef = useRef(1);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const moreOpener = useRef<HTMLButtonElement | null>(null);
+  const speechSession = useRef<SpeechRecognitionLike | null>(null);
+  const [listening, setListening] = useState(false);
+  const [speechReason, setSpeechReason] = useState<string | null>(null);
   const stick = useRef(true);
   const scrollLock = useRef<number | null>(null);
   const previousOpen = useRef<string | null>(null);
@@ -269,10 +273,12 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     }
     if (choice === "ask-email") {
       setFocusEmail(true);
+      setDetailNote(moreOpenedForEmail);
       setMoreOpen(true);
       return;
     }
     setFocusEmail(false);
+    setDetailNote(null);
     setLines((current) => [...current, { id: idRef.current++, role: "user", text: "File this brief" }]);
     onEvent({ type: "composerSubmitted", text: "file" });
   }
@@ -284,11 +290,35 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     setMoreOpen(false);
     setMoreDraft(null);
     setMoreNote(null);
+    setFocusEmail(false);
+    setDetailNote(null);
     onEvent({ type: "sessionReset" });
   }
 
   const showLive = !holdEmpty && (pending || (!empty && liveIsNew(lines, viewModel.ask, viewModel)));
   const labelled = empty || (showLive && !pending && viewModel.askLabelsComposer);
+  const speech = speechButtonState({
+    supported: viewModel.speechAvailable,
+    listening,
+    unavailable: speechReason,
+    busy: viewModel.busy,
+    ready: viewModel.ready,
+  });
+  const speechListener: SpeechListener = {
+    onTranscript: (transcript) => setDraft(transcript),
+    onListening: setListening,
+    onUnavailable: setSpeechReason,
+  };
+
+  function onSpeech() {
+    speechSession.current = toggleSpeechCapture(speechSession.current, listening, speechListener);
+  }
+  const filePressable = fileBriefPressable({
+    busy: viewModel.busy,
+    filed: viewModel.filed,
+    ready: viewModel.ready,
+  });
+  const showResultsFile = viewModel.phase === "results" && viewModel.rows.length > 0;
 
   return (
     <LayoutGroup>
@@ -386,6 +416,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                         ) : (
                           <LiveCopy
                             viewModel={viewModel}
+                            showFile={showResultsFile}
+                            concealFile={viewModel.openRow !== null}
+                            fileLabel={fileBriefLabel(viewModel.filed)}
+                            filePressable={filePressable}
+                            onFile={fileBrief}
                             onConfirm={() => {
                               pushTurn("Yes");
                               lastKind.current = "search";
@@ -444,6 +479,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             </button>
           ) : null}
           <div className="planner-dock">
+            {speech.shown === false && speech.reason !== null ? (
+              <p className="planner-speech-status" role="status" aria-label={speech.reason} data-speech-state="unavailable">
+                {speech.reason}
+              </p>
+            ) : null}
             <form
               className="planner-composer"
               data-must-show="composer"
@@ -471,22 +511,26 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 onChange={(event) => setDraft(event.target.value)}
                 onKeyDown={onComposerKey}
               />
-              <button
-                type="button"
-                className="planner-icon-button"
-                aria-label="Speak"
-                disabled={!viewModel.speechAvailable || viewModel.busy || !viewModel.ready}
-                {...lcvInteract({
-                  event: "dictate",
-                  from: chatState(viewModel.phase),
-                  success: "composer:dictate",
-                  fail: chatState(viewModel.phase),
-                  interrupted: chatState(viewModel.phase),
-                })}
-                onClick={() => startSpeechCapture((transcript) => setDraft(transcript))}
-              >
-                <Mic aria-hidden="true" />
-              </button>
+              {speech.shown ? (
+                <button
+                  type="button"
+                  className="planner-icon-button"
+                  aria-label={speech.name}
+                  aria-pressed={speech.pressed}
+                  disabled={speech.disabled}
+                  data-speech-state={speech.pressed ? "listening" : "ready"}
+                  {...lcvInteract({
+                    event: "dictate",
+                    from: chatState(viewModel.phase),
+                    success: "composer:dictate",
+                    fail: chatState(viewModel.phase),
+                    interrupted: chatState(viewModel.phase),
+                  })}
+                  onClick={onSpeech}
+                >
+                  <Mic aria-hidden="true" />
+                </button>
+              ) : null}
               <button
                 type="submit"
                 className="planner-send"
@@ -531,6 +575,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             }
             setMoreNote(null);
             setMoreDraft(line);
+            setDetailNote(null);
           }}
         />
         <OfferDetail
@@ -538,9 +583,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           includeExtras={includeExtras}
           contextChips={viewModel.contextChips}
           filingMessage={viewModel.filingMessage}
+          errorText={viewModel.errorText}
+          whyMore={detailNote}
           filed={viewModel.filed}
           active={!moreOpen}
-          busy={viewModel.busy || !viewModel.ready}
+          pressable={filePressable}
           onClose={() => onEvent({ type: "rowClosed" })}
           onFile={fileBrief}
         />
@@ -561,23 +608,34 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
 
 function LiveCopy({
   viewModel,
+  showFile,
+  concealFile,
+  fileLabel,
+  filePressable,
+  onFile,
   onConfirm,
   onSkip,
   onRefine,
   onRetry,
 }: {
   viewModel: ShellViewModel;
+  showFile: boolean;
+  concealFile: boolean;
+  fileLabel: string;
+  filePressable: boolean;
+  onFile: () => void;
   onConfirm: () => void;
   onSkip: () => void;
   onRefine: (text: string) => void;
   onRetry: () => void;
 }) {
   const factsMarked = viewModel.phase === "results" || viewModel.showFacts;
+  const notice = viewModel.notice !== null && viewModel.notice !== viewModel.ask ? viewModel.notice : null;
   return (
     <>
-      {viewModel.notice ? (
+      {notice ? (
         <p className="planner-meta" role="status">
-          {viewModel.notice}
+          {notice}
         </p>
       ) : null}
       {viewModel.draftConfirmation ? (
@@ -640,6 +698,24 @@ function LiveCopy({
             onClick={onSkip}
           >
             Skip
+          </button>
+        </div>
+      ) : null}
+      {showFile ? (
+        <div
+          className="planner-actions"
+          aria-hidden={concealFile ? true : undefined}
+          style={concealFile ? { visibility: "hidden" } : undefined}
+        >
+          <button
+            type="button"
+            className="planner-secondary"
+            disabled={!filePressable || concealFile}
+            tabIndex={concealFile ? -1 : undefined}
+            {...lcvStay("file-brief", "chat:results")}
+            onClick={onFile}
+          >
+            {fileLabel}
           </button>
         </div>
       ) : null}

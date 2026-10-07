@@ -4,6 +4,7 @@ import { Minus, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Sheet } from "../design/ui/sheet";
 import type { MoreFieldValues, PlannerViewEvent } from "../view-models/view-model";
+import { emailApplyDecision, emailReplyHint } from "./file-brief-state";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { moreUpdateLine } from "./more-update";
 
@@ -82,8 +83,13 @@ function MoreForm({
   onApply: (details: Partial<MoreFieldValues>) => void;
 }) {
   const [values, setValues] = useState(more);
+  const [emailInvalid, setEmailInvalid] = useState(false);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (emailApplyDecision({ required: focusEmail, email: values.contactEmail }) === "need-email") {
+      setEmailInvalid(true);
+      return;
+    }
     onApply(changedDetails(more, values));
   }
   return (
@@ -92,7 +98,7 @@ function MoreForm({
       onOpenChange={onOpenChange}
       side="right"
       title="Refine the brief"
-      description="Optional details for the venue request."
+      description={focusEmail ? "Email is required." : "Optional details for the venue request."}
       onSubmit={submit}
       onOpenAutoFocus={focusEmail ? focusEmailField : undefined}
       onCloseAutoFocus={onCloseAutoFocus}
@@ -145,7 +151,13 @@ function MoreForm({
           type="email"
           autoComplete="email"
           value={values.contactEmail}
-          onChange={(contactEmail) => setValues({ ...values, contactEmail })}
+          required={focusEmail}
+          invalid={emailInvalid}
+          hint={focusEmail ? emailReplyHint : undefined}
+          onChange={(contactEmail) => {
+            setEmailInvalid(false);
+            setValues({ ...values, contactEmail });
+          }}
         />
         <div className="planner-field">
           <span id="more-language-label">Language</span>
@@ -294,6 +306,9 @@ function TextField({
   type = "text",
   inputMode,
   autoComplete,
+  required = false,
+  invalid = false,
+  hint,
 }: {
   label: string;
   name: string;
@@ -302,21 +317,40 @@ function TextField({
   type?: "text" | "email";
   inputMode?: "numeric" | "decimal" | "text" | "email";
   autoComplete?: string;
+  required?: boolean;
+  invalid?: boolean;
+  hint?: string;
 }) {
   const id = `more-${name}`;
+  const hintId = `${id}-hint`;
   return (
-    <label className="planner-field" htmlFor={id}>
-      {label}
-      <input
-        id={id}
-        name={name}
-        type={type}
-        inputMode={inputMode}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
+    <div className="planner-field-block" data-invalid={invalid ? "true" : "false"} data-required={required ? "true" : "false"}>
+      <label className="planner-field" htmlFor={id}>
+        {label}
+        <input
+          id={id}
+          name={name}
+          type={type}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
+          value={value}
+          aria-required={required ? "true" : undefined}
+          aria-invalid={invalid ? "true" : undefined}
+          aria-describedby={hint ? hintId : undefined}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </label>
+      {required ? (
+        <span className="planner-required" aria-hidden="true">
+          Required
+        </span>
+      ) : null}
+      {hint ? (
+        <p id={hintId} className="planner-field-note">
+          {hint}
+        </p>
+      ) : null}
+    </div>
   );
 }
 

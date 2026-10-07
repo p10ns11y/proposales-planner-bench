@@ -27,6 +27,7 @@ const scope = [
   { file: "src/flow/brief-language.ts" },
   { file: "src/flow/filing-guard.ts" },
   { file: "src/views/file-brief-state.ts" },
+  { file: "src/views/speech-input.ts" },
   { file: "src/views/more-update.ts" },
 ];
 
