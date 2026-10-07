@@ -224,7 +224,11 @@ describe("mixed currency ranking", () => {
       },
     ];
     expect(brief.budget).toEqual({ amount: 300, currency: "EUR", approximate: true });
-    const ranked = rankComparisonRows(compareOffers(brief, offers, "2026-10-07"), brief.budget?.currency);
+    const stated = {
+      ...brief,
+      budget: { amount: 300, currency: "EUR" as const, approximate: true, scope: "total" as const },
+    };
+    const ranked = rankComparisonRows(compareOffers(stated, offers, "2026-10-07"), stated.budget.currency);
     expect(ranked.map((row) => row.venueName)).toEqual([
       "Canal Loft",
       "Archipelago Room",

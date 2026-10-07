@@ -19,6 +19,7 @@ export const comparisonRowSchema = z.object({
   totalMinor: minorUnitsSchema,
   expiresAt: z.string().optional(),
   gaps: z.array(z.string()),
+  neutral: z.array(z.string()).optional(),
   favorite: z.boolean(),
   heldByCompanyName: z.string().optional(),
   blocks: z.array(offerBlockSchema).optional(),

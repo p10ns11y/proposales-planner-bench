@@ -330,6 +330,7 @@ function shellRow(overrides: Partial<ShellRow> & Pick<ShellRow, "venueName">): S
     total: "0.00 EUR",
     expires: "2026-12-01",
     gaps: [],
+    neutral: [],
     favorite: false,
     blocks: [],
     ...overrides,

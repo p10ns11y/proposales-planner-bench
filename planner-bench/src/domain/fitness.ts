@@ -1,6 +1,6 @@
 import { makeConditionalSchemaTransformer } from "@adaptate/core";
 import type { ZodType } from "zod";
-import { plannerBriefSchema, stayNeedsRooms } from "./planner-brief";
+import { budgetNeedsBasis, plannerBriefSchema, stayNeedsRooms, type PlannerBrief } from "./planner-brief";
 import { venueOfferSchema } from "./venue-offer";
 
 export const briefFitnessConsumers = ["brief:fileable", "brief:comparable"] as const;
@@ -101,8 +101,21 @@ const questionByField: Record<string, string> = {
   venueName: "Which venue sent this offer?",
   currency: "Which currency is this offer in?",
   totalMinor: "What is the offer total in minor units?",
+  budgetBasis: "Is that per person or total?",
 };
 
 export function questionForGap(field: string): string {
   return questionByField[field] ?? `What should we use for ${field}?`;
+}
+
+export function briefConfirmHold(brief: PlannerBrief): { gaps: string[]; question: string } | null {
+  const gaps = findBriefGaps(brief, "brief:comparable");
+  const first = gaps[0];
+  if (first !== undefined) {
+    return { gaps, question: questionForGap(first) };
+  }
+  if (budgetNeedsBasis(brief)) {
+    return { gaps: ["budgetBasis"], question: questionForGap("budgetBasis") };
+  }
+  return null;
 }

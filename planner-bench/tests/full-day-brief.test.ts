@@ -52,7 +52,9 @@ describe("full day brief", () => {
     const turn = turnBodySchema.parse(await response.json());
     expect(turn.planner).toBe("scripted");
     assertStockholmOffsite(turn.snapshot.brief);
-    assertConfirming(turn.snapshot);
+    expect(turn.snapshot.phase).toBe("confirm");
+    expect(turn.snapshot.gaps).toEqual(["budgetBasis"]);
+    expect(turn.snapshot.nextQuestion).toBe("Is that per person or total?");
     expect(turn.snapshot.offerSource).toBe("fixture");
 
     const scripted = await runFixtureTurn({
@@ -63,6 +65,8 @@ describe("full day brief", () => {
     });
     expect(scripted.snapshot.phase).toBe("confirm");
     expect(scripted.reply).toContain(fullDayStatement);
+    expect(scripted.reply).toContain("Is that per person or total?");
+    expect(scripted.snapshot.gaps).toEqual(["budgetBasis"]);
     assertStockholmOffsite(scripted.snapshot.brief);
 
     let current = turn.snapshot;
@@ -74,20 +78,29 @@ describe("full day brief", () => {
       current = next.snapshot;
     }
 
+    const answered = await runViewportAction({
+      action: { type: "gapAnswered", text: "total" },
+      snapshot: current,
+      client,
+      today,
+    });
+    assertConfirming(answered.snapshot);
+    assertStockholmOffsite(answered.snapshot.brief, "total");
+
     const confirmed = await runViewportAction({
       action: { type: "briefConfirmed" },
-      snapshot: turn.snapshot,
+      snapshot: answered.snapshot,
       client,
       today,
     });
     expect(confirmed.snapshot.phase).toBe("favorites");
     expect(confirmed.snapshot.filing).toBeNull();
     expect(confirmed.snapshot.offerSource).toBe("fixture");
-    assertStockholmOffsite(confirmed.snapshot.brief);
+    assertStockholmOffsite(confirmed.snapshot.brief, "total");
 
     const affirmed = await runViewportAction({
       action: { type: "composerSubmitted", text: "yes" },
-      snapshot: turn.snapshot,
+      snapshot: answered.snapshot,
       client,
       today,
     });
@@ -129,7 +142,9 @@ describe("full day brief", () => {
     expect(turn.planner).toBe("model");
     expect(turn.snapshot.brief.eventTitle).toBe("Team offsite");
     assertStockholmOffsite(turn.snapshot.brief);
-    assertConfirming(turn.snapshot);
+    expect(turn.snapshot.phase).toBe("confirm");
+    expect(turn.snapshot.gaps).toEqual(["budgetBasis"]);
+    expect(turn.snapshot.nextQuestion).toBe("Is that per person or total?");
 
     const client = createFixtureClient();
     const skipped = await runViewportAction({
@@ -139,9 +154,24 @@ describe("full day brief", () => {
       today,
     });
     expect(skipped.snapshot.phase).toBe("confirm");
-    const confirmed = await runViewportAction({
+    const tooSoon = await runViewportAction({
       action: { type: "briefConfirmed" },
       snapshot: turn.snapshot,
+      client,
+      today,
+    });
+    expect(tooSoon.snapshot.phase).toBe("confirm");
+    const answered = await runViewportAction({
+      action: { type: "gapAnswered", text: "total" },
+      snapshot: turn.snapshot,
+      client,
+      today,
+    });
+    assertConfirming(answered.snapshot);
+    assertStockholmOffsite(answered.snapshot.brief, "total");
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: answered.snapshot,
       client,
       today,
     });
@@ -161,7 +191,9 @@ describe("full day brief", () => {
     expect(turn.planner).toBe("model");
     expect(turn.snapshot.brief.eventTitle).toBe("Team offsite");
     assertStockholmOffsite(turn.snapshot.brief);
-    assertConfirming(turn.snapshot);
+    expect(turn.snapshot.nextQuestion).toBe("Is that per person or total?");
+    expect(turn.snapshot.brief.startTime).toBe("09:00");
+    expect(turn.snapshot.brief.endTime).toBe("17:00");
   });
 
   it("keeps a brief with missing time on the brief step for every early transition", async () => {
@@ -214,11 +246,19 @@ describe("full day brief", () => {
       client,
       today,
     });
+    expect(answered.snapshot.nextQuestion).toBe("Is that per person or total?");
     assertStockholmOffsite(answered.snapshot.brief);
-    assertConfirming(answered.snapshot);
+    const basis = await runViewportAction({
+      action: { type: "gapAnswered", text: "total" },
+      snapshot: answered.snapshot,
+      client,
+      today,
+    });
+    assertStockholmOffsite(basis.snapshot.brief, "total");
+    assertConfirming(basis.snapshot);
     const confirmed = await runViewportAction({
       action: { type: "briefConfirmed" },
-      snapshot: answered.snapshot,
+      snapshot: basis.snapshot,
       client,
       today,
     });
@@ -300,10 +340,15 @@ describe("full day brief", () => {
       spaceMinor: minorUnits(5_000),
       totalMinor: minorUnits(40_000),
     };
-    expect(comparisonGaps(brief, plain, today)).toEqual(["breakout", "vegetarian", "budget"]);
+    const totalBrief = {
+      ...brief,
+      budget: { amount: 300, currency: "EUR" as const, approximate: true as const, scope: "total" as const },
+    };
+    expect(comparisonGaps(brief, plain, today)).toEqual(["breakout", "vegetarian"]);
+    expect(comparisonGaps(totalBrief, plain, today)).toEqual(["breakout", "vegetarian", "budget"]);
     expect(
       comparisonGaps(
-        brief,
+        totalBrief,
         {
           ...plain,
           totalMinor: minorUnits(30_000),
@@ -314,7 +359,11 @@ describe("full day brief", () => {
       ),
     ).toEqual([]);
     expect(
-      comparisonGaps(brief, { ...plain, totalMinor: minorUnits(30_001), breakoutRoomCount: 1, dietaryNeeds: ["vegetarian"] }, today),
+      comparisonGaps(
+        totalBrief,
+        { ...plain, totalMinor: minorUnits(30_001), breakoutRoomCount: 1, dietaryNeeds: ["vegetarian"] },
+        today,
+      ),
     ).toEqual(["budget"]);
     expect(
       comparisonGaps(
@@ -383,7 +432,7 @@ describe("full day brief", () => {
   });
 });
 
-function assertStockholmOffsite(brief: PlannerBrief) {
+function assertStockholmOffsite(brief: PlannerBrief, scope?: "total" | "per-person") {
   expect(brief.city).toBe("Stockholm");
   expect(brief.startDate).toBe("2026-12-03");
   expect(brief.endDate).toBe("2026-12-03");
@@ -394,7 +443,12 @@ function assertStockholmOffsite(brief: PlannerBrief) {
   expect(brief.breakoutRoomCount).toBe(1);
   expect(brief.foodRequired).toBe(true);
   expect(brief.foodRequest).toEqual({ meal: "lunch", dietaryNeeds: ["vegetarian"] });
-  expect(brief.budget).toEqual({ amount: 300, currency: "EUR", approximate: true });
+  expect(brief.budget).toEqual({
+    amount: 300,
+    currency: "EUR",
+    approximate: true,
+    ...(scope !== undefined ? { scope } : {}),
+  });
 }
 
 function assertConfirming(snapshot: PlannerSnapshot) {

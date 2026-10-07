@@ -1,3 +1,13 @@
+export function neutralChipName(mark: string): string {
+  if (mark === "breakout") {
+    return "Breakout not stated";
+  }
+  if (mark === "diet") {
+    return "Diet not stated";
+  }
+  return "Not stated";
+}
+
 export function gapLabel(gap: string): string {
   if (gap === "foodAndBeverage") {
     return "No food";

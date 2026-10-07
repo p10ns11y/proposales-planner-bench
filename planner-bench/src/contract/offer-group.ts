@@ -20,6 +20,7 @@ export const offerPartSchema = z.object({
   expires: z.string(),
   expiresLabel: z.string(),
   gaps: z.array(z.string()),
+  neutral: z.array(z.string()).optional(),
   bestMatch: z.boolean(),
   favorite: z.boolean(),
   blocks: z.array(offerBlockPartSchema),

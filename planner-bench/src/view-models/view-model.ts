@@ -44,6 +44,7 @@ export type ShellRow = {
   total: string;
   expires: string;
   gaps: string[];
+  neutral: string[];
   favorite: boolean;
   blocks: ShellBlock[];
 };

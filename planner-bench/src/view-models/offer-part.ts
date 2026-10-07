@@ -45,6 +45,7 @@ export function offerPartFromRow(row: ShellRow, bestMatch: boolean): OfferPart {
     expires: row.expires,
     expiresLabel: expiresLabel(row.expires, expired),
     gaps: row.gaps,
+    neutral: row.neutral,
     bestMatch: bestMatch && !expired,
     favorite: row.favorite,
     blocks: row.blocks,
