@@ -10,26 +10,31 @@ type GridRow = {
   proposalUuid?: string;
 };
 
-test("brief confirms the assumed day and ranks only after confirm", async ({ page }) => {
-  await reachConfirm(page);
+test("brief confirms the assumed day, asks the budget basis, and ranks only after confirm", async ({ page }) => {
+  await reachBasisQuestion(page);
   await expect(page.locator("[data-lcv-fact=city]")).toHaveText("Stockholm");
   await expect(page.locator("[data-lcv-fact=date]")).toContainText("2026");
   await expect(page.locator("[data-lcv-fact=time]")).toHaveText("09:00\u201317:00");
   await expect(page.locator("[data-lcv-fact=attendees]")).toHaveText("25 people");
   await expect(page.locator("[data-lcv-fact=budget]")).toHaveText("EUR 300");
-  await expect(page.locator("[data-lcv-fact=budget-basis]")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 2 })).toHaveAttribute("data-lcv-fact", "budget-basis");
+  await expect(page.locator("span[data-lcv-fact=budget-basis]")).toHaveCount(0);
   await expect(page.locator("p[data-must-show=facts]")).toContainText("09:00");
   await expect(page.locator("p[data-must-show=facts]")).toContainText("17:00");
   await expect(page.locator("[data-lcv-machine=chat]")).toHaveAttribute("data-lcv-ui-state", "chat:confirm");
+  await expect(page.getByRole("button", { name: "Yes" })).toHaveCount(0);
   await expect(page.locator("[data-offer-card]")).toHaveCount(0);
 
+  await answerTotal(page);
   await page.getByRole("button", { name: "Yes" }).click();
   await expect(page.locator("[data-lcv-machine=chat]")).toHaveAttribute("data-lcv-ui-state", "chat:favorites");
   await expect(page.locator("[data-offer-card]")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Skip" }).click();
   await expect(page.locator("[data-lcv-machine=chat]")).toHaveAttribute("data-lcv-ui-state", "chat:results");
-  await expect(page.locator("[data-offer-card]").first()).toBeVisible();
+  const overBudget = page.locator("[data-offer-card]").filter({ has: page.locator("[data-lcv-chip=over-budget]") });
+  await expect(overBudget).toHaveCount(1);
+  await expect(overBudget.locator("[data-lcv=must-show]").filter({ hasText: "EUR" })).toHaveCount(1);
 });
 
 test("ranks Best match on the first open offer and keeps the counts aligned", async ({ page }) => {
@@ -141,13 +146,27 @@ test("shows Compare for two or three wide offers only", async ({ page }) => {
   await expectWideCompare(page, false);
 });
 
-async function reachConfirm(page: Page) {
+async function reachBasisQuestion(page: Page) {
   await page.goto("/");
   await expect(page.locator("[data-lcv-marker=detail]")).toHaveAttribute("data-lcv-ui-state", "detail:closed");
   await expect(page.locator("[data-lcv-marker=more]")).toHaveAttribute("data-lcv-ui-state", "more:closed");
   await page.getByRole("textbox", { name: "What are you planning?" }).fill(fullDay);
   await page.locator("[data-lcv-event=send]").click();
+  await expect(page.getByRole("heading", { level: 2 })).toHaveAttribute("data-lcv-fact", "budget-basis");
+  await expect(page.locator("[data-lcv-event=answer-basis]")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Yes" })).toHaveCount(0);
+}
+
+async function answerTotal(page: Page) {
+  await page.locator("#composer").fill("total");
+  await page.locator("[data-lcv-event=answer-basis]").click();
+  await expect(page.locator("span[data-lcv-fact=budget-basis]")).toHaveText(/total/i);
   await expect(page.getByRole("button", { name: "Yes" })).toBeVisible();
+}
+
+async function reachConfirm(page: Page) {
+  await reachBasisQuestion(page);
+  await answerTotal(page);
 }
 
 async function reachResults(page: Page, offers?: number) {

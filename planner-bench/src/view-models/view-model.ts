@@ -62,6 +62,7 @@ export type ShellViewModel = {
   errorText: string | null;
   speechAvailable: boolean;
   ask: string;
+  askMark: "budget-basis" | null;
   askLabelsComposer: boolean;
   notice: string | null;
   draftConfirmation: string | null;

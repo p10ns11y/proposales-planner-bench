@@ -281,6 +281,7 @@ function resultsModel(rows: ShellRow[]): ShellViewModel {
     errorText: null,
     speechAvailable: false,
     ask: placesSentence(rows),
+    askMark: null,
     askLabelsComposer: true,
     notice: null,
     draftConfirmation: null,

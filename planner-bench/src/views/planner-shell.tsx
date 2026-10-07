@@ -450,13 +450,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 className="planner-send"
                 aria-label="Send"
                 disabled={viewModel.busy || !viewModel.ready || draft.trim() === ""}
-                {...lcvInteract({
-                  event: "send",
-                  from: chatState(viewModel.phase),
-                  success: sendSuccess(viewModel.phase),
-                  fail: chatState(viewModel.phase),
-                  interrupted: chatState(viewModel.phase),
-                })}
+                {...sendEdge(viewModel)}
               >
                 <span className="planner-send-face">
                   <ArrowUp aria-hidden="true" />
@@ -536,7 +530,7 @@ function LiveCopy({
       <h2
         className="planner-text"
         data-must-show={factsMarked ? "facts" : undefined}
-        {...replyMarks(viewModel.phase)}
+        {...askMarks(viewModel)}
       >
         {viewModel.askLabelsComposer ? <label htmlFor="composer">{viewModel.ask}</label> : viewModel.ask}
       </h2>
@@ -680,6 +674,38 @@ function openMoreEdge() {
     fail: "more:closed",
     interrupted: "more:closed",
   });
+}
+
+function sendEdge(viewModel: ShellViewModel) {
+  const state = chatState(viewModel.phase);
+  if (viewModel.askMark === "budget-basis") {
+    return lcvInteract({
+      event: "answer-basis",
+      from: state,
+      success: state,
+      fail: state,
+      interrupted: state,
+    });
+  }
+  return lcvInteract({
+    event: "send",
+    from: state,
+    success: sendSuccess(viewModel.phase),
+    fail: state,
+    interrupted: state,
+  });
+}
+
+function askMarks(viewModel: ShellViewModel): {
+  "data-lcv"?: "must-show";
+  "data-lcv-fact"?: "budget-basis";
+  "data-lcv-reply"?: "sentence";
+  "data-lcv-count"?: "reply";
+} {
+  if (viewModel.askMark === "budget-basis") {
+    return { "data-lcv": "must-show", "data-lcv-fact": "budget-basis" };
+  }
+  return replyMarks(viewModel.phase);
 }
 
 function replyMarks(phase: ShellViewModel["phase"]): {

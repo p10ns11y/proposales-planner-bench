@@ -52,6 +52,7 @@ function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
     errorText: null,
     speechAvailable: false,
     ask: "Stockholm, 12 November 2026, 40 people",
+    askMark: null,
     askLabelsComposer: true,
     notice: null,
     draftConfirmation: null,

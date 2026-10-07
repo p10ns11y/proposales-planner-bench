@@ -342,6 +342,7 @@ function OfferChips({ offer }: { offer: OfferPart }) {
           className="planner-chip planner-chip-not-stated"
           data-facet={mark}
           aria-label={neutralChipName(mark)}
+          {...notStatedMark()}
         >
           Not stated
         </span>
@@ -432,7 +433,14 @@ function chipMark(gap: string): { "data-lcv"?: "must-show"; "data-lcv-chip"?: st
   if (gap === "foodAndBeverage") {
     return { "data-lcv": "must-show", "data-lcv-chip": "no-food" };
   }
+  if (gap === "budget") {
+    return { "data-lcv": "must-show", "data-lcv-chip": "over-budget" };
+  }
   return {};
+}
+
+function notStatedMark(): { "data-lcv": "must-show"; "data-lcv-chip": "not-stated" } {
+  return { "data-lcv": "must-show", "data-lcv-chip": "not-stated" };
 }
 
 function monogram(name: string): string {

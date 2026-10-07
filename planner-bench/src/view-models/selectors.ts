@@ -63,6 +63,7 @@ export function shellViewModel(input: {
     errorText: input.errorText,
     speechAvailable: input.speechAvailable,
     ask: askFor(phase, question, readyToConfirm, visibleRows),
+    askMark: snapshot?.gaps[0] === "budgetBasis" ? "budget-basis" : null,
     askLabelsComposer: phase === "capture" || askingGap || phase === "favorites" || phase === "results",
     notice: visibleNotice(snapshot),
     draftConfirmation: snapshot?.filing?.path === "draft" ? draftCreatedNotice : null,

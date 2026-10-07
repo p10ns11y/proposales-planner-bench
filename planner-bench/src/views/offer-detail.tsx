@@ -142,6 +142,8 @@ export function OfferDetail({
                         className="planner-chip planner-chip-not-stated"
                         data-facet={mark}
                         aria-label={neutralChipName(mark)}
+                        data-lcv="must-show"
+                        data-lcv-chip="not-stated"
                       >
                         Not stated
                       </span>
@@ -247,6 +249,9 @@ function detailChipMark(gap: string): { "data-lcv"?: "must-show"; "data-lcv-chip
   }
   if (gap === "foodAndBeverage") {
     return { "data-lcv": "must-show", "data-lcv-chip": "no-food" };
+  }
+  if (gap === "budget") {
+    return { "data-lcv": "must-show", "data-lcv-chip": "over-budget" };
   }
   return {};
 }
