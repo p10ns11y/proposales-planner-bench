@@ -11,9 +11,6 @@ importers:
       '@adaptate/core':
         specifier: ^2.2.2
         version: 2.2.2(zod@4.6.5)
-      '@adaptate/utils':
-        specifier: ^2.2.2
-        version: 2.2.2(@types/json-schema@7.0.15)(zod@4.6.5)
       '@ai-sdk/react':
         specifier: ^4.0.131
         version: 4.0.131(react@19.2.8)(zod@4.6.5)
@@ -63,6 +60,9 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@adaptate/utils':
+        specifier: ^2.2.2
+        version: 2.2.2(@types/json-schema@7.0.15)(zod@4.6.5)
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.3.3

@@ -35,6 +35,10 @@ Restart `pnpm dev`, then open localhost port 3000. Use the same Stockholm line, 
 
 Leave `XAI_API_KEY` and `PLANNER_MODEL` empty to keep the scripted extractor.
 
+## API contract
+
+The committed spec is `src/contract/openapi.json`. Contract tests turn that file into Zod schemas with `@adaptate/utils`. Those schemas stay in the tests. At runtime, `src/proposales/http-client.ts` checks responses with tolerant readers, because real responses carry nulls and loose URLs or emails.
+
 ## Model
 
 Grok runs through xAI only when `XAI_API_KEY` is set on the server. The default model id is `grok-4.7`. `PLANNER_MODEL` overrides that id. A missing key, a model error, or a timeout falls back to the scripted extractor within about 20 seconds. Brief extraction requests low reasoning effort. A Vercel deploy without `XAI_API_KEY` stays scripted.

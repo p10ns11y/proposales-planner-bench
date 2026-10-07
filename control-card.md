@@ -12,7 +12,7 @@ The next session uses [control-card-productize.md](./control-card-productize.md)
 | Concern | Choice | Role in the app |
 |---|---|---|
 | Framework | Next.js App Router on Vercel | Hosting, route handlers for the agent |
-| API contract | `@adaptate/utils` (`openAPISchemaToZod`) | Zod schemas generated from `openapi.json` for `Proposal`, `Company`, `CreateRfpRequest`. Validates fixtures and live responses. |
+| API contract | `@adaptate/utils` (`openAPISchemaToZod`) | Zod schemas generated from the committed `planner-bench/src/contract/openapi.json` for contract tests. Runtime checks use the tolerant readers in `http-client.ts`. |
 | Model fitness | `@adaptate/core` (`transformSchema`, `makeConditionalSchemaTransformer`) | One deep-partial `PlannerBrief` schema. Each consumer has a config of required fields. Whatever fails the config is the gap list, and the agent's next question. Example of a conditional rule: rooms are required when the end date is after the start date. |
 | Agent | Vercel AI SDK (`streamText` with tools, `useChat`) | Chat-first intake. Tools: `updateBrief`, `fileBrief`, `addOffer`, `compareOffers`. |
 | Voice | Browser Web Speech API for input | No key needed. Speech goes into the same chat. |
@@ -60,7 +60,7 @@ pnpm build
 | S1 | Scaffold `planner-bench/`: Next.js App Router, TypeScript, Tailwind, Vitest, Zod, `ai` SDK. `git init`. | — | `pnpm build` passes on an empty page | coding |
 | S2 | Generate Zod schemas from `openapi.json` with `@adaptate/utils`. First check that it accepts a JSON spec (its loader documents YAML). Fixtures: `companies` (token set and `null` variants), 3 venue proposals with different prices, extras, and expiry, 2 sample briefs. Contract test. | S1 | contract test passes | coding |
 | S3 | Domain: deep-partial `PlannerBrief` and `VenueOffer`. Fitness configs per consumer with `@adaptate/core` (`brief:fileable`, `brief:comparable`, `offer:gridRow`). `normaliseProposal()` from `package_split`. `findGaps()` = fields that fail the fitness check. Unit tests. | S2 | tests pass | coding |
-| S4 | `ProposalesClient` port with `fixture` and `http` adapters, chosen by `PROPOSALES_MODE`. Live responses are parsed with the generated schemas. `fileBrief()` picks inbox or draft from `inbox_token`. | S2 | mode-switch and path tests pass | coding |
+| S4 | `ProposalesClient` port with `fixture` and `http` adapters, chosen by `PROPOSALES_MODE`. Live responses are parsed with the tolerant readers in `http-client.ts`. `fileBrief()` picks inbox or draft from `inbox_token`. | S2 | mode-switch and path tests pass | coding |
 | S5 | Agent route: AI SDK `streamText` with tools `updateBrief`, `fileBrief`, `addOffer`, `compareOffers`. The next question comes from the gap list. Scripted fixture agent when there is no model key. | S3, S4 | tests pass with no key | coding |
 | S6 | UI shell with shadcn: Chat (text and Web Speech input), Results grid, History (`localStorage`). Plain styling only. | S5 | `pnpm build` passes and the flow works on fixtures | coding |
 | S7 | Fresh-context review of plan and diff, plus a `layout-content-view` pass on the three views. Update `journey.md` and `worklog.md`. | S6 | pass/fail and gaps listed | review |
@@ -79,18 +79,18 @@ S3 and S4 can run in parallel after S2.
 - `typecheck` still needs `next typegen` first, because `LayoutProps` is a generated type.
 
 ## open decisions
-- 2026-10-06: `getDereferencedOpenAPIDocument` loads `.firecrawl/openapi.json`. js-yaml accepts the JSON, so the component-schema fallback was not used. A company with `tax_mode: "nope"` fails, which shows `$ref` resolution is in effect.
-- `openAPISchemaToZod` drops `additionalProperties`. Known fields are still checked with the generated schemas. The HTTP adapter sends the original `Proposal.data` and inbox metadata so the brief is not stripped.
+- 2026-10-06: `getDereferencedOpenAPIDocument` loads the committed `planner-bench/src/contract/openapi.json`. js-yaml accepts the JSON, so the component-schema fallback was not used. A company with `tax_mode: "nope"` fails, which shows `$ref` resolution is in effect. Generated schemas check fixtures in contract tests. Live responses are checked by the tolerant readers in `http-client.ts`.
+- `openAPISchemaToZod` drops `additionalProperties`. Known fields on fixtures are still checked with the generated schemas. The HTTP adapter sends the original `Proposal.data` and inbox metadata so the brief is not stripped.
 - Offer totals use `value_without_tax` when present, otherwise `value_with_tax`, multiplied by block `quantity` (default 1). Minor units stay branded until the view model formats them.
 - No model key uses the scripted agent. A live model uses the AI SDK gateway when `AI_GATEWAY_API_KEY` is set. `PLANNER_MODEL` defaults to `openai/gpt-4.1-mini`. No provider package was added.
-- The spec is read from `../.firecrawl/openapi.json` relative to the planner-bench working directory. A deploy whose root is only `planner-bench/` would not see that file. Deploy stays a later human gate.
+- The spec path is `planner-bench/src/contract/openapi.json`. Contract tests load it. API routes leave the file unread.
 - `pnpm audit` reports one high advisory in `braces@3.0.3`. It is reached only through `eslint-config-next`, used for linting in development. No patched version exists. Do not override it; re-run audit before deploy.
 - Web Speech still depends on the browser. Typed input is always available.
 
 ## compact context for any new agent
-- Read only: this card, `workflow.md`, `.firecrawl/openapi.json`, and the doc pages in `.firecrawl/docs/` named by a step.
+- Read only: this card, `workflow.md`, and `planner-bench/src/contract/openapi.json`.
 - Do not read: `proposales-report.md`, `review.md`, `journey.md`, or agent transcripts, unless a step needs a fact that is missing here.
-- Workspace: `/home/sustainableabundance/dev/tech-cases/proposales/`. App: `planner-bench/`. Node 24, pnpm 9.
+- Workspace: `.` (repository root). App: `planner-bench/`. Node 24, pnpm 9.
 - Git root is this workspace, not `planner-bench/`. Do not run `git init` inside the app. Small steps can commit to `main`. Larger features go on a branch and a pull request.
 - No secrets exist yet. Fixture mode is the default. Never ask the human during EXECUTE; log open decisions on this card.
 
@@ -98,5 +98,5 @@ S3 and S4 can run in parallel after S2.
 - none
 
 ## handoff
-- artifacts: `control-card.md`, `proposales-report.md`, `review.md`, `.firecrawl/openapi.json`
-- open_risks: deploy root must include `.firecrawl/openapi.json` or the schema loader breaks; `additionalProperties` are not kept by the generated Zod schemas (the adapter sends the original metadata); Web Speech support varies by browser (text input is always available); `braces` audit advisory is dev-only and has no patch
+- artifacts: `control-card.md`, `proposales-report.md`, `review.md`, `planner-bench/src/contract/openapi.json`
+- open_risks: `additionalProperties` are not kept by the generated Zod schemas (the adapter sends the original metadata); Web Speech support varies by browser (text input is always available); `braces` audit advisory is dev-only and has no patch
