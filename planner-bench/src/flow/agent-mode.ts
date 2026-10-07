@@ -4,9 +4,9 @@ import { mergeBrief, plannerBriefSchema, type PlannerBrief } from "../domain/pla
 import { extractBriefPatch } from "./fixture-extractor";
 import type { PlannerChatEnv } from "./planner-chat";
 
-export const defaultPlannerModelId = "grok-4.20-0309-non-reasoning";
+export const defaultPlannerModelId = "grok-4.7";
 
-export const modelAttemptMs = 4_000;
+export const modelAttemptMs = 8_000;
 
 export function modelAttemptSignal(): AbortSignal {
   return AbortSignal.timeout(modelAttemptMs);

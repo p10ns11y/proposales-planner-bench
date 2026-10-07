@@ -29,7 +29,7 @@ describe("model and scripted switch", () => {
       provider: "xai.responses",
       modelId: defaultPlannerModelId,
     });
-    expect(defaultPlannerModelId).toBe("grok-4.20-0309-non-reasoning");
+    expect(defaultPlannerModelId).toBe("grok-4.7");
   });
 
   it("lets PLANNER_MODEL override the xAI model id", () => {
@@ -107,20 +107,20 @@ describe("model and scripted switch", () => {
   });
 
   it(
-    "aborts a model attempt within about four seconds",
+    "aborts a model attempt within about eight seconds",
     async () => {
-      expect(modelAttemptMs).toBe(4_000);
+      expect(modelAttemptMs).toBe(8_000);
       const started = Date.now();
       const signal = modelAttemptSignal();
       await new Promise<void>((resolve, reject) => {
         signal.addEventListener("abort", () => resolve(), { once: true });
-        setTimeout(() => reject(new Error("model attempt ran long")), 4_500);
+        setTimeout(() => reject(new Error("model attempt ran long")), 9_000);
       });
       const elapsed = Date.now() - started;
-      expect(elapsed).toBeGreaterThanOrEqual(3_500);
-      expect(elapsed).toBeLessThanOrEqual(4_500);
+      expect(elapsed).toBeGreaterThanOrEqual(7_500);
+      expect(elapsed).toBeLessThanOrEqual(8_500);
     },
-    8_000,
+    12_000,
   );
 });
 
