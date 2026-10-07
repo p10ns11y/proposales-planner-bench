@@ -49,7 +49,9 @@ describe("filing path", () => {
     const brief = sampleBrief(1);
     expect(inboxBody(brief).is_test).toBe("1");
     expect(draftBody(brief).data.message).toBe(brief.message);
+    expect(draftBody(brief).data.planner_bench_brief).toBe(true);
     expect(draftBody(brief).company_id).toBe(1);
+    expect(inboxBody(brief)).not.toHaveProperty("planner_bench_brief");
   });
 });
 
@@ -129,7 +131,10 @@ describe("http client", () => {
     expect(draftCall?.authorization).toBe("Bearer test-key");
     expect(draftCall?.body).toMatchObject({
       company_id: 2,
-      data: { message: "40 rooms, 12 to 14 April, one plenary." },
+      data: {
+        message: "40 rooms, 12 to 14 April, one plenary.",
+        planner_bench_brief: true,
+      },
     });
 
     const proposal = await client.getProposal("11111111-1111-4111-8111-111111111111");
@@ -163,6 +168,62 @@ describe("http client", () => {
     expect(calls.map((call) => call.userAgent)).toEqual(calls.map(() => plannerUserAgent));
     expect(calls.some((call) => call.url.includes("/v3/proposal-search"))).toBe(true);
     expect(plannerUserAgent).toBe("planner-bench/0.1.0");
+  });
+
+  it("skips a filed brief and still fetches seeded venue drafts", async () => {
+    const briefUuid = "dddddddd-dddd-4ddd-8ddd-ddddddddddd1";
+    const calls: string[] = [];
+    const fetchImpl: typeof fetch = async (input) => {
+      const url = String(input);
+      calls.push(url);
+      if (url.includes("/v3/proposal-search")) {
+        return Response.json({
+          data: [
+            ...liveDraftProposals.map((proposal) => ({
+              ...liveSearchItem(proposal),
+              data: { planner_bench_seed: true },
+            })),
+            {
+              company_id: 9,
+              created_at: 1_700_000_200,
+              data: {
+                email: "planner@example.com",
+                message: "A place in Stockholm.",
+                planner_bench_brief: true,
+              },
+              series_uuid: "dddddddd-dddd-4ddd-8ddd-ddddddddddd2",
+              status: "draft",
+              title: "Stockholm, 2026-11-12",
+              updated_at: 1_700_000_300,
+              url: `https://example.test/proposals/${briefUuid}`,
+              uuid: briefUuid,
+              version: 1,
+            },
+          ],
+        });
+      }
+      if (url.includes(briefUuid)) {
+        return Response.json({ data: { title: "Stockholm, 2026-11-12", uuid: briefUuid } });
+      }
+      const proposal = liveDraftProposals.find((item) => url.includes(item.uuid));
+      if (proposal !== undefined) {
+        return Response.json({ data: proposal });
+      }
+      return Response.json({ data: [] }, { status: 404 });
+    };
+    const client = createHttpClient({
+      apiKey: "present",
+      fetchImpl,
+      baseUrl: "https://api.proposales.com",
+    });
+    const proposals = await client.loadVenueProposals();
+    expect(proposals.map((proposal) => normaliseProposal(proposal).venueName)).toEqual([
+      "Harbour House",
+      "Ridge Hall",
+      "Canal Loft",
+    ]);
+    expect(calls.some((url) => url.includes(briefUuid))).toBe(false);
+    expect(calls.some((url) => url.includes("/v3/proposal-search"))).toBe(true);
   });
 
   it("reads a company and draft proposals when formats and nulls do not match the strict schema", async () => {

@@ -42,6 +42,15 @@ export function inboxBody(brief: BriefDraft): Record<string, string> {
   return body;
 }
 
+export const plannerBenchBriefKey = "planner_bench_brief";
+
+export function isPlannerBenchBrief(data: unknown): boolean {
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+  return Reflect.get(data, plannerBenchBriefKey) === true;
+}
+
 export const draftCreatedNotice = "A draft was created in Proposales.";
 
 export const filingUnavailableNotice = "Filing is unavailable right now.";
@@ -70,12 +79,15 @@ export function draftBody(brief: BriefDraft): {
   company_id: number;
   language: string;
   title_md: string;
-  data: Record<string, string>;
+  data: Record<string, string | boolean>;
 } {
   return {
     company_id: brief.companyId,
     language: brief.language,
     title_md: draftTitle(brief),
-    data: inboxBody(brief),
+    data: {
+      ...inboxBody(brief),
+      [plannerBenchBriefKey]: true,
+    },
   };
 }

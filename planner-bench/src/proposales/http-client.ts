@@ -1,6 +1,6 @@
 import { z } from "zod";
 import packageJson from "../../package.json";
-import { draftBody, filingPath, inboxBody } from "./filing";
+import { draftBody, filingPath, inboxBody, isPlannerBenchBrief } from "./filing";
 import type { CompanyRecord, FileBriefResult, ProposalesClient } from "./types";
 
 export const plannerUserAgent = `planner-bench/${packageJson.version}`;
@@ -32,6 +32,7 @@ const searchEnvelopeReader = z.object({
 
 const searchIdentityReader = z.object({
   uuid: z.string(),
+  data: z.unknown().optional(),
 });
 
 export type HttpClientOptions = {
@@ -124,7 +125,7 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
       const proposals: unknown[] = [];
       for (const item of search.data) {
         const identity = searchIdentityReader.safeParse(item);
-        if (!identity.success) {
+        if (!identity.success || isPlannerBenchBrief(identity.data.data)) {
           continue;
         }
         const envelope = proposalEnvelopeReader.safeParse(

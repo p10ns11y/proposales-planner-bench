@@ -20,17 +20,8 @@ export function plannerLanguageModel(env: PlannerChatEnv): LanguageModel {
   return createXai({ apiKey: env.XAI_API_KEY })(plannerModelId(env));
 }
 
-export function plannerModelChoice(env: PlannerChatEnv): { provider: string; modelId: string } {
-  const model: unknown = plannerLanguageModel(env);
-  if (typeof model !== "object" || model === null) {
-    throw new Error("Model is missing an id");
-  }
-  const modelId = Reflect.get(model, "modelId");
-  const provider = Reflect.get(model, "provider");
-  if (typeof modelId !== "string" || typeof provider !== "string") {
-    throw new Error("Model is missing an id");
-  }
-  return { provider, modelId };
+export function plannerModelChoice(env: PlannerChatEnv): { provider: "xai"; modelId: string } {
+  return { provider: "xai", modelId: plannerModelId(env) };
 }
 
 function plannerModelId(env: PlannerChatEnv): string {

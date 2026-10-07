@@ -26,7 +26,7 @@ describe("model and scripted switch", () => {
   it("selects xAI and the default model when a key is set", () => {
     expect(modelIsUsable({ XAI_API_KEY: presentKey })).toBe(true);
     expect(plannerModelChoice({ XAI_API_KEY: presentKey })).toEqual({
-      provider: "xai.responses",
+      provider: "xai",
       modelId: defaultPlannerModelId,
     });
     expect(defaultPlannerModelId).toBe("grok-4.7");
@@ -36,11 +36,11 @@ describe("model and scripted switch", () => {
     expect(
       plannerModelChoice({
         XAI_API_KEY: presentKey,
-        PLANNER_MODEL: "grok-4.7",
+        PLANNER_MODEL: "grok-4.6",
       }),
     ).toEqual({
-      provider: "xai.responses",
-      modelId: "grok-4.7",
+      provider: "xai",
+      modelId: "grok-4.6",
     });
   });
 
