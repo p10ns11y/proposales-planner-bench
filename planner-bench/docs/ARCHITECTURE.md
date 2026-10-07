@@ -8,18 +8,18 @@ The bench takes a brief, confirms it, and ranks venues. Instants and `today` are
 flowchart LR
   browser[Browser]
   app["Next.js app on Vercel"]
-  api["Proposales API v3"]
+  api["Proposales API, v1 and v3"]
   model["xAI model via the AI SDK"]
-  browser -->|"GET /api/session and POST /api/turn"| app
-  app -->|"companies, proposals, filing"| api
-  app -->|"generateObject, 40 s"| model
+  browser -->|"session and turn"| app
+  app -->|"reads and filing"| api
+  app -->|"AI SDK"| model
 ```
 
 ![System context](diagrams/system-context.svg)
 
 The same picture is the System context page of [diagrams/architecture.tldr](diagrams/architecture.tldr).
 
-The browser runs `PlannerSession` from `planner-bench`. On Vercel that directory is the project root. Each post sends the action and the snapshot.
+The browser runs `PlannerSession` from `planner-bench`. On Vercel that directory is the project root. Each post sends the action, and the snapshot when the page has one.
 
 ## Request
 
@@ -42,7 +42,7 @@ sequenceDiagram
   Turn-->>Browser: 200, snapshot and planner
 ```
 
-A company-list failure still returns 200: no companies, `filingAvailable` false, notice `Filing is unavailable right now.` A missing snapshot loads the session again. `today` comes from `new Date().toISOString()`.
+A company-list failure still returns 200: no companies, `filingAvailable` false, notice `Filing is unavailable right now.` A missing snapshot loads the session again. `today` is `new Date().toISOString().slice(0, 10)`.
 
 Turn and chat set `maxDuration` to 60. The page calls session and turn. It does not call chat. Chat streams a reply, a snapshot, and a `data-offer-group` part. The tools `updateBrief`, `fileBrief`, `addOffer`, and `compareOffers` run the scripted turn. A stream failure, including the 40 second abort, falls back to that turn. The shell builds the same part locally.
 
@@ -54,33 +54,19 @@ A line that asks what this is sets `This finds a place for an event. Say the cit
 flowchart TD
   capture[capture] -->|brief text| confirm[confirm]
   confirm -->|questionForGap| confirm
-  confirm -->|Does this brief look right?| favorites[favorites]
-  favorites -->|Skip, or Harbour House, Ridge Hall, Canal Loft| results[results]
+  confirm -->|Yes, on Does this brief look right?| favorites[favorites]
+  favorites -->|Any reply. Harbour House, Ridge Hall, and Canal Loft match.| results[results]
   results -->|open a card| detail[detail]
   detail -->|close, offer query cleared| results
   results -->|an edit that opens a gap| confirm
-  confirm -->|file| filing[file, phase stays]
+  capture -->|file| filing[file, phase stays]
+  confirm -->|file| filing
+  favorites -->|file| filing
   results -->|file| filing
   detail -->|file| filing
 ```
 
 Detail sits over the thread and returns to the same place in the chat. The favorite mark does not change the sort. Post rules are in [Filing](#filing).
-
-```mermaid
-flowchart TD
-  session["GET /api/session"] --> capture["Capture"]
-  capture --> gaps["Gap questions"]
-  gaps --> confirm["Confirm"]
-  confirm --> favorites["Favorites"]
-  favorites --> results["Results"]
-  confirm -.->|"if it can be filed"| filing["Optional filing"]
-  results -.->|"say file"| filing
-  capture --> model["Model planner, 40 s"]
-  gaps --> model
-  results --> model
-  model -.->|"missing key, error, timeout"| scripted["Scripted fallback"]
-  duration["maxDuration 60 on turn and chat"]
-```
 
 ![Turn sequence](diagrams/turn-sequence.svg)
 
@@ -88,7 +74,7 @@ The same picture is the Turn sequence page of [diagrams/architecture.tldr](diagr
 
 A comparable brief needs a city, a start date, a start time, an attendee count, and an end time. The end time can be absent when a duration is set, or when the end date is after the start date. Favorites asks `Which places do you already have in mind? You can skip.`
 
-`MoreDrawer` edits event name, organisation, email, language, rooms, meeting rooms, food, notes, and budget. Apply sends `moreEdited` for the fields that changed. The budget field is labeled `Budget (EUR)` and writes `budgetMinor`. It does not set `budget.scope`. Speech uses the browser speech API when the browser has it. Typing always works. Compare shows for two or three visible offers at 640 pixels or wider. Show more adds five rows. History stays in `localStorage`.
+`MoreDrawer` edits event name, organisation, email, language, rooms, meeting rooms, food, notes, and budget. Apply sends `moreEdited` for the fields that changed. The budget field is labeled `Budget (EUR)` and writes `budgetMinor`. It does not set `budget.scope`. Speech uses the browser speech API when the browser has it. Typing always works. Compare shows for two or three visible offers when that group is at least 640 pixels wide. Show more adds five rows. History stays in `localStorage`.
 
 ## Budget
 
@@ -109,7 +95,7 @@ flowchart TD
   above -->|yes| over
 ```
 
-Minor units are the rounded major amount times 100. Per person, pp, and each set `budget.scope` to `per-person`. Total sets `total`. The scripted reader also accepts per head, per attendee, per guest, and a head as per-person, and in total and overall as total. An answer calls `readBudgetScope` first, so those words set the basis on either path. A stated basis skips the question. The word yes does not.
+Minor units are the major amount times 100, rounded. Per person, pp, and each set `budget.scope` to `per-person`. Total sets `total`. The scripted reader also accepts per head, per attendee, per guest, and a head as per-person, and in total and overall as total. An answer calls `readBudgetScope` first, so those words set the basis on either path. A stated basis skips the question. The word yes does not.
 
 ## Extraction
 
@@ -134,12 +120,12 @@ A scripted budget with the same amount and currency, and no basis, keeps the bas
 ```mermaid
 flowchart TD
   city{Either city blank?}
-  city -->|yes| keep[Keep the offer]
+  city -->|yes| people{Attendee count set?}
   city -->|no| fold["Trim, lower case, strip accents"]
   fold --> sameCity{Same city?}
   sameCity -->|no| drop[Drop the offer]
-  sameCity -->|yes| people{Attendee count set?}
-  people -->|no| keep
+  sameCity -->|yes| people
+  people -->|no| keep[Keep the offer]
   people -->|under a set minimum, or over a set maximum| drop
   people -->|within the bounds the offer sets| keep
   keep --> stated{budget.currency set?}
@@ -173,6 +159,8 @@ flowchart LR
     chatRoute[api/chat]
   end
   subgraph flowBox ["src/flow"]
+    handler[planner-turn]
+    chatFlow[planner-chat]
     viewport[viewport-turn]
     extract[agent-mode]
     stage[brief-flow]
@@ -183,6 +171,7 @@ flowchart LR
     fitNode[fitness]
   end
   subgraph ioBox ["src/proposales"]
+    clientPick[client.ts]
     http[http-client]
     fixture[fixture-client]
     fileNode[filing]
@@ -194,15 +183,21 @@ flowchart LR
   end
   page --> sessionRoute
   page --> turnRoute
-  turnRoute --> viewport
-  chatRoute --> extract
-  viewport --> extract
+  sessionRoute --> clientPick
+  turnRoute --> handler
+  handler --> viewport
+  handler --> extract
+  handler --> clientPick
+  chatRoute --> chatFlow
+  chatFlow --> extract
+  chatFlow --> clientPick
+  viewport --> briefNode
   viewport --> rankNode
   viewport --> stage
   rankNode --> fitNode
-  rankNode --> http
-  rankNode --> fixture
   viewport --> fileNode
+  clientPick --> http
+  clientPick --> fixture
   shell --> detailNode
   shell --> drawer
 ```
@@ -215,17 +210,15 @@ flowchart TB
   part["data-offer-group"]
   render["renderPart"]
   cards["Offer cards"]
-  domain["Domain: merge, day parts, fitness"]
+  domain["Fitness"]
   rank["Compare and rank"]
-  client["Proposales client"]
   shell --> part --> render --> cards
   shell --> detail
   shell --> more
   rank --> domain
-  rank --> client
 ```
 
-`renderPart` takes that part plus `hiddenCount`, `openName`, `onOpen`, and `onShowMore`, and draws `OfferGroupCard`. An AG-UI stream can hand the same part in.
+`renderPart` takes that part plus `hiddenCount`, `openName`, `onOpen`, and `onShowMore`, and draws `OfferGroupCard`.
 
 `mergeBrief` lets a set field on the patch replace the old one. A patch that touches the clock replaces `timeAssumption`, and can clear it. Food requests merge meal and diets, and set `foodRequired` when it was unset. Diet names map to one spelling. The merge stores budget currency in upper case. Fitness uses `makeConditionalSchemaTransformer` from `@adaptate/core`.
 
@@ -235,13 +228,13 @@ flowchart TB
 
 ```mermaid
 flowchart TD
-  mode["PROPOSALES_MODE"] --> fixture["Fixture client"]
-  mode --> live["HTTP client"]
-  live --> rows["Venue proposals"]
-  live --> sample["Sample offers"]
-  text["Text turn"] --> model["Model planner, 40 s"]
-  text --> scripted["Scripted patch"]
-  model --> scripted
+  mode{"PROPOSALES_MODE"} -->|live| live["HTTP client"]
+  mode -->|anything else| fixture["Fixture client"]
+  live -->|rows| rows["Venue proposals"]
+  live -->|empty, or the load throws| sample["Sample offers"]
+  text["Capture, gap answer, or results revision"] -->|key set| model["Model planner, 40 s"]
+  text -->|no key| scripted["Scripted patch"]
+  model -.->|miss| scripted
   keys["API keys"] --> server["Server-side requests"]
 ```
 
@@ -320,7 +313,7 @@ The detail button sends `file`.
 
 An empty event name titles the draft with the city and the date. Each filed date joins its clock as a `Z` timestamp, and uses `00:00` when the clock is missing. The inbox body sets `is_test` to `1`. Draft data sets `planner_bench_brief` to true.
 
-`/api/chat` files in `runFixtureTurn`, and only when the text says file. It uses `selectedCompanyId`, does not take the first company, and can post again.
+`/api/chat` files inside `runFixtureTurn`. On the scripted path that happens only when the user text says file, and the company id is `selectedCompanyId` alone. The `fileBrief` tool sends `file the brief`, and it may set the company id from the tool first. Either path can post again.
 
 ## Contract
 
@@ -342,10 +335,10 @@ flowchart LR
   chat["chat:capture, chat:confirm, chat:favorites, chat:results"] --> e2e["pnpm e2e. Playwright Chromium. Fixture mode."]
   detail["detail:open or detail:closed"] --> e2e
   more["more:open or more:closed"] --> e2e
-  facts["city, date, time, attendees, budget, budget basis"] --> e2e
-  chips["best match, expired, no food, over budget, not stated"] --> e2e
+  facts["city, date, time, attendees, budget, budget-basis"] --> e2e
+  chips["best-match, expired, no-food, over-budget, not-stated"] --> e2e
   e2e --> probe["e2e/run-probe.mjs"]
   probe --> plugin["layout-content-view, commit pinned in the README"]
 ```
 
-CI runs `pnpm e2e`, then the probe.
+The check job runs typecheck, test, lint, and build. The e2e job runs `pnpm e2e`, then the probe.

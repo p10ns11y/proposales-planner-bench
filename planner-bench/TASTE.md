@@ -6,13 +6,13 @@ How the bench sounds, and what it refuses to do. Visual materials are in [DESIGN
 
 Plain, short, and calm. One sentence where one sentence will do. It sounds like a person at a desk, not a campaign and not a manual.
 
-Use the words they would use: place, event, people, date, city. Use Organisation, Company, and Venue only when the sentence would be wrong without them. Inbox and draft never appear.
+Use the words they would use: place, event, people, date, city. Use Organisation, Company, and Venue only when the sentence would be wrong without them. The word inbox does not appear. A draft filing can say that a draft was created.
 
 ## The input
 
 The sticky line accepts a dump, a sentence, or speech. It does not ask them to learn a phrase. "File" is enough when they mean file. A partial reply is enough.
 
-When a required fact is missing, ask that one fact. Required means location, date and time, and how many people. When those are complete, show them back and ask if that is right. Everything else waits in More.
+When a required fact is missing, ask that one fact. Required means a city, a start date, a start time, an end (or a duration, or an end date after the start), and how many people. A budget with no basis asks whether it is per person or total before Yes. When those are complete, show them back and ask if that is right. Everything else waits in More.
 
 ## The hold
 

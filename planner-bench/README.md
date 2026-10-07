@@ -22,7 +22,7 @@ A line such as this reaches confirm, then the match:
 
 `I need a place in Stockholm for 40 people on 12 November 2026, from 09:00 to 17:00, with dinner and a meeting room.`
 
-Say yes, then skip favorites. Three ranked rows appear. Filing still needs an email. Add it under More, then say `file`.
+Say yes, then skip favorites. Three ranked rows appear. Filing still needs an email and a language. Add both under More, then say `file`.
 
 ## Live Proposales
 

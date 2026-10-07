@@ -28,28 +28,29 @@ The first thing on the page is the input. Company is never the first control. Hi
 
 ## Capabilities and Constraints
 
-Required before a match. These three, and only these, may stop the flow to ask:
+Required before a match:
 
-- Location. Cleaned to a city the fetch can use.
-- Date and time. A start, and an end or a duration. A single clock time with no end is not enough for a stay.
+- City.
+- Start date, start time, and an end time. The end time can be absent when a duration is set, or when the end date is after the start date.
 - Number of people.
+- A budget basis, when a budget is set and `budget.scope` is missing. The question is "Is that per person or total?" The Yes button stays hidden until it is answered.
 
-Everything else lives in More, a drawer from the right. Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Opening More shows those fields. It is not the first screen. Saving More changes only the fields the person edited.
+Everything else lives in More, a drawer from the right. Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Opening More shows those fields. It is not the first screen. Saving More changes only the fields the person edited. The budget field is labeled `Budget (EUR)` and writes `budgetMinor`. It does not set `budget.scope`.
 
-Filing needs an email; matching does not. The email stays editable in More. Favorites stay a mark on the ranked list, not a field in More.
+Filing needs an email, both dates, an attendee count, a language, and rooms when the end date is after the start. Matching does not need those. Favorites stay a mark on the ranked list, not a field in More.
 
 A model attempt waits 40 seconds. The turn and chat routes set maxDuration to 60. A missing key, a model error, or that window falls back to the scripted extractor.
 
 Confirmed for this pass:
 
-- Free text, then clean, then confirm the required facts, then structured data, then AI-UI views. More is the form for the rest.
+- Free text, then clean, then confirm the required facts, then structured data, then the views. More is the form for the rest.
 - One sticky input. They type or talk. The input stays put while the thread above it carries the work.
 - The bench does the known flow behind that input. They do not have to know the steps.
-- A step renders a UI element inside the thread only when that step needs it: a missing required fact, the structured brief, favorites, then the ranked rows. The ranked rows are one `data-offer-group` part inside the assistant reply. Compare is a toggle on that group when two or three offers fit.
-- The thread is an AG-UI consumer. The flow is the producer. See below. This pass may still render the same elements in ordinary React. The protocol is the wire, not a blocker for the first shell. The card components take the offer payload as props. A thin adapter maps the message part onto those props.
+- A step renders a UI element inside the thread only when that step needs it: a missing required fact, the structured brief, favorites, then the ranked rows. The ranked rows are one `data-offer-group` part. Compare is a toggle on that group when two or three visible offers are shown and the group is at least 640 pixels wide.
+- The page renders the offer part in React. `/api/chat` can stream the same part. AG-UI is not connected. The card components take the offer payload as props. `renderPart` maps that part onto the card.
 - Further detail for a result opens as an inset sheet on a wide screen and full screen on a phone. Closing it returns to the same place in the chat. It does not become a new page in this pass.
 - Photos, a page per venue, and the collab-finder decision model wait, as already written in the planner definition.
-- Fetch and rank stay as written there. Fetch fills known Proposales filters. Rank is the LLM for this pass. The mix is still open.
+- Fetch and rank stay as written in the planner definition. Fetch is the search. Rank is the sort. Neither calls the model.
 
 The special constraint:
 
@@ -59,9 +60,11 @@ The special constraint:
 
 ### Where AG-UI fits
 
+The page does not speak AG-UI. It renders the offer part in React.
+
 [AG-UI](https://github.com/ag-ui-protocol/ag-ui) is the Agent–User Interaction protocol. One run goes in. An ordered stream of typed events comes out. The current spec to pin is 1.0. The 1.1 draft is not what an SDK implements yet.
 
-It sits on the seam between the planner flow and the thread. The flow already decides the brief, the one question, the hold, and the ranked rows. That flow is the producer. The sticky thread is the consumer. It renders the stream and keeps the shared state. Domain, fitness, filing, and the Proposales client stay behind the producer. They are not the protocol.
+The notes below are the seam that is not wired. The flow already decides the brief, the one question, the hold, and the ranked rows. Domain, fitness, filing, and the Proposales client stay behind that flow. They are not the protocol.
 
 Three layers stay distinct:
 

@@ -34,11 +34,11 @@ The predicate is never relaxed to declare victory. A real dead end gets surfaced
 | Invariant | Layer | How |
 |---|---|---|
 | Fixtures and live responses match the Proposales API | shape + check | Zod generated from `openapi.json` by `@adaptate/utils`; contract test |
-| Money is in minor units everywhere | shape | A branded `MinorUnits` type; formatting only at the view edge |
+| Offer totals and `budgetMinor` are minor units. `budget.amount` is major units | shape | A branded `MinorUnits` type. The ceiling is the major amount times 100, rounded. Formatting stays at the view edge |
 | A brief is filed only when it is fileable | shape + check | `@adaptate/core` fitness config `brief:fileable`; the tool refuses otherwise |
 | Fixture mode never makes a network call | check | Test that the fixture adapter is used when `PROPOSALES_MODE` is unset |
 | No secrets in the repo or the client bundle | check + human | Keys only in server env; `.env*` gitignored; you add keys |
-| Views hold no business logic and fetch no data | shape + check | Views import only view-model types; a lint rule (`no-restricted-imports`) blocks `src/domain/`, `src/proposales/`, and `src/flow/` in `src/views/` |
+| Views do not import domain, Proposales, or flow | shape + check | `no-restricted-imports` in `src/views/` blocks `src/domain/`, `src/proposales/`, and `src/flow/` |
 | No code comments | check | ESLint `no-warning-comments` plus a test-time scan that fails on `//` and `/*` comments in `src/` |
 | Proposal viewers are never scraped | human guide | Stated in the README; only API data or text the planner pastes |
 
