@@ -111,28 +111,48 @@ export function mergeBrief(current: PlannerBrief, patch: PlannerBrief): PlannerB
   if (foodRequired === undefined && foodRequest !== undefined) {
     foodRequired = true;
   }
-  return plannerBriefSchema.parse({
-    eventTitle: patch.eventTitle ?? current.eventTitle,
-    contactEmail: patch.contactEmail ?? current.contactEmail,
-    organisationName: patch.organisationName ?? current.organisationName,
-    startDate: patch.startDate ?? current.startDate,
-    endDate: patch.endDate ?? current.endDate,
-    attendeeCount: patch.attendeeCount ?? current.attendeeCount,
-    roomCount: patch.roomCount ?? current.roomCount,
-    meetingRoomCount: patch.meetingRoomCount ?? current.meetingRoomCount,
-    breakoutRoomCount: patch.breakoutRoomCount ?? current.breakoutRoomCount,
-    foodRequired,
-    foodRequest,
-    city: patch.city ?? current.city,
-    budgetMinor: patch.budgetMinor ?? current.budgetMinor,
-    budget: canonicalBudget(patch.budget ?? current.budget),
-    notes: patch.notes ?? current.notes,
-    language: patch.language ?? current.language,
-    startTime: schedule.startTime,
-    endTime: schedule.endTime,
-    durationMinutes: schedule.durationMinutes,
-    timeAssumption: schedule.timeAssumption,
-  });
+  return applyDayPartClock(
+    plannerBriefSchema.parse({
+      eventTitle: patch.eventTitle ?? current.eventTitle,
+      contactEmail: patch.contactEmail ?? current.contactEmail,
+      organisationName: patch.organisationName ?? current.organisationName,
+      startDate: patch.startDate ?? current.startDate,
+      endDate: patch.endDate ?? current.endDate,
+      attendeeCount: patch.attendeeCount ?? current.attendeeCount,
+      roomCount: patch.roomCount ?? current.roomCount,
+      meetingRoomCount: patch.meetingRoomCount ?? current.meetingRoomCount,
+      breakoutRoomCount: patch.breakoutRoomCount ?? current.breakoutRoomCount,
+      foodRequired,
+      foodRequest,
+      city: patch.city ?? current.city,
+      budgetMinor: patch.budgetMinor ?? current.budgetMinor,
+      budget: canonicalBudget(patch.budget ?? current.budget),
+      notes: patch.notes ?? current.notes,
+      language: patch.language ?? current.language,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      durationMinutes: schedule.durationMinutes,
+      timeAssumption: schedule.timeAssumption,
+    }),
+  );
+}
+
+function applyDayPartClock(brief: PlannerBrief): PlannerBrief {
+  const dayPart = brief.timeAssumption?.dayPart;
+  if (dayPart === undefined) {
+    return brief;
+  }
+  if (brief.startTime !== undefined && (brief.endTime !== undefined || brief.durationMinutes !== undefined)) {
+    return brief;
+  }
+  const assumed = assumedSpan(dayPart);
+  const startTime = brief.startTime ?? assumed.startTime;
+  const endTime = brief.endTime ?? (brief.durationMinutes === undefined ? assumed.endTime : undefined);
+  return {
+    ...brief,
+    startTime,
+    ...(endTime !== undefined ? { endTime } : {}),
+  };
 }
 
 function mergeSchedule(

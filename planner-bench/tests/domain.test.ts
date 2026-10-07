@@ -7,7 +7,7 @@ import {
   ridgeHallProposal,
 } from "../src/contract/fixtures";
 import { compareOffers } from "../src/domain/compare-offers";
-import { findBriefGaps } from "../src/domain/fitness";
+import { briefComparableConfig, findBriefGaps } from "../src/domain/fitness";
 import { normaliseProposal } from "../src/domain/normalise-proposal";
 import { mergeBrief, plannerBriefSchema } from "../src/domain/planner-brief";
 
@@ -83,6 +83,26 @@ describe("brief fitness", () => {
         "brief:comparable",
       ),
     ).toEqual([]);
+  });
+
+  it("maps a full day onto the clock before the comparable gap check", () => {
+    const fullDay = {
+      city: "Stockholm",
+      startDate: "2026-12-03",
+      endDate: "2026-12-03",
+      attendeeCount: 25,
+      timeAssumption: {
+        dayPart: "full-day" as const,
+        statement: "Assumed 09:00\u201317:00 for a full day",
+      },
+    };
+    expect(briefComparableConfig.startTime).toBe(true);
+    expect(findBriefGaps(fullDay, "brief:comparable")).toEqual(["startTime", "endTime"]);
+    const mapped = mergeBrief({}, fullDay);
+    expect(mapped.startTime).toBe("09:00");
+    expect(mapped.endTime).toBe("17:00");
+    expect(mapped.timeAssumption).toEqual(fullDay.timeAssumption);
+    expect(findBriefGaps(mapped, "brief:comparable")).toEqual([]);
   });
 
   it("still asks for an end when only a start time is known", () => {
