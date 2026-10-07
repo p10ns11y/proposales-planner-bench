@@ -2,6 +2,10 @@
 
 One line names a city, a date and time, and how many people. The bench confirms those facts, then ranks venues. More stays closed until it is opened. The fields inside it edit the rest of the brief.
 
+## Architecture
+
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
 ## Fixture mode
 
 This is the default. It needs no keys and makes no network calls. The ranked rows come from the fixture.
@@ -65,3 +69,8 @@ Keys stay in server environment variables. Do not commit `.env` files.
 - No brand is copied wholesale. Coral and greys are adapted roles, and no Grok or xAI logo or wordmark is used in the app.
 - Playwright: https://playwright.dev/docs/intro
 - layout-content-view: https://github.com/p10ns11y/plugins/tree/31d93a0355838d8b24511966ae1ba0062c05f012/layout-content-view
+- tldraw: https://tldraw.com/
+- Mermaid: https://mermaid.js.org/
+- AG-UI: https://github.com/ag-ui-protocol/ag-ui
+- [@adaptate/core](https://www.npmjs.com/package/@adaptate/core): conditional schemas for the brief and offer fitness checks
+- [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils): OpenAPI to Zod in the contract tests

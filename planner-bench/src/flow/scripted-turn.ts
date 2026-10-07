@@ -1,12 +1,12 @@
 import { briefGapsForStage, compareOffers, offersForBrief, rankComparisonRows } from "../domain/compare-offers";
-import { findBriefGaps, questionForGap } from "../domain/fitness";
+import { briefConfirmHold, findBriefGaps, questionForGap } from "../domain/fitness";
 import { mergeBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
 import { briefDraftFromPlanner } from "./brief-draft";
 import { projectBriefFlow } from "./brief-flow";
-import { extractBriefPatch, extractPastedOffer, turnIntent } from "./fixture-extractor";
+import { extractBriefPatch, extractPastedOffer, readBudgetScope, turnIntent } from "./fixture-extractor";
 import type { PlannerSnapshot } from "./planner-snapshot";
 
 export async function runFixtureTurn(input: {
@@ -16,7 +16,7 @@ export async function runFixtureTurn(input: {
   today: string;
 }): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
   const intent = turnIntent(input.text);
-  const brief = mergeBrief(input.snapshot.brief, extractBriefPatch(input.text));
+  const brief = briefWithAnsweredBasis(input.snapshot.brief, input.text);
   let filing = input.snapshot.filing;
   let filingAvailable = input.snapshot.filingAvailable;
   let offers = input.snapshot.offers;
@@ -63,17 +63,17 @@ export async function runFixtureTurn(input: {
     }
   }
 
-  const comparableGaps = findBriefGaps(brief, "brief:comparable");
   const briefStarted = Object.keys(brief).length > 0;
-  const blockingGap = briefStarted ? comparableGaps[0] : undefined;
+  const hold = briefStarted ? briefConfirmHold(brief) : null;
+  const blockingGap = hold?.gaps[0];
   const projected = projectBriefFlow({
     brief,
     filing,
     offers: blockingGap === undefined ? offers : [],
   });
   const gaps =
-    blockingGap !== undefined
-      ? comparableGaps
+    hold !== null
+      ? hold.gaps
       : projected.stage === "collecting" || projected.stage === "fileable"
         ? []
         : briefGapsForStage(brief, projected.stage);
@@ -89,8 +89,8 @@ export async function runFixtureTurn(input: {
           brief.budget?.currency,
         );
   const nextQuestion =
-    blockingGap !== undefined
-      ? questionForGap(blockingGap)
+    hold !== null
+      ? hold.question
       : questionForStage(projected.stage, gaps, grid.length, gridHasGaps(grid));
   if (brief.timeAssumption !== undefined && !notes.includes(brief.timeAssumption.statement)) {
     notes.unshift(brief.timeAssumption.statement);
@@ -132,6 +132,23 @@ export async function runFixtureTurn(input: {
       filingAvailable,
     },
   };
+}
+
+function briefWithAnsweredBasis(current: PlannerSnapshot["brief"], text: string): PlannerSnapshot["brief"] {
+  const patch = extractBriefPatch(text);
+  const merged = mergeBrief(current, patch);
+  const scope = patch.budget === undefined ? readBudgetScope(text) : undefined;
+  if (scope === undefined || merged.budget === undefined || merged.budget.scope !== undefined) {
+    return merged;
+  }
+  return mergeBrief(merged, {
+    budget: {
+      amount: merged.budget.amount,
+      currency: merged.budget.currency,
+      scope,
+      ...(merged.budget.approximate !== undefined ? { approximate: merged.budget.approximate } : {}),
+    },
+  });
 }
 
 function questionForStage(

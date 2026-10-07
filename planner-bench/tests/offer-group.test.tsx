@@ -84,6 +84,36 @@ describe("compare toggle in the group", () => {
     expect(canalCard?.textContent).toContain("Rooms: \u2014");
     expect(canalCard?.textContent).not.toContain("Other");
   });
+
+  it("shows a neutral Not stated chip and does not treat it as a gap", () => {
+    installMatchMedia();
+    installWidth(800);
+    render(
+      <OfferGroupCard
+        group={group([
+          offer({
+            proposalUuid: "harbour",
+            venueName: "Harbour House",
+            gaps: [],
+            neutral: ["breakout", "diet"],
+            bestMatch: true,
+          }),
+        ])}
+        hiddenCount={0}
+        openName={null}
+        onOpen={() => undefined}
+        onShowMore={() => undefined}
+      />,
+    );
+    const card = screen.getByRole("button", { name: /Harbour House/ });
+    expect(card.getAttribute("data-gap")).toBe("clear");
+    expect(card.getAttribute("aria-label")).toContain("Breakout not stated");
+    expect(card.getAttribute("aria-label")).toContain("Diet not stated");
+    const chips = [...card.querySelectorAll(".planner-chip-not-stated")];
+    expect(chips.map((chip) => chip.getAttribute("data-facet"))).toEqual(["breakout", "diet"]);
+    expect(chips.map((chip) => chip.textContent)).toEqual(["Not stated", "Not stated"]);
+    expect(card.textContent).not.toContain("No breakout");
+  });
 });
 
 function renderGroup(count: number, width: number) {

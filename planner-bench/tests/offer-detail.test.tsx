@@ -27,6 +27,7 @@ const canalLoft: ShellRow = {
   total: "210.00 EUR",
   expires: "2026-09-01",
   gaps: ["expired"],
+  neutral: [],
   favorite: false,
   blocks: [{ title: "Canal loft day delegate", quantity: 3 }],
 };

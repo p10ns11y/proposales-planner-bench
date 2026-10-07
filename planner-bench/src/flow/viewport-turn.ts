@@ -4,7 +4,7 @@ import {
   offersForBrief,
   rankComparisonRows,
 } from "../domain/compare-offers";
-import { findBriefGaps, questionForGap } from "../domain/fitness";
+import { briefConfirmHold, findBriefGaps, questionForGap } from "../domain/fitness";
 import { minorUnits } from "../domain/minor-units";
 import { mergeBrief, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
@@ -16,6 +16,7 @@ import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
   matchFavoriteVenues,
+  readBudgetScope,
   readClockRange,
   readDurationMinutes,
   readSingleClock,
@@ -87,10 +88,12 @@ async function ingestText(
   readPatch: BriefPatchReader | undefined,
 ): Promise<PlannerSnapshot> {
   const kind = utteranceKind(text, snapshot.phase);
+  const answersBudgetBasis =
+    snapshot.phase === "confirm" && snapshot.gaps[0] === "budgetBasis" && readBudgetScope(text) !== undefined;
   if (kind === "explain") {
     return { ...snapshot, notice: explainLine };
   }
-  if (kind === "hold") {
+  if (kind === "hold" && !answersBudgetBasis) {
     return { ...snapshot, notice: holdLine };
   }
   const cleared = { ...snapshot, notice: null };
@@ -126,10 +129,37 @@ async function answerGap(
   text: string,
   readPatch: BriefPatchReader | undefined,
 ): Promise<PlannerSnapshot> {
+  if (snapshot.gaps[0] === "budgetBasis") {
+    return answerBudgetBasis(snapshot, text, readPatch);
+  }
   const field = snapshot.gaps[0];
   const incoming = await readIncomingPatch(text, snapshot.brief, readPatch);
   const patch = patchForGap(field, text, incoming);
   return withConfirmState(snapshot, mergeBrief(snapshot.brief, patch));
+}
+
+async function answerBudgetBasis(
+  snapshot: PlannerSnapshot,
+  text: string,
+  readPatch: BriefPatchReader | undefined,
+): Promise<PlannerSnapshot> {
+  const incoming = await readIncomingPatch(text, snapshot.brief, readPatch);
+  const merged = mergeBrief(snapshot.brief, incoming);
+  const scope = readBudgetScope(text) ?? incoming.budget?.scope ?? merged.budget?.scope;
+  if (scope === undefined || merged.budget === undefined) {
+    return withConfirmState(snapshot, merged);
+  }
+  return withConfirmState(
+    snapshot,
+    mergeBrief(merged, {
+      budget: {
+        amount: merged.budget.amount,
+        currency: merged.budget.currency,
+        scope,
+        ...(merged.budget.approximate !== undefined ? { approximate: merged.budget.approximate } : {}),
+      },
+    }),
+  );
 }
 
 function editBrief(snapshot: PlannerSnapshot, briefPatch: PlannerBrief): PlannerSnapshot {
@@ -143,7 +173,7 @@ async function editMore(
   today: string,
 ): Promise<PlannerSnapshot> {
   const brief = applyMoreDetails(snapshot.brief, details);
-  if (findBriefGaps(brief, "brief:comparable").length > 0) {
+  if (briefConfirmHold(brief) !== null) {
     return withConfirmState(snapshot, brief);
   }
   const next = { ...snapshot, brief, notice: null };
@@ -160,7 +190,7 @@ async function confirmBrief(
   snapshot: PlannerSnapshot,
   client: ProposalesClient,
 ): Promise<PlannerSnapshot> {
-  if (findBriefGaps(snapshot.brief, "brief:comparable").length > 0) {
+  if (briefConfirmHold(snapshot.brief) !== null) {
     return withConfirmState(snapshot, snapshot.brief);
   }
   let filing = snapshot.filing;
@@ -248,7 +278,7 @@ async function submitFavorites(
   if (snapshot.phase === "capture" || snapshot.phase === "confirm") {
     return withConfirmState(snapshot, snapshot.brief);
   }
-  if (findBriefGaps(snapshot.brief, "brief:comparable").length > 0) {
+  if (briefConfirmHold(snapshot.brief) !== null) {
     return withConfirmState(snapshot, snapshot.brief);
   }
   const favoriteVenueNames = matchFavoriteVenues(text);
@@ -264,7 +294,7 @@ async function reviseDuringResults(
 ): Promise<PlannerSnapshot> {
   const patch = await readIncomingPatch(text, snapshot.brief, readPatch);
   const brief = mergeBrief(snapshot.brief, patch);
-  if (findBriefGaps(brief, "brief:comparable").length > 0) {
+  if (briefConfirmHold(brief) !== null) {
     return withConfirmState(snapshot, brief);
   }
   return rerank({ ...snapshot, brief }, client, today);
@@ -297,7 +327,7 @@ async function rankSnapshot(
   client: ProposalesClient,
   today: string,
 ): Promise<PlannerSnapshot> {
-  if (findBriefGaps(snapshot.brief, "brief:comparable").length > 0) {
+  if (briefConfirmHold(snapshot.brief) !== null) {
     return withConfirmState(snapshot, snapshot.brief);
   }
   const loaded = await loadComparableProposals(client);
@@ -342,8 +372,7 @@ function showMoreRows(snapshot: PlannerSnapshot): PlannerSnapshot {
 }
 
 function withConfirmState(snapshot: PlannerSnapshot, brief: PlannerBrief): PlannerSnapshot {
-  const gaps = findBriefGaps(brief, "brief:comparable");
-  const firstGap = gaps[0];
+  const hold = briefConfirmHold(brief);
   const projected = projectBriefFlow({
     brief,
     filing: snapshot.filing,
@@ -354,8 +383,8 @@ function withConfirmState(snapshot: PlannerSnapshot, brief: PlannerBrief): Plann
     brief,
     stage: projected.stage,
     phase: "confirm",
-    gaps,
-    nextQuestion: firstGap === undefined ? "Does this brief look right?" : questionForGap(firstGap),
+    gaps: hold?.gaps ?? [],
+    nextQuestion: hold?.question ?? "Does this brief look right?",
     grid: [],
     offers: [],
     notice: null,

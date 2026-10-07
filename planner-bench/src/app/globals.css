@@ -892,6 +892,10 @@ h2.planner-text {
   color: #444444;
 }
 
+.planner-chip-not-stated {
+  color: var(--text-secondary);
+}
+
 .planner-chip-status svg,
 .planner-chip-best svg {
   width: 12px;
