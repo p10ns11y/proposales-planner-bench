@@ -17,6 +17,34 @@ export type BriefFlowEvent =
   | { type: "briefFiled"; filing: FileBriefResult }
   | { type: "offerAdded"; offer: VenueOffer };
 
+export function briefAfter(brief: PlannerBrief, event: BriefFlowEvent): PlannerBrief {
+  if (event.type === "briefUpdated") {
+    return event.brief;
+  }
+  return brief;
+}
+
+export function filingAfter(filing: FileBriefResult | null, event: BriefFlowEvent): FileBriefResult | null {
+  if (event.type === "briefFiled") {
+    return event.filing;
+  }
+  return filing;
+}
+
+export function offersAfter(offers: VenueOffer[], event: BriefFlowEvent): VenueOffer[] {
+  if (event.type === "offerAdded") {
+    return [...offers, event.offer];
+  }
+  return offers;
+}
+
+export function readStage(value: unknown): BriefStage {
+  if (value === "collecting" || value === "fileable" || value === "filed" || value === "comparing") {
+    return value;
+  }
+  throw new Error("Unexpected brief stage.");
+}
+
 export const briefFlow = setup({
   types: {
     context: {} as BriefFlowContext,
@@ -25,19 +53,17 @@ export const briefFlow = setup({
   guards: {
     briefIsFileable: ({ context }) => findBriefGaps(context.brief, "brief:fileable").length === 0,
     briefIsNotFileable: ({ context }) => findBriefGaps(context.brief, "brief:fileable").length > 0,
-    briefIsComparable: ({ context }) => findBriefGaps(context.brief, "brief:comparable").length === 0,
     briefIsNotComparable: ({ context }) => findBriefGaps(context.brief, "brief:comparable").length > 0,
   },
   actions: {
     replaceBrief: assign({
-      brief: ({ context, event }) => (event.type === "briefUpdated" ? event.brief : context.brief),
+      brief: ({ context, event }) => briefAfter(context.brief, event),
     }),
     storeFiling: assign({
-      filing: ({ context, event }) => (event.type === "briefFiled" ? event.filing : context.filing),
+      filing: ({ context, event }) => filingAfter(context.filing, event),
     }),
     appendOffer: assign({
-      offers: ({ context, event }) =>
-        event.type === "offerAdded" ? [...context.offers, event.offer] : context.offers,
+      offers: ({ context, event }) => offersAfter(context.offers, event),
     }),
   },
 }).createMachine({
@@ -66,10 +92,7 @@ export const briefFlow = setup({
     filed: {
       on: {
         briefUpdated: { actions: "replaceBrief" },
-        offerAdded: [
-          { guard: "briefIsComparable", target: "comparing", actions: "appendOffer" },
-          { actions: "appendOffer" },
-        ],
+        offerAdded: { target: "comparing", actions: "appendOffer" },
       },
     },
     comparing: {
@@ -93,9 +116,7 @@ export function projectBriefFlow(input: {
   if (input.filing && actor.getSnapshot().matches("fileable")) {
     actor.send({ type: "briefFiled", filing: input.filing });
   }
-  const filedOrComparing =
-    actor.getSnapshot().matches("filed") || actor.getSnapshot().matches("comparing");
-  if (filedOrComparing) {
+  if (actor.getSnapshot().matches("filed")) {
     for (const offer of input.offers) {
       actor.send({ type: "offerAdded", offer });
     }
@@ -106,11 +127,4 @@ export function projectBriefFlow(input: {
     offers: snapshot.context.offers,
     filing: snapshot.context.filing,
   };
-}
-
-function readStage(value: unknown): BriefStage {
-  if (value === "collecting" || value === "fileable" || value === "filed" || value === "comparing") {
-    return value;
-  }
-  throw new Error("Unexpected brief stage.");
 }

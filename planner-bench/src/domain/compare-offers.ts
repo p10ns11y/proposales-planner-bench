@@ -22,9 +22,8 @@ export function compareOffers(
   } = {},
 ): ComparisonRow[] {
   const favoriteVenueNames = options.favoriteVenueNames ?? [];
-  const companies = options.companies ?? [];
   return offers.map((offer) =>
-    comparisonRow(brief, offer, today, favoriteVenueNames, companies),
+    comparisonRow(brief, offer, today, favoriteVenueNames, options.companies),
   );
 }
 
@@ -39,10 +38,9 @@ function compareRankedRows(left: ComparisonRow, right: ComparisonRow, lead: stri
   if (leftLead !== rightLead) {
     return leftLead ? -1 : 1;
   }
-  const leftCurrency = normaliseCurrency(left.currency);
-  const rightCurrency = normaliseCurrency(right.currency);
-  if (leftCurrency !== rightCurrency) {
-    return leftCurrency < rightCurrency ? -1 : 1;
+  const currencyOrder = orderText(normaliseCurrency(left.currency), normaliseCurrency(right.currency));
+  if (currencyOrder !== 0) {
+    return currencyOrder;
   }
   return compareWithinCurrency(left, right);
 }
@@ -60,12 +58,7 @@ function compareForLead(left: ComparisonRow, right: ComparisonRow): number {
   if (left.gaps.length !== right.gaps.length) {
     return left.gaps.length - right.gaps.length;
   }
-  const leftCurrency = normaliseCurrency(left.currency);
-  const rightCurrency = normaliseCurrency(right.currency);
-  if (leftCurrency !== rightCurrency) {
-    return leftCurrency < rightCurrency ? -1 : 1;
-  }
-  return left.totalMinor.amount - right.totalMinor.amount;
+  return orderText(normaliseCurrency(left.currency), normaliseCurrency(right.currency));
 }
 
 function compareWithinCurrency(left: ComparisonRow, right: ComparisonRow): number {
@@ -76,11 +69,21 @@ function compareWithinCurrency(left: ComparisonRow, right: ComparisonRow): numbe
 }
 
 function currencyMatches(currency: string, lead: string): boolean {
-  return lead !== "" && normaliseCurrency(currency) === lead;
+  return normaliseCurrency(currency) === lead;
 }
 
 function normaliseCurrency(value: string | undefined): string {
   return value?.trim().toUpperCase() ?? "";
+}
+
+function orderText(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (right < left) {
+    return 1;
+  }
+  return 0;
 }
 
 function comparisonRow(
@@ -88,7 +91,7 @@ function comparisonRow(
   offer: VenueOffer,
   today: string,
   favoriteVenueNames: string[],
-  companies: CompanyNameLookup[],
+  companies: CompanyNameLookup[] | undefined,
 ): ComparisonRow {
   const venueName = offer.venueName ?? "";
   return {
@@ -113,10 +116,10 @@ function comparisonRow(
 
 function heldByCompanyName(
   offer: VenueOffer,
-  companies: CompanyNameLookup[],
+  companies: CompanyNameLookup[] | undefined,
   venueName: string,
 ): string | undefined {
-  if (offer.companyId === undefined || companies.length < 2) {
+  if (companies === undefined || companies.length < 2) {
     return undefined;
   }
   const company = companies.find((item) => item.id === offer.companyId);
@@ -169,14 +172,8 @@ export function unstatedOfferMarks(brief: PlannerBrief): string[] {
 
 function offerExceedsBudget(brief: PlannerBrief, offer: VenueOffer): boolean {
   const total = offer.totalMinor?.amount;
-  if (total === undefined) {
-    return false;
-  }
   if (brief.budget !== undefined) {
     const ceiling = budgetCeilingMinor(brief.budget, brief.attendeeCount);
-    if (ceiling === undefined) {
-      return false;
-    }
     const offerCurrency = offer.currency?.trim().toUpperCase();
     if (offerCurrency === undefined || offerCurrency === "") {
       return false;
@@ -184,10 +181,10 @@ function offerExceedsBudget(brief: PlannerBrief, offer: VenueOffer): boolean {
     if (offerCurrency !== brief.budget.currency.trim().toUpperCase()) {
       return false;
     }
-    return total > ceiling;
+    return (total as number) > (ceiling as number);
   }
   if (brief.budgetMinor !== undefined) {
-    return total > brief.budgetMinor.amount;
+    return (total as number) > brief.budgetMinor.amount;
   }
   return false;
 }
@@ -201,10 +198,11 @@ function budgetCeilingMinor(
   }
   const unitMinor = Math.round(budget.amount * 100);
   if (budget.scope === "per-person") {
-    if (attendeeCount === undefined || attendeeCount <= 0) {
+    const headcount = attendeeCount as number;
+    if (!(headcount > 0)) {
       return undefined;
     }
-    return unitMinor * attendeeCount;
+    return unitMinor * headcount;
   }
   return unitMinor;
 }
@@ -242,13 +240,10 @@ function foldCity(value: string): string {
 
 function capacityAllows(brief: PlannerBrief, offer: VenueOffer): boolean {
   const attendees = brief.attendeeCount;
-  if (attendees === undefined) {
-    return true;
-  }
-  if (offer.minCapacity !== undefined && attendees < offer.minCapacity) {
+  if ((attendees as number) < (offer.minCapacity as number)) {
     return false;
   }
-  if (offer.capacity !== undefined && attendees > offer.capacity) {
+  if ((attendees as number) > (offer.capacity as number)) {
     return false;
   }
   return true;

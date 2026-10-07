@@ -12,7 +12,11 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "qa": "node scripts/qa-critical-path.mjs",
+    "crap": "node scripts/crap-score.mjs",
+    "mutation": "node scripts/mutation-score.mjs",
+    "verify": "node scripts/verify.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": []
@@ -39,6 +43,7 @@
   "devDependencies": {
     "@adaptate/utils": "^2.2.2",
     "@playwright/test": "^1.63.0",
+    "@stryker-mutator/core": "10.0.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
@@ -46,6 +51,7 @@
     "@types/node": "^24.19.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "5.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "jsdom": "^30.1.2",

@@ -43,6 +43,42 @@ export type HttpClientOptions = {
   baseUrl?: string;
 };
 
+export function readCompany(item: unknown): CompanyRecord[] {
+  const company = companyReader.safeParse(item);
+  if (!company.success) {
+    return [];
+  }
+  const record: CompanyRecord = {
+    id: company.data.id,
+    name: company.data.name,
+    inboxToken: company.data.inbox_token ?? null,
+  };
+  return [record];
+}
+
+export function readSearchUuid(item: unknown): string[] {
+  const identity = searchIdentityReader.safeParse(item);
+  if (!identity.success || isPlannerBenchBrief(identity.data.data)) {
+    return [];
+  }
+  return [identity.data.uuid];
+}
+
+export function readProposalData(payload: unknown): unknown[] {
+  const envelope = proposalEnvelopeReader.safeParse(payload);
+  if (!envelope.success) {
+    return [];
+  }
+  return [envelope.data.data];
+}
+
+export function requireInboxToken(token: string | null): string {
+  if (token === null || token === "") {
+    throw new Error("Inbox token missing");
+  }
+  return token;
+}
+
 export function createHttpClient(options: HttpClientOptions): ProposalesClient {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.baseUrl ?? "https://api.proposales.com";
@@ -70,47 +106,26 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
     limit: number,
     run: (item: T) => Promise<R>,
   ): Promise<R[]> {
-    if (items.length === 0) {
-      return [];
-    }
-    const results = new Array<R>(items.length);
+    const results: R[] = Array.from({ length: items.length });
     let next = 0;
-    const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-      for (;;) {
-        const index = next;
-        next += 1;
-        if (index >= items.length) {
-          return;
-        }
-        const item = items[index];
-        if (item === undefined) {
-          return;
-        }
-        results[index] = await run(item);
+    async function readNext(): Promise<void> {
+      const index = next;
+      next += 1;
+      if (index >= items.length) {
+        return;
       }
-    });
-    await Promise.all(workers);
+      results[index] = await run(items[index]);
+      await readNext();
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => readNext()));
     return results;
   }
 
   return {
     readsLiveProposals: true,
     async listCompanies() {
-      const body = searchEnvelopeReader.parse(
-        await request("/v3/companies", { method: "GET" }, true),
-      );
-      return body.data.flatMap((item) => {
-        const company = companyReader.safeParse(item);
-        if (!company.success) {
-          return [];
-        }
-        const record: CompanyRecord = {
-          id: company.data.id,
-          name: company.data.name,
-          inboxToken: company.data.inbox_token ?? null,
-        };
-        return [record];
-      });
+      const body = searchEnvelopeReader.parse(await request("/v3/companies", { method: "GET" }, true));
+      return body.data.flatMap(readCompany);
     },
     async fileBrief(brief) {
       const companies = await this.listCompanies();
@@ -120,10 +135,7 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
       }
       const path = filingPath(company.inboxToken);
       if (path === "inbox") {
-        const token = company.inboxToken;
-        if (token === null || token === "") {
-          throw new Error("Inbox token missing");
-        }
+        const token = requireInboxToken(company.inboxToken);
         const body = inboxBody(brief);
         const payload = rfpReader.parse(
           await request(
@@ -152,20 +164,19 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
       const search = searchEnvelopeReader.parse(
         await request("/v3/proposal-search?limit=25", { method: "GET" }, true),
       );
-      const uuids = search.data.flatMap((item) => {
-        const identity = searchIdentityReader.safeParse(item);
-        if (!identity.success || isPlannerBenchBrief(identity.data.data)) {
-          return [];
-        }
-        return [identity.data.uuid];
-      });
+      const uuids = search.data.flatMap(readSearchUuid);
       const fetched = await mapWithLimit(uuids, proposalFetchLimit, async (uuid) => {
-        const envelope = proposalEnvelopeReader.safeParse(
-          await request(`/v3/proposals/${encodeURIComponent(uuid)}`, { method: "GET" }, true),
-        );
-        return envelope.success ? envelope.data.data : undefined;
+        const payload = await request(`/v3/proposals/${encodeURIComponent(uuid)}`, { method: "GET" }, true);
+        return readProposalData(payload)[0];
       });
-      return fetched.flatMap((proposal) => (proposal === undefined ? [] : [proposal]));
+      return fetched.flatMap(keepProposal);
     },
   };
+}
+
+function keepProposal(proposal: unknown): unknown[] {
+  if (proposal === undefined) {
+    return [];
+  }
+  return [proposal];
 }
