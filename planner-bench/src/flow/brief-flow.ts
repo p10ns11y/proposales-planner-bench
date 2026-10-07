@@ -25,6 +25,8 @@ export const briefFlow = setup({
   guards: {
     briefIsFileable: ({ context }) => findBriefGaps(context.brief, "brief:fileable").length === 0,
     briefIsNotFileable: ({ context }) => findBriefGaps(context.brief, "brief:fileable").length > 0,
+    briefIsComparable: ({ context }) => findBriefGaps(context.brief, "brief:comparable").length === 0,
+    briefIsNotComparable: ({ context }) => findBriefGaps(context.brief, "brief:comparable").length > 0,
   },
   actions: {
     replaceBrief: assign({
@@ -64,7 +66,10 @@ export const briefFlow = setup({
     filed: {
       on: {
         briefUpdated: { actions: "replaceBrief" },
-        offerAdded: { target: "comparing", actions: "appendOffer" },
+        offerAdded: [
+          { guard: "briefIsComparable", target: "comparing", actions: "appendOffer" },
+          { actions: "appendOffer" },
+        ],
       },
     },
     comparing: {
@@ -72,6 +77,7 @@ export const briefFlow = setup({
         briefUpdated: { actions: "replaceBrief" },
         offerAdded: { actions: "appendOffer" },
       },
+      always: [{ guard: "briefIsNotComparable", target: "filed" }],
     },
   },
 });

@@ -28,13 +28,59 @@ export function compareOffers(
   );
 }
 
-export function rankComparisonRows(rows: ComparisonRow[]): ComparisonRow[] {
-  return [...rows].sort((left, right) => {
-    if (left.gaps.length !== right.gaps.length) {
-      return left.gaps.length - right.gaps.length;
-    }
-    return left.totalMinor.amount - right.totalMinor.amount;
-  });
+export function rankComparisonRows(rows: ComparisonRow[], referenceCurrency?: string): ComparisonRow[] {
+  const lead = leadCurrency(rows, referenceCurrency);
+  return [...rows].sort((left, right) => compareRankedRows(left, right, lead));
+}
+
+function compareRankedRows(left: ComparisonRow, right: ComparisonRow, lead: string): number {
+  const leftLead = currencyMatches(left.currency, lead);
+  const rightLead = currencyMatches(right.currency, lead);
+  if (leftLead !== rightLead) {
+    return leftLead ? -1 : 1;
+  }
+  const leftCurrency = normaliseCurrency(left.currency);
+  const rightCurrency = normaliseCurrency(right.currency);
+  if (leftCurrency !== rightCurrency) {
+    return leftCurrency < rightCurrency ? -1 : 1;
+  }
+  return compareWithinCurrency(left, right);
+}
+
+function leadCurrency(rows: ComparisonRow[], referenceCurrency: string | undefined): string {
+  const stated = normaliseCurrency(referenceCurrency);
+  if (stated !== "") {
+    return stated;
+  }
+  const top = [...rows].sort(compareForLead)[0];
+  return normaliseCurrency(top?.currency);
+}
+
+function compareForLead(left: ComparisonRow, right: ComparisonRow): number {
+  if (left.gaps.length !== right.gaps.length) {
+    return left.gaps.length - right.gaps.length;
+  }
+  const leftCurrency = normaliseCurrency(left.currency);
+  const rightCurrency = normaliseCurrency(right.currency);
+  if (leftCurrency !== rightCurrency) {
+    return leftCurrency < rightCurrency ? -1 : 1;
+  }
+  return left.totalMinor.amount - right.totalMinor.amount;
+}
+
+function compareWithinCurrency(left: ComparisonRow, right: ComparisonRow): number {
+  if (left.gaps.length !== right.gaps.length) {
+    return left.gaps.length - right.gaps.length;
+  }
+  return left.totalMinor.amount - right.totalMinor.amount;
+}
+
+function currencyMatches(currency: string, lead: string): boolean {
+  return lead !== "" && normaliseCurrency(currency) === lead;
+}
+
+function normaliseCurrency(value: string | undefined): string {
+  return value?.trim().toUpperCase() ?? "";
 }
 
 function comparisonRow(
@@ -93,7 +139,59 @@ export function comparisonGaps(brief: PlannerBrief, offer: VenueOffer, today: st
   if (offer.expiresAt !== undefined && offer.expiresAt.slice(0, 10) < today) {
     gaps.push("expired");
   }
+  const neededBreakout = brief.breakoutRoomCount ?? 0;
+  if (neededBreakout > 0 && (offer.breakoutRoomCount ?? 0) < neededBreakout) {
+    gaps.push("breakout");
+  }
+  const coveredDiets = new Set((offer.dietaryNeeds ?? []).map((need) => need.trim().toLowerCase()));
+  for (const need of brief.foodRequest?.dietaryNeeds ?? []) {
+    if (!coveredDiets.has(need.trim().toLowerCase())) {
+      gaps.push(need);
+    }
+  }
+  if (offerExceedsBudget(brief, offer)) {
+    gaps.push("budget");
+  }
   return gaps;
+}
+
+function offerExceedsBudget(brief: PlannerBrief, offer: VenueOffer): boolean {
+  const total = offer.totalMinor?.amount;
+  if (total === undefined) {
+    return false;
+  }
+  if (brief.budget !== undefined) {
+    const ceiling = budgetCeilingMinor(brief.budget, brief.attendeeCount);
+    if (ceiling === undefined) {
+      return false;
+    }
+    const offerCurrency = offer.currency?.trim().toUpperCase();
+    if (offerCurrency === undefined || offerCurrency === "") {
+      return false;
+    }
+    if (offerCurrency !== brief.budget.currency.trim().toUpperCase()) {
+      return false;
+    }
+    return total > ceiling;
+  }
+  if (brief.budgetMinor !== undefined) {
+    return total > brief.budgetMinor.amount;
+  }
+  return false;
+}
+
+function budgetCeilingMinor(
+  budget: NonNullable<PlannerBrief["budget"]>,
+  attendeeCount: number | undefined,
+): number | undefined {
+  const unitMinor = Math.round(budget.amount * 100);
+  if (budget.scope === "per-person") {
+    if (attendeeCount === undefined || attendeeCount <= 0) {
+      return undefined;
+    }
+    return unitMinor * attendeeCount;
+  }
+  return unitMinor;
 }
 
 export function briefGapsForStage(
@@ -106,18 +204,37 @@ export function briefGapsForStage(
   return findBriefGaps(brief, "brief:comparable");
 }
 
+export function offersForBrief(brief: PlannerBrief, offers: VenueOffer[]): VenueOffer[] {
+  return offersMatchingCity(brief, offers).filter((offer) => capacityAllows(brief, offer));
+}
+
 export function offersMatchingCity(brief: PlannerBrief, offers: VenueOffer[]): VenueOffer[] {
-  const city = brief.city?.trim().toLowerCase();
-  if (city === undefined || city === "") {
-    return offers;
+  return offers.filter((offer) => citiesAgree(brief, offer));
+}
+
+function citiesAgree(brief: PlannerBrief, offer: VenueOffer): boolean {
+  const briefCity = foldCity(brief.city ?? "");
+  const offerCity = foldCity(offer.city ?? "");
+  if (briefCity === "" || offerCity === "") {
+    return true;
   }
-  const offersWithCity = offers.filter(
-    (offer) => offer.city !== undefined && offer.city.trim() !== "",
-  );
-  if (offersWithCity.length === 0) {
-    return offers;
+  return briefCity === offerCity;
+}
+
+function foldCity(value: string): string {
+  return value.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+function capacityAllows(brief: PlannerBrief, offer: VenueOffer): boolean {
+  const attendees = brief.attendeeCount;
+  if (attendees === undefined) {
+    return true;
   }
-  return offersWithCity.filter(
-    (offer) => offer.city !== undefined && offer.city.trim().toLowerCase() === city,
-  );
+  if (offer.minCapacity !== undefined && attendees < offer.minCapacity) {
+    return false;
+  }
+  if (offer.capacity !== undefined && attendees > offer.capacity) {
+    return false;
+  }
+  return true;
 }

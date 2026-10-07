@@ -108,6 +108,7 @@ Browser: `http://localhost:3000` only. `127.0.0.1` does not hydrate.
 ## last progress
 
 - 2026-10-07: P1–P3 are in. `brief:comparable` is city, start, end or duration, and headcount. Email still gates filing. One sticky composer, collapsed More, fixture rows. A usable gateway tries the model and any gateway error falls back to the scripted extractor. Desktop and 390×844 walks showed the three facts, the composer, More collapsed, and Harbour House, Canal Loft, Ridge Hall. Fresh review returned pass. Deploy stays with the owner.
+- 2026-10-07: The model window is 40 seconds. The turn and chat routes set maxDuration to 60. A missing key, a model error, or that window falls back to the scripted extractor.
 
 ## open decisions
 

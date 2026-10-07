@@ -9,8 +9,10 @@ import {
   placesSentence,
   showCompareToggle,
 } from "../src/contract/offer-group";
+import { minorUnits } from "../src/domain/minor-units";
 import { normaliseProposal } from "../src/domain/normalise-proposal";
 import { openingSnapshot } from "../src/flow/chat-request";
+import { emptySnapshot } from "../src/flow/planner-snapshot";
 import { runViewportAction } from "../src/flow/viewport-turn";
 import { readTurnSnapshot } from "../src/app/planner-session";
 import { createFixtureClient } from "../src/proposales/fixture-client";
@@ -25,6 +27,52 @@ const timedBrief =
 
 const sentence =
   "Three places fit. Harbour House is the best match; Canal Loft\u2019s offer has expired and Ridge Hall has no food included.";
+
+const countWords = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
+
+describe("offer count", () => {
+  it("reads the same count in the group header and the reply", () => {
+    const rankedCount = 12;
+    const snapshot = {
+      ...emptySnapshot([{ id: 1, name: "Harbour House", inboxToken: null }], "", []),
+      phase: "results" as const,
+      stage: "comparing" as const,
+      brief: { city: "Stockholm", startDate: "2026-11-12", attendeeCount: 40 },
+      visibleRowCount: 5,
+      grid: Array.from({ length: rankedCount }, (_, index) => ({
+        venueName: `Hall ${index + 1}`,
+        proposalUuid: `hall-${index + 1}`,
+        currency: "EUR",
+        roomsMinor: minorUnits((index + 1) * 1_000),
+        foodAndBeverageMinor: minorUnits(0),
+        spaceMinor: minorUnits(0),
+        extrasMinor: minorUnits(0),
+        totalMinor: minorUnits((index + 1) * 1_000),
+        gaps: [],
+        favorite: false,
+        blocks: [],
+      })),
+    };
+    const view = shellViewModel({
+      snapshot,
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    const group = offerGroupFromShell(view);
+    expect(group).not.toBeNull();
+    if (group === null) {
+      return;
+    }
+    const headerCount = countReadFromHeader(group.summary.line);
+    const sentenceCount = countReadFromSentence(view.ask);
+    expect(headerCount).toBe(sentenceCount);
+    expect(group.summary.count).toBe(headerCount);
+    expect(headerCount).toBe(view.rows.length);
+    expect(group.offers).toHaveLength(headerCount);
+    expect(snapshot.grid.length).toBeGreaterThan(headerCount);
+  });
+});
 
 describe("best match from the ranked rows", () => {
   it("marks Harbour House and leaves the expired Canal Loft unmarked", async () => {
@@ -209,6 +257,20 @@ async function stockholmResults(): Promise<ShellViewModel> {
     errorText: null,
     speechAvailable: false,
   });
+}
+
+function countReadFromHeader(line: string): number {
+  const match = /^(\d+)\s+offers?\b/.exec(line);
+  return match?.[1] === undefined ? -1 : Number(match[1]);
+}
+
+function countReadFromSentence(sentence: string): number {
+  const lead = sentence.split(" ")[0] ?? "";
+  const fromWord = countWords.indexOf(lead);
+  if (fromWord >= 0) {
+    return fromWord;
+  }
+  return /^\d+$/.test(lead) ? Number(lead) : -1;
 }
 
 function resultsModel(rows: ShellRow[]): ShellViewModel {

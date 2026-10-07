@@ -5,6 +5,8 @@ import type { CompanyRecord, FileBriefResult, ProposalesClient } from "./types";
 
 export const plannerUserAgent = `planner-bench/${packageJson.version}`;
 
+export const proposalFetchLimit = 5;
+
 export const companyReader = z.object({
   id: z.number(),
   name: z.string(),
@@ -61,6 +63,34 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
     }
     const payload: unknown = await response.json();
     return payload;
+  }
+
+  async function mapWithLimit<T, R>(
+    items: readonly T[],
+    limit: number,
+    run: (item: T) => Promise<R>,
+  ): Promise<R[]> {
+    if (items.length === 0) {
+      return [];
+    }
+    const results = new Array<R>(items.length);
+    let next = 0;
+    const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+      for (;;) {
+        const index = next;
+        next += 1;
+        if (index >= items.length) {
+          return;
+        }
+        const item = items[index];
+        if (item === undefined) {
+          return;
+        }
+        results[index] = await run(item);
+      }
+    });
+    await Promise.all(workers);
+    return results;
   }
 
   return {
@@ -122,25 +152,20 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
       const search = searchEnvelopeReader.parse(
         await request("/v3/proposal-search?limit=25", { method: "GET" }, true),
       );
-      const proposals: unknown[] = [];
-      for (const item of search.data) {
+      const uuids = search.data.flatMap((item) => {
         const identity = searchIdentityReader.safeParse(item);
         if (!identity.success || isPlannerBenchBrief(identity.data.data)) {
-          continue;
+          return [];
         }
+        return [identity.data.uuid];
+      });
+      const fetched = await mapWithLimit(uuids, proposalFetchLimit, async (uuid) => {
         const envelope = proposalEnvelopeReader.safeParse(
-          await request(
-            `/v3/proposals/${encodeURIComponent(identity.data.uuid)}`,
-            { method: "GET" },
-            true,
-          ),
+          await request(`/v3/proposals/${encodeURIComponent(uuid)}`, { method: "GET" }, true),
         );
-        if (!envelope.success) {
-          continue;
-        }
-        proposals.push(envelope.data.data);
-      }
-      return proposals;
+        return envelope.success ? envelope.data.data : undefined;
+      });
+      return fetched.flatMap((proposal) => (proposal === undefined ? [] : [proposal]));
     },
   };
 }

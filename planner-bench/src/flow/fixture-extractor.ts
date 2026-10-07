@@ -1,4 +1,4 @@
-import type { PlannerBrief } from "../domain/planner-brief";
+import { assumedSpan, type DayPart, type PlannerBrief } from "../domain/planner-brief";
 import { minorUnits } from "../domain/minor-units";
 import type { VenueOffer } from "../domain/venue-offer";
 
@@ -6,17 +6,29 @@ export type TurnIntent = "file" | "addOffers" | "compare" | "update";
 
 const monthIndexByName: Record<string, string> = {
   january: "01",
+  jan: "01",
   february: "02",
+  feb: "02",
   march: "03",
+  mar: "03",
   april: "04",
+  apr: "04",
   may: "05",
   june: "06",
+  jun: "06",
   july: "07",
+  jul: "07",
   august: "08",
+  aug: "08",
   september: "09",
+  sept: "09",
+  sep: "09",
   october: "10",
+  oct: "10",
   november: "11",
+  nov: "11",
   december: "12",
+  dec: "12",
 };
 
 const fixtureVenueNames = ["Harbour House", "Ridge Hall", "Canal Loft"] as const;
@@ -199,8 +211,43 @@ function mergePlainEnglish(patch: PlannerBrief, text: string): PlannerBrief {
       next.durationMinutes = duration;
     }
   }
-  if (next.foodRequired === undefined && /\b(dinner|lunch|breakfast|catering|food)\b/i.test(text)) {
+  if (
+    next.timeAssumption === undefined &&
+    next.startTime === undefined &&
+    next.endTime === undefined &&
+    next.durationMinutes === undefined
+  ) {
+    const dayPart = readDayPartName(text);
+    if (dayPart !== undefined) {
+      const assumed = assumedSpan(dayPart);
+      next.startTime = assumed.startTime;
+      next.endTime = assumed.endTime;
+      next.timeAssumption = assumed.timeAssumption;
+    }
+  }
+  if (next.breakoutRoomCount === undefined) {
+    const breakoutRoomCount = readBreakoutRoomCount(text);
+    if (breakoutRoomCount !== undefined) {
+      next.breakoutRoomCount = breakoutRoomCount;
+    }
+  }
+  if (next.foodRequest === undefined) {
+    const foodRequest = readFoodRequest(text);
+    if (foodRequest !== undefined) {
+      next.foodRequest = foodRequest;
+    }
+  }
+  if (
+    next.foodRequired === undefined &&
+    (next.foodRequest !== undefined || /\b(dinner|lunch|breakfast|catering|food)\b/i.test(text))
+  ) {
     next.foodRequired = true;
+  }
+  if (next.budget === undefined) {
+    const budget = readSpokenBudget(text);
+    if (budget !== undefined) {
+      next.budget = budget;
+    }
   }
   if (next.meetingRoomCount === undefined) {
     const numberedRooms = /(\d+)\s+meeting\s+rooms?\b/i.exec(text);
@@ -280,24 +327,230 @@ function normaliseClock(raw: string): string | undefined {
   return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
-function collectIsoDates(text: string): string[] {
-  const pattern =
-    /\b(\d{4}-\d{2}-\d{2})\b|\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b|\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/gi;
-  const dates: string[] = [];
-  for (const match of text.matchAll(pattern)) {
-    if (match[1]) {
-      dates.push(match[1]);
+const monthToken = Object.keys(monthIndexByName)
+  .sort((left, right) => right.length - left.length)
+  .join("|");
+
+const dayPartFinders: { pattern: RegExp; dayPart: DayPart }[] = [
+  { pattern: /\bfull[-\s]?day\b/i, dayPart: "full-day" },
+  { pattern: /\ball[-\s]?day\b/i, dayPart: "all-day" },
+  { pattern: /\bhalf[-\s]?day\b/i, dayPart: "half-day" },
+  { pattern: /(?<!good\s)\bmorning\b/i, dayPart: "morning" },
+  { pattern: /(?<!good\s)\bafternoon\b/i, dayPart: "afternoon" },
+];
+
+const dietFinders: { pattern: RegExp; name: string }[] = [
+  { pattern: /\bvegetarian\b/i, name: "vegetarian" },
+  { pattern: /\bvegan\b/i, name: "vegan" },
+  { pattern: /\bgluten[-\s]?free\b/i, name: "gluten-free" },
+  { pattern: /\b(?:celiac|coeliac)\b/i, name: "gluten-free" },
+  { pattern: /\bdairy[-\s]?free\b/i, name: "dairy-free" },
+  { pattern: /\bnut[-\s]?free\b/i, name: "nut-free" },
+  { pattern: /\bnut\s+allerg(?:y|ies)\b/i, name: "nut-free" },
+  { pattern: /\bhalal\b/i, name: "halal" },
+  { pattern: /\bkosher\b/i, name: "kosher" },
+  { pattern: /\bpescatarian\b/i, name: "pescatarian" },
+];
+
+const currencyWords: Record<string, string> = {
+  eur: "EUR",
+  euro: "EUR",
+  euros: "EUR",
+  usd: "USD",
+  dollar: "USD",
+  dollars: "USD",
+  gbp: "GBP",
+  pound: "GBP",
+  pounds: "GBP",
+  sek: "SEK",
+  krona: "SEK",
+  kronor: "SEK",
+  nok: "NOK",
+  dkk: "DKK",
+  chf: "CHF",
+};
+
+function readDayPartName(text: string): DayPart | undefined {
+  let found: { dayPart: DayPart; index: number } | undefined;
+  for (const finder of dayPartFinders) {
+    const match = finder.pattern.exec(text);
+    if (match === null) {
       continue;
     }
-    if (match[2] && match[3] && match[4]) {
-      dates.push(toIsoDate(match[4], match[3], match[2]));
-      continue;
-    }
-    if (match[5] && match[6] && match[7]) {
-      dates.push(toIsoDate(match[7], match[5], match[6]));
+    if (found === undefined || match.index < found.index) {
+      found = { dayPart: finder.dayPart, index: match.index };
     }
   }
-  return dates;
+  return found?.dayPart;
+}
+
+function readBreakoutRoomCount(text: string): number | undefined {
+  const numbered = /\b(\d+)\s+breakout\s+(?:rooms?|spaces?)\b/i.exec(text);
+  if (numbered?.[1]) {
+    const count = Number(numbered[1]);
+    if (Number.isInteger(count) && count > 0) {
+      return count;
+    }
+  }
+  if (/\bbreakout\b/i.test(text)) {
+    return 1;
+  }
+  return undefined;
+}
+
+function readFoodRequest(text: string): PlannerBrief["foodRequest"] {
+  const found: { index: number; name: string }[] = [];
+  for (const finder of dietFinders) {
+    const match = finder.pattern.exec(text);
+    if (match === null) {
+      continue;
+    }
+    found.push({ index: match.index, name: finder.name });
+  }
+  found.sort((left, right) => left.index - right.index);
+  const dietaryNeeds: string[] = [];
+  for (const item of found) {
+    if (!dietaryNeeds.includes(item.name)) {
+      dietaryNeeds.push(item.name);
+    }
+  }
+  const mealMatch = /\b(breakfast|lunch|dinner)\b/i.exec(text);
+  const meal = mealMatch?.[1]?.toLowerCase();
+  const request: NonNullable<PlannerBrief["foodRequest"]> = {};
+  if (meal === "breakfast" || meal === "lunch" || meal === "dinner") {
+    request.meal = meal;
+  }
+  if (dietaryNeeds.length > 0) {
+    request.dietaryNeeds = dietaryNeeds;
+  }
+  if (request.meal === undefined && request.dietaryNeeds === undefined) {
+    return undefined;
+  }
+  return request;
+}
+
+function readSpokenBudget(text: string): PlannerBrief["budget"] {
+  const clause = /budget\b[^.\n]*/i.exec(text);
+  if (clause?.[0] === undefined) {
+    return undefined;
+  }
+  const money = readMoney(clause[0]);
+  if (money === undefined) {
+    return undefined;
+  }
+  const scope = readBudgetScope(clause[0]);
+  const approximate = /\b(?:around|about|approx(?:imately)?|roughly)\b/i.test(clause[0]);
+  return {
+    amount: money.amount,
+    currency: money.currency,
+    ...(scope !== undefined ? { scope } : {}),
+    ...(approximate ? { approximate: true } : {}),
+  };
+}
+
+function readBudgetScope(text: string): "total" | "per-person" | undefined {
+  if (/\bper\s+(?:person|head|attendee|guest)\b/i.test(text) || /\ba\s+head\b/i.test(text)) {
+    return "per-person";
+  }
+  if (/\b(?:in\s+total|overall|total)\b/i.test(text)) {
+    return "total";
+  }
+  return undefined;
+}
+
+function readMoney(text: string): { amount: number; currency: string } | undefined {
+  for (const match of text.matchAll(/(€|\$|£)\s*(\d+(?:[.,]\d+)?)/g)) {
+    const parsed = money(match[1] ?? "", match[2] ?? "");
+    if (parsed !== undefined) {
+      return parsed;
+    }
+  }
+  for (const match of text.matchAll(/\b([A-Za-z]{3})\s*(\d+(?:[.,]\d+)?)\b/g)) {
+    const parsed = money(match[1] ?? "", match[2] ?? "");
+    if (parsed !== undefined) {
+      return parsed;
+    }
+  }
+  for (const match of text.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(€|\$|£|[A-Za-z]+)\b/g)) {
+    const parsed = money(match[2] ?? "", match[1] ?? "");
+    if (parsed !== undefined) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+function money(currencyToken: string, amountToken: string): { amount: number; currency: string } | undefined {
+  const currency = currencyCode(currencyToken);
+  const amount = parseAmount(amountToken);
+  if (currency === undefined || amount === undefined) {
+    return undefined;
+  }
+  return { amount, currency };
+}
+
+function currencyCode(token: string): string | undefined {
+  if (token === "€") {
+    return "EUR";
+  }
+  if (token === "$") {
+    return "USD";
+  }
+  if (token === "£") {
+    return "GBP";
+  }
+  return currencyWords[token.toLowerCase()];
+}
+
+function parseAmount(raw: string): number | undefined {
+  const normalised = raw.includes(",") && !raw.includes(".") ? raw.replace(",", ".") : raw.replace(/,/g, "");
+  const amount = Number(normalised);
+  if (!Number.isFinite(amount) || amount < 0) {
+    return undefined;
+  }
+  return amount;
+}
+
+function collectIsoDates(text: string): string[] {
+  const found: { index: number; end: number; iso: string }[] = [];
+  const remember = (match: RegExpMatchArray, iso: string) => {
+    const index = match.index;
+    const span = match[0];
+    if (index === undefined) {
+      return;
+    }
+    const end = index + span.length;
+    const overlaps = found.some((item) => index < item.end && end > item.index);
+    if (overlaps) {
+      return;
+    }
+    found.push({ index, end, iso });
+  };
+  for (const match of text.matchAll(/\b(\d{4}-\d{2}-\d{2})\b/g)) {
+    if (match[1]) {
+      remember(match, match[1]);
+    }
+  }
+  const dayFirst = new RegExp(
+    `\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${monthToken})\\s+(\\d{4})\\b`,
+    "gi",
+  );
+  for (const match of text.matchAll(dayFirst)) {
+    if (match[1] && match[2] && match[3]) {
+      remember(match, toIsoDate(match[3], match[2], match[1]));
+    }
+  }
+  const monthFirst = new RegExp(
+    `\\b(${monthToken})\\s+(\\d{1,2})(?:st|nd|rd|th)?,?\\s+(\\d{4})\\b`,
+    "gi",
+  );
+  for (const match of text.matchAll(monthFirst)) {
+    if (match[1] && match[2] && match[3]) {
+      remember(match, toIsoDate(match[3], match[1], match[2]));
+    }
+  }
+  found.sort((left, right) => left.index - right.index);
+  return found.map((item) => item.iso);
 }
 
 function toIsoDate(year: string, monthName: string, day: string): string {

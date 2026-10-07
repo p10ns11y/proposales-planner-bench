@@ -6,7 +6,7 @@ import type { PlannerChatEnv } from "./planner-chat";
 
 export const defaultPlannerModelId = "grok-4.7";
 
-export const modelAttemptMs = 20_000;
+export const modelAttemptMs = 40_000;
 
 export const briefExtractionProviderOptions = {
   xai: {
@@ -73,7 +73,19 @@ async function extractBriefWithModel(
       "Extract fields for an event brief.",
       "Location must be a city.",
       "Times use HH:MM.",
+      "A full day or all day is 09:00 to 17:00.",
+      "A half day or morning is 09:00 to 12:00.",
+      "An afternoon is 13:00 to 17:00.",
+      "When a day-part supplies the time and no clock is stated, set startTime, endTime, and timeAssumption.",
+      "timeAssumption.dayPart is full-day, all-day, half-day, morning, or afternoon.",
+      "timeAssumption.statement says the span was assumed, for example Assumed 09:00–17:00 for a full day.",
       "Duration is minutes.",
+      "breakoutRoomCount is the number of breakout rooms. Use the count given, or 1 when breakout space is requested.",
+      "Attach dietary needs to foodRequest with the meal. Meals are breakfast, lunch, or dinner.",
+      "Include vegetarian, vegan, gluten-free, and any other diet that was named.",
+      "A meal or a diet also sets foodRequired.",
+      "budget.amount is the major-unit number and budget.currency is a three-letter uppercase code.",
+      "Set budget.scope to per-person or total only when the words say which. around, about, or approximately sets budget.approximate.",
       "Leave unknown fields out.",
       `Current brief: ${JSON.stringify(brief)}`,
       `Words: ${text}`,

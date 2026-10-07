@@ -4,7 +4,7 @@ import { normaliseProposal } from "../src/domain/normalise-proposal";
 import { createClient, resolveMode } from "../src/proposales/client";
 import { draftBody, filingPath, inboxBody } from "../src/proposales/filing";
 import { createFixtureClient, sampleBrief } from "../src/proposales/fixture-client";
-import { createHttpClient, plannerUserAgent } from "../src/proposales/http-client";
+import { createHttpClient, plannerUserAgent, proposalFetchLimit } from "../src/proposales/http-client";
 import { liveDraftProposals, liveSearchItem } from "./live-draft-proposals";
 
 describe("proposales mode", () => {
@@ -170,6 +170,45 @@ describe("http client", () => {
     expect(plannerUserAgent).toBe("planner-bench/0.1.0");
   });
 
+  it("fetches draft proposals a few at a time and keeps the planner user agent", async () => {
+    expect(proposalFetchLimit).toBeGreaterThanOrEqual(4);
+    expect(proposalFetchLimit).toBeLessThanOrEqual(6);
+    const drafts = Array.from({ length: 12 }, (_, index) => ({
+      uuid: `20000000-0000-4000-8000-${(index + 1).toString().padStart(12, "0")}`,
+      title: `Draft ${index + 1}`,
+      status: "draft",
+      blocks: [],
+    }));
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      expect(new Headers(init?.headers).get("user-agent")).toBe(plannerUserAgent);
+      if (url.includes("/v3/proposal-search")) {
+        return Response.json({
+          data: drafts.map((draft) => ({ uuid: draft.uuid, data: {} })),
+        });
+      }
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      inFlight -= 1;
+      const draft = drafts.find((item) => url.includes(item.uuid));
+      if (draft === undefined) {
+        return Response.json({ data: [] }, { status: 404 });
+      }
+      return Response.json({ data: draft });
+    };
+    const client = createHttpClient({
+      apiKey: "test-key",
+      fetchImpl,
+      baseUrl: "https://api.proposales.com",
+    });
+    const proposals = await client.loadVenueProposals();
+    expect(proposals.map((proposal) => titleOf(proposal))).toEqual(drafts.map((draft) => draft.title));
+    expect(maxInFlight).toBe(proposalFetchLimit);
+  });
+
   it("skips a filed brief and still fetches seeded venue drafts", async () => {
     const briefUuid = "dddddddd-dddd-4ddd-8ddd-ddddddddddd1";
     const calls: string[] = [];
@@ -281,6 +320,14 @@ describe("http client", () => {
     );
   });
 });
+
+function titleOf(proposal: unknown): string {
+  if (typeof proposal !== "object" || proposal === null) {
+    return "";
+  }
+  const title = Reflect.get(proposal, "title");
+  return typeof title === "string" ? title : "";
+}
 
 function statusOf(proposal: unknown): string {
   if (typeof proposal !== "object" || proposal === null) {

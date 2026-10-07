@@ -1,7 +1,7 @@
 import {
   briefGapsForStage,
   compareOffers,
-  offersMatchingCity,
+  offersForBrief,
   rankComparisonRows,
 } from "../domain/compare-offers";
 import { findBriefGaps, questionForGap } from "../domain/fitness";
@@ -160,16 +160,8 @@ async function confirmBrief(
   snapshot: PlannerSnapshot,
   client: ProposalesClient,
 ): Promise<PlannerSnapshot> {
-  const comparableGaps = findBriefGaps(snapshot.brief, "brief:comparable");
-  if (comparableGaps.length > 0) {
-    const firstGap = comparableGaps[0];
-    return {
-      ...snapshot,
-      phase: "confirm",
-      gaps: comparableGaps,
-      nextQuestion: firstGap === undefined ? "" : questionForGap(firstGap),
-      notice: null,
-    };
+  if (findBriefGaps(snapshot.brief, "brief:comparable").length > 0) {
+    return withConfirmState(snapshot, snapshot.brief);
   }
   let filing = snapshot.filing;
   let selectedCompanyId = snapshot.selectedCompanyId;
@@ -253,6 +245,12 @@ async function submitFavorites(
   client: ProposalesClient,
   today: string,
 ): Promise<PlannerSnapshot> {
+  if (snapshot.phase === "capture" || snapshot.phase === "confirm") {
+    return withConfirmState(snapshot, snapshot.brief);
+  }
+  if (findBriefGaps(snapshot.brief, "brief:comparable").length > 0) {
+    return withConfirmState(snapshot, snapshot.brief);
+  }
   const favoriteVenueNames = matchFavoriteVenues(text);
   return rankSnapshot({ ...snapshot, favoriteVenueNames }, client, today);
 }
@@ -299,16 +297,20 @@ async function rankSnapshot(
   client: ProposalesClient,
   today: string,
 ): Promise<PlannerSnapshot> {
+  if (findBriefGaps(snapshot.brief, "brief:comparable").length > 0) {
+    return withConfirmState(snapshot, snapshot.brief);
+  }
   const loaded = await loadComparableProposals(client);
   const normalised = normaliseLoaded(loaded.proposals);
   const sample = loaded.sample || normalised.sample;
   const offerSource = sample ? "sample" : loaded.source;
-  const offers = offersMatchingCity(snapshot.brief, normalised.offers);
+  const offers = offersForBrief(snapshot.brief, normalised.offers);
   const grid = rankComparisonRows(
     compareOffers(snapshot.brief, offers, today, {
       favoriteVenueNames: snapshot.favoriteVenueNames,
       companies: snapshot.companies,
     }),
+    snapshot.brief.budget?.currency,
   );
   const projected = projectBriefFlow({
     brief: snapshot.brief,
@@ -376,22 +378,49 @@ function patchForGap(field: string | undefined, text: string, incoming: PlannerB
   const direct = gapAnswerPatch(field, text);
   if (field === "endTime" || field === "endDate" || field === "durationMinutes") {
     return {
-      endTime: direct.endTime ?? incoming.endTime,
+      ...clockAnswer(direct, incoming, false),
       endDate: direct.endDate ?? incoming.endDate,
-      durationMinutes: direct.durationMinutes ?? incoming.durationMinutes,
     };
   }
   if (field === "startTime") {
-    return {
-      startTime: direct.startTime ?? incoming.startTime,
-      endTime: direct.endTime ?? incoming.endTime,
-      durationMinutes: direct.durationMinutes ?? incoming.durationMinutes,
-    };
+    return clockAnswer(direct, incoming, true);
   }
   if (field === "city") {
     return { ...incoming, city: direct.city ?? incoming.city };
   }
   return mergeBrief(direct, incoming);
+}
+
+function clockAnswer(
+  direct: PlannerBrief,
+  incoming: PlannerBrief,
+  includeIncomingStart: boolean,
+): PlannerBrief {
+  const explicit =
+    direct.startTime !== undefined || direct.endTime !== undefined || direct.durationMinutes !== undefined;
+  const startTime = direct.startTime ?? (includeIncomingStart ? incoming.startTime : undefined);
+  const endTime = direct.endTime ?? incoming.endTime;
+  const durationMinutes = direct.durationMinutes ?? incoming.durationMinutes;
+  const patch: PlannerBrief = {};
+  if (startTime !== undefined) {
+    patch.startTime = startTime;
+  }
+  if (endTime !== undefined) {
+    patch.endTime = endTime;
+  }
+  if (durationMinutes !== undefined) {
+    patch.durationMinutes = durationMinutes;
+  }
+  if (!explicit && incoming.timeAssumption !== undefined) {
+    patch.timeAssumption = incoming.timeAssumption;
+    if (patch.startTime === undefined && incoming.startTime !== undefined) {
+      patch.startTime = incoming.startTime;
+    }
+    if (patch.endTime === undefined && incoming.endTime !== undefined) {
+      patch.endTime = incoming.endTime;
+    }
+  }
+  return patch;
 }
 
 function gapAnswerPatch(field: string | undefined, text: string): PlannerBrief {

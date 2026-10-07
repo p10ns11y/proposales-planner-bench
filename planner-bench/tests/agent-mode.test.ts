@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { maxDuration } from "../src/app/api/turn/route";
+import { maxDuration as chatMaxDuration } from "../src/app/api/chat/route";
+import { maxDuration as turnMaxDuration } from "../src/app/api/turn/route";
 import {
   briefExtractionProviderOptions,
   defaultPlannerModelId,
@@ -128,10 +129,12 @@ describe("model and scripted switch", () => {
     expect(briefExtractionProviderOptions.xai.reasoningEffort).toBe("low");
   });
 
-  it("gives the turn route enough time for the model window", () => {
-    expect(modelAttemptMs).toBe(20_000);
-    expect(maxDuration).toBe(60);
-    expect(maxDuration * 1_000).toBeGreaterThan(modelAttemptMs);
+  it("gives the turn and chat routes enough time for the model window", () => {
+    expect(modelAttemptMs).toBe(40_000);
+    expect(turnMaxDuration).toBe(60);
+    expect(chatMaxDuration).toBe(60);
+    expect(turnMaxDuration * 1_000).toBeGreaterThan(modelAttemptMs);
+    expect(chatMaxDuration * 1_000).toBeGreaterThan(modelAttemptMs);
   });
 
   it("names the planner path on the turn response", async () => {
@@ -168,7 +171,7 @@ describe("model and scripted switch", () => {
   it(
     "falls back to the scripted patch after the model window",
     async () => {
-      expect(modelAttemptMs).toBe(20_000);
+      expect(modelAttemptMs).toBe(40_000);
       const started = Date.now();
       const resolved = await resolveBriefPatch({
         text: stockholm,
@@ -187,14 +190,14 @@ describe("model and scripted switch", () => {
           }),
       });
       const elapsed = Date.now() - started;
-      expect(elapsed).toBeGreaterThanOrEqual(19_000);
-      expect(elapsed).toBeLessThanOrEqual(23_000);
+      expect(elapsed).toBeGreaterThanOrEqual(39_000);
+      expect(elapsed).toBeLessThanOrEqual(46_000);
       expect(resolved.planner).toBe("scripted");
       expect(resolved.brief.city).toBe("Stockholm");
       expect(resolved.brief.attendeeCount).toBe(40);
       expect(resolved.brief.startDate).toBe("2026-11-12");
     },
-    30_000,
+    55_000,
   );
 });
 

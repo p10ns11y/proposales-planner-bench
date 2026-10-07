@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { addMinorUnits, minorUnits } from "./minor-units";
-import type { VenueOffer } from "./venue-offer";
+import { offerDayPartSchema, type VenueOffer } from "./venue-offer";
 
 const packageSplitTypeSchema = z.enum(["accommodation", "meetingRoom", "food", "other"]);
 
@@ -19,6 +19,7 @@ const proposalForOfferSchema = z.object({
   company_id: z.number().int().optional(),
   currency: z.string().optional(),
   expires_at: z.number().nullable().optional(),
+  data: z.unknown().optional(),
   blocks: z.array(
     z.object({
       title: z.string().nullable().optional(),
@@ -59,6 +60,7 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
   const spaceMinor = minorUnits(Math.round(totals.spaceMinor));
   const extrasMinor = minorUnits(Math.round(totals.extrasMinor));
   const venueName = venueNameFromTitle(parsed.title);
+  const facts = readProposalData(parsed.data);
   const blocks = parsed.blocks.flatMap((block) => {
     const title = block.title?.trim() ?? "";
     if (title === "") {
@@ -71,6 +73,7 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
     venueName,
     proposalUuid: parsed.uuid,
     companyId: parsed.company_id,
+    ...facts,
     currency: parsed.currency,
     blocks,
     expiresAt:
@@ -83,6 +86,60 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
     extrasMinor,
     totalMinor: addMinorUnits([roomsMinor, foodAndBeverageMinor, spaceMinor, extrasMinor]),
   };
+}
+
+function readProposalData(
+  data: unknown,
+): Pick<VenueOffer, "city" | "capacity" | "minCapacity" | "dayPart" | "eventType"> {
+  if (typeof data !== "object" || data === null) {
+    return {};
+  }
+  const record = data as Record<string, unknown>;
+  const city = readCity(record.city);
+  const capacity = readCapacity(record.capacity);
+  const minCapacity = readCapacity(record.min_capacity);
+  const dayPart = readDayPart(record.day_part);
+  const eventType = readLabel(record.event_type);
+  return {
+    ...(city !== undefined ? { city } : {}),
+    ...(capacity !== undefined ? { capacity } : {}),
+    ...(minCapacity !== undefined ? { minCapacity } : {}),
+    ...(dayPart !== undefined ? { dayPart } : {}),
+    ...(eventType !== undefined ? { eventType } : {}),
+  };
+}
+
+function readCity(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const city = value.trim();
+  return city === "" ? undefined : city;
+}
+
+function readCapacity(value: unknown): number | undefined {
+  const numeric = typeof value === "number" ? value : typeof value === "string" ? Number(value.trim()) : Number.NaN;
+  if (!Number.isInteger(numeric) || numeric < 1) {
+    return undefined;
+  }
+  return numeric;
+}
+
+function readDayPart(value: unknown): VenueOffer["dayPart"] {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const key = value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const parsed = offerDayPartSchema.safeParse(key);
+  return parsed.success ? parsed.data : undefined;
+}
+
+function readLabel(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const label = value.trim();
+  return label === "" ? undefined : label;
 }
 
 const demoVenueSuffix = " (demo venue)";

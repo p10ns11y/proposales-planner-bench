@@ -1,5 +1,4 @@
-import { compareOffers } from "../domain/compare-offers";
-import { briefGapsForStage } from "../domain/compare-offers";
+import { briefGapsForStage, compareOffers, offersForBrief, rankComparisonRows } from "../domain/compare-offers";
 import { findBriefGaps, questionForGap } from "../domain/fitness";
 import { mergeBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
@@ -9,7 +8,6 @@ import { briefDraftFromPlanner } from "./brief-draft";
 import { projectBriefFlow } from "./brief-flow";
 import { extractBriefPatch, extractPastedOffer, turnIntent } from "./fixture-extractor";
 import type { PlannerSnapshot } from "./planner-snapshot";
-import { rankComparisonRows } from "../domain/compare-offers";
 
 export async function runFixtureTurn(input: {
   text: string;
@@ -65,30 +63,52 @@ export async function runFixtureTurn(input: {
     }
   }
 
-  const projected = projectBriefFlow({ brief, filing, offers });
-  const gaps = briefGapsForStage(brief, projected.stage);
+  const comparableGaps = findBriefGaps(brief, "brief:comparable");
+  const briefStarted = Object.keys(brief).length > 0;
+  const blockingGap = briefStarted ? comparableGaps[0] : undefined;
+  const projected = projectBriefFlow({
+    brief,
+    filing,
+    offers: blockingGap === undefined ? offers : [],
+  });
+  const gaps =
+    blockingGap !== undefined
+      ? comparableGaps
+      : projected.stage === "collecting" || projected.stage === "fileable"
+        ? []
+        : briefGapsForStage(brief, projected.stage);
+  const matchedOffers = offersForBrief(brief, projected.offers);
   const grid =
-    projected.offers.length === 0
+    matchedOffers.length === 0
       ? []
       : rankComparisonRows(
-          compareOffers(brief, projected.offers, input.today, {
+          compareOffers(brief, matchedOffers, input.today, {
             favoriteVenueNames,
             companies: input.snapshot.companies,
           }),
+          brief.budget?.currency,
         );
-  const nextQuestion = questionForStage(projected.stage, gaps, grid.length, gridHasGaps(grid));
+  const nextQuestion =
+    blockingGap !== undefined
+      ? questionForGap(blockingGap)
+      : questionForStage(projected.stage, gaps, grid.length, gridHasGaps(grid));
+  if (brief.timeAssumption !== undefined && !notes.includes(brief.timeAssumption.statement)) {
+    notes.unshift(brief.timeAssumption.statement);
+  }
   if (nextQuestion !== "" && !notes.includes(nextQuestion)) {
     notes.push(nextQuestion);
   }
 
   const phase =
-    projected.stage === "comparing"
-      ? ("results" as const)
-      : projected.filing !== null
-        ? ("favorites" as const)
-        : gaps.length === 0 && Object.keys(brief).length > 0
-          ? ("confirm" as const)
-          : input.snapshot.phase;
+    blockingGap !== undefined
+      ? ("confirm" as const)
+      : projected.stage === "comparing"
+        ? ("results" as const)
+        : projected.filing !== null
+          ? ("favorites" as const)
+          : briefStarted
+            ? ("confirm" as const)
+            : input.snapshot.phase;
 
   return {
     reply: notes.join(" "),

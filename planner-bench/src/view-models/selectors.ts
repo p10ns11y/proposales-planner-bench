@@ -51,7 +51,7 @@ export function shellViewModel(input: {
   const rows = rankedRows(snapshot);
   const visibleRowCount = snapshot?.visibleRowCount ?? 5;
   const visibleRows = phase === "results" ? rows.slice(0, visibleRowCount) : [];
-  const offerCount = phase === "results" ? rows.length : 0;
+  const offerCount = visibleRows.length;
   const openVenueName = snapshot?.openVenueName ?? null;
   const openRow = openVenueName === null ? null : (rows.find((row) => row.venueName === openVenueName) ?? null);
   const more = moreFields(brief);
@@ -254,7 +254,15 @@ function factsSentence(brief: PlannerBrief): string {
   if (brief.attendeeCount !== undefined) {
     parts.push(`${brief.attendeeCount} people`);
   }
-  return parts.join(", ");
+  const sentence = parts.join(", ");
+  const assumption = brief.timeAssumption?.statement;
+  if (assumption === undefined || assumption === "") {
+    return sentence;
+  }
+  if (sentence === "") {
+    return assumption;
+  }
+  return `${sentence}. ${assumption}`;
 }
 
 function schedulePhrase(brief: PlannerBrief): string {
