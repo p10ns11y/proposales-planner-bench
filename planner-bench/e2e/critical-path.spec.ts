@@ -133,13 +133,18 @@ test("files an English brief from the detail after the email is filled", async (
   await fileEnglishBrief(page, { width: 390, height: 844 });
 });
 
+test("shows Budget (SEK) for a Stockholm brief", async ({ page }) => {
+  await expectStockholmBudget(page, { width: 390, height: 844 });
+  await expectStockholmBudget(page, { width: 1280, height: 800 });
+});
+
 test("shows Compare for two or three wide offers only", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await reachResults(page);
   await expectWideCompare(page, true);
 
   await page.setViewportSize({ width: 375, height: 812 });
-  await expect(page.getByRole("button", { name: "Compare" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Compare", exact: true })).toHaveCount(0);
   expect(await groupWidth(page)).toBeLessThan(640);
 
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -150,6 +155,19 @@ test("shows Compare for two or three wide offers only", async ({ page }) => {
   await reachResults(page, 5);
   await expectWideCompare(page, false);
 });
+
+async function expectStockholmBudget(page: Page, viewport: { width: number; height: number }) {
+  const stockholm =
+    "Team offsite in Stockholm for 25 people on 3 Dec 2026, a full day with breakout space and vegetarian lunch.";
+  await page.setViewportSize(viewport);
+  await page.goto("/");
+  await page.getByRole("textbox", { name: "What are you planning?" }).fill(stockholm);
+  await page.locator("[data-lcv-event=send]").click();
+  await expect(page.locator("[data-lcv-fact=city]")).toHaveText("Stockholm");
+  await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+  const drawer = page.getByRole("dialog", { name: "Add details" });
+  await expect(drawer.getByLabel("Budget (SEK)")).toBeVisible();
+}
 
 test("fits the More drawer on a phone and a desktop", async ({ page }) => {
   await reachResults(page);
@@ -356,10 +374,10 @@ async function groupWidth(page: Page): Promise<number> {
 async function expectWideCompare(page: Page, shown: boolean) {
   expect(await groupWidth(page)).toBeGreaterThanOrEqual(640);
   if (shown) {
-    await expect(page.getByRole("button", { name: "Compare" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Compare", exact: true })).toBeVisible();
     return;
   }
-  await expect(page.getByRole("button", { name: "Compare" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Compare", exact: true })).toHaveCount(0);
 }
 
 async function expectDrawerFits(page: Page, viewport: { width: number; height: number }) {

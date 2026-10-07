@@ -47,6 +47,7 @@ export const plannerBriefSchema = z.object({
   budget: briefBudgetSchema.optional(),
   notes: z.string().optional(),
   language: z.string().optional(),
+  statedCurrency: z.string().regex(/^[A-Za-z]{3}$/).optional(),
   startTime: clockTimeSchema.optional(),
   endTime: clockTimeSchema.optional(),
   durationMinutes: z.number().int().positive().optional(),
@@ -111,6 +112,7 @@ export function mergeBrief(current: PlannerBrief, patch: PlannerBrief): PlannerB
       budget: mergeBudget(current.budget, patch.budget),
       notes: patch.notes ?? current.notes,
       language: patch.language ?? current.language,
+      ...statedCurrencyField(current.statedCurrency, patch.statedCurrency),
       startTime: schedule.startTime,
       endTime: schedule.endTime,
       durationMinutes: schedule.durationMinutes,
@@ -223,4 +225,129 @@ function canonicalBudget(budget: PlannerBrief["budget"]): PlannerBrief["budget"]
     ...(budget.scope !== undefined ? { scope: budget.scope } : {}),
     ...(budget.approximate !== undefined ? { approximate: budget.approximate } : {}),
   };
+}
+
+export const fallbackCurrency = "EUR";
+
+const placeCurrency: Record<string, string> = {
+  stockholm: "SEK",
+  gothenburg: "SEK",
+  goteborg: "SEK",
+  malmo: "SEK",
+  uppsala: "SEK",
+  sweden: "SEK",
+  oslo: "NOK",
+  bergen: "NOK",
+  trondheim: "NOK",
+  stavanger: "NOK",
+  norway: "NOK",
+  copenhagen: "DKK",
+  kobenhavn: "DKK",
+  aarhus: "DKK",
+  denmark: "DKK",
+  helsinki: "EUR",
+  finland: "EUR",
+  berlin: "EUR",
+  munich: "EUR",
+  germany: "EUR",
+  paris: "EUR",
+  lyon: "EUR",
+  france: "EUR",
+  amsterdam: "EUR",
+  rotterdam: "EUR",
+  netherlands: "EUR",
+  brussels: "EUR",
+  belgium: "EUR",
+  vienna: "EUR",
+  austria: "EUR",
+  madrid: "EUR",
+  barcelona: "EUR",
+  spain: "EUR",
+  rome: "EUR",
+  milan: "EUR",
+  italy: "EUR",
+  dublin: "EUR",
+  ireland: "EUR",
+  lisbon: "EUR",
+  portugal: "EUR",
+  athens: "EUR",
+  greece: "EUR",
+  london: "GBP",
+  manchester: "GBP",
+  edinburgh: "GBP",
+  zurich: "CHF",
+  geneva: "CHF",
+  "new york": "USD",
+};
+
+export function currencyForCity(city: string | undefined): string {
+  const key = foldPlace(city ?? "");
+  return placeCurrency[key] ?? fallbackCurrency;
+}
+
+export function namedBriefCurrency(brief: PlannerBrief): string | undefined {
+  const fromBudget = codeOf(brief.budget?.currency);
+  if (fromBudget !== "") {
+    return fromBudget;
+  }
+  const stated = codeOf(brief.statedCurrency);
+  if (stated !== "") {
+    return stated;
+  }
+  return undefined;
+}
+
+export function briefCurrency(brief: PlannerBrief): string {
+  return namedBriefCurrency(brief) ?? currencyForCity(brief.city);
+}
+
+export function budgetFieldLabel(currency: string): string {
+  const code = codeOf(currency);
+  return `Budget (${code === "" ? fallbackCurrency : code})`;
+}
+
+export function sameBudgetCurrency(brief: PlannerBrief, offerCurrency: string | undefined): boolean {
+  const offer = codeOf(offerCurrency);
+  if (offer === "") {
+    return false;
+  }
+  return offer === briefCurrency(brief);
+}
+
+export function offerNotCompared(brief: PlannerBrief, offerCurrency: string | undefined): boolean {
+  if (brief.budget === undefined && brief.budgetMinor === undefined) {
+    return false;
+  }
+  const offer = codeOf(offerCurrency);
+  if (offer === "") {
+    return false;
+  }
+  return offer !== briefCurrency(brief);
+}
+
+function statedCurrencyField(
+  current: string | undefined,
+  patch: string | undefined,
+): { statedCurrency: string } | undefined {
+  const next = codeOf(patch);
+  if (next !== "") {
+    return { statedCurrency: next };
+  }
+  const kept = codeOf(current);
+  if (kept === "") {
+    return undefined;
+  }
+  return { statedCurrency: kept };
+}
+
+function codeOf(value: string | undefined): string {
+  const code = value?.trim().toUpperCase() ?? "";
+  if (/^[A-Z]{3}$/.test(code)) {
+    return code;
+  }
+  return "";
+}
+
+function foldPlace(value: string): string {
+  return value.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 }

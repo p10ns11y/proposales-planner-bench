@@ -280,7 +280,7 @@ describe("ranking", () => {
     expect(rows.map((row) => row.neutral)).toEqual([
       ["breakout", "diet"],
       ["breakout", "diet"],
-      ["breakout", "diet"],
+      ["breakout", "diet", "not-compared"],
       ["breakout", "diet"],
     ]);
     expect(rows.find((row) => row.venueName === "Cheap Miss")?.gaps).toEqual([]);

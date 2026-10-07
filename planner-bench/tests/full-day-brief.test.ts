@@ -403,6 +403,13 @@ describe("full day brief", () => {
         { venueName: "Plain Hall", currency: "EUR", totalMinor: minorUnits(20_000) },
         today,
       ),
+    ).not.toContain("budget");
+    expect(
+      comparisonGaps(
+        { city: "Stockholm", budgetMinor: minorUnits(10_000) },
+        { venueName: "Krona Hall", currency: "SEK", totalMinor: minorUnits(20_000) },
+        today,
+      ),
     ).toContain("budget");
   });
 

@@ -112,6 +112,7 @@ function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
     openRow: null,
     more: emptyMore,
     moreStamp: "base",
+    budgetCurrency: "EUR",
     composerPlaceholder: "Describe the event: place, people, date, time",
     offerSummary: null,
     contextChips: [],

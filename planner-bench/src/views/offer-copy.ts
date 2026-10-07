@@ -1,4 +1,7 @@
 export function neutralChipName(mark: string): string {
+  if (mark === "not-compared") {
+    return "Not compared";
+  }
   if (mark === "breakout") {
     return "Breakout not stated";
   }
@@ -6,6 +9,20 @@ export function neutralChipName(mark: string): string {
     return "Diet not stated";
   }
   return "Not stated";
+}
+
+export function neutralChipText(mark: string): string {
+  if (mark === "not-compared") {
+    return "Not compared";
+  }
+  return "Not stated";
+}
+
+export function neutralChipAttrs(mark: string): { "data-lcv": "must-show"; "data-lcv-chip": string } {
+  if (mark === "not-compared") {
+    return { "data-lcv": "must-show", "data-lcv-chip": "not-compared" };
+  }
+  return { "data-lcv": "must-show", "data-lcv-chip": "not-stated" };
 }
 
 export function gapLabel(gap: string): string {

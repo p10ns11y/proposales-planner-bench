@@ -80,6 +80,7 @@ export type ShellViewModel = {
   openRow: ShellRow | null;
   more: MoreFieldValues;
   moreStamp: string;
+  budgetCurrency: string;
   composerPlaceholder: string;
   offerSummary: string | null;
   contextChips: string[];

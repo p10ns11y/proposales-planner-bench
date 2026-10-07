@@ -35,7 +35,7 @@ Required before a match:
 - Number of people.
 - A budget basis, when a budget is set and `budget.scope` is missing. The question is "Is that per person or total?" The Yes button stays hidden until it is answered.
 
-Everything else lives in More, a drawer from the right. Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Opening More shows those fields. It is not the first screen. Saving More changes only the fields the person edited. The budget field is labeled `Budget (EUR)` and writes `budgetMinor`. It does not set `budget.scope`.
+Everything else lives in More, a drawer from the right. Event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Opening More shows those fields. It is not the first screen. Saving More changes only the fields the person edited. The budget field is labeled with the brief currency, for example `Budget (SEK)`, and writes `budgetMinor`. It does not set `budget.scope`. A named currency stays put when the city changes. Otherwise the label follows the city.
 
 Filing needs an email, both dates, an attendee count, a language, and rooms when the end date is after the start. An English brief with no stated language is stored as `en`. Yes asks for a missing email. The word `file` returns a stored filing and does not call Proposales again. In the detail, File with no email opens More and focuses Email. After filing, that button reads Filed and is disabled. Matching does not need those fields. Favorites stay a mark on the ranked list, not a field in More.
 

@@ -1,6 +1,6 @@
 import { briefGapsForStage, compareOffers, offersForBrief, rankComparisonRows } from "../domain/compare-offers";
 import { briefConfirmHold, questionForGap } from "../domain/fitness";
-import { mergeBrief } from "../domain/planner-brief";
+import { mergeBrief, namedBriefCurrency } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
@@ -95,7 +95,7 @@ export async function runFixtureTurn(input: {
             favoriteVenueNames,
             companies: input.snapshot.companies,
           }),
-          brief.budget?.currency,
+          namedBriefCurrency(brief),
         );
   const nextQuestion =
     hold !== null

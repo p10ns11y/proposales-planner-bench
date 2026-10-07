@@ -309,6 +309,7 @@ function resultsModel(rows: ShellRow[]): ShellViewModel {
       budget: "",
     },
     moreStamp: "base",
+    budgetCurrency: "EUR",
     composerPlaceholder: "Describe the event: place, people, date, time",
     offerSummary: `${rows.length} offers · Stockholm · Thu 12 Nov · 40 guests`,
     contextChips: [],

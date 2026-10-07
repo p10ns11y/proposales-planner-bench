@@ -68,6 +68,11 @@ Feature: Planner critical path
     When a phone viewport files that same brief
     Then Filed is disabled and choosing Filed sends no turn
 
+  Scenario: shows Budget (SEK) for a Stockholm brief
+    Given a Stockholm brief that names no currency
+    When the visitor opens More at 390x844 and at 1280x800
+    Then the budget field is labeled "Budget (SEK)"
+
   Scenario: shows Compare for two or three wide offers only
     Given a wide desktop viewport and the ranked results
     Then Compare is visible and the offer group is at least 640 wide
