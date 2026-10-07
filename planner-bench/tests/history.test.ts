@@ -9,7 +9,7 @@ describe("history and results view model", () => {
   it("stores a filed brief and formats minor units at the view edge", () => {
     const snapshot = {
       ...emptySnapshot(
-        [{ id: 1, name: "Harbour House", inboxToken: "inbox-harbour" }],
+        [{ id: 1, name: "Harbour House" }],
         "ready",
         [],
       ),

@@ -30,6 +30,8 @@ const scope = [
   { file: "src/views/speech-input.ts" },
   { file: "src/views/more-update.ts" },
   { file: "src/view-models/facts-line.ts" },
+  { file: "src/flow/client-company.ts" },
+  { file: "src/flow/planner-snapshot.ts", functions: ["emptySnapshot", "snapshotForClient"] },
 ];
 
 const branchKinds = new Set([

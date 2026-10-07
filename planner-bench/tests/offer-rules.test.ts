@@ -34,7 +34,7 @@ describe("offer count", () => {
   it("reads the same count in the group header and the reply", () => {
     const rankedCount = 12;
     const snapshot = {
-      ...emptySnapshot([{ id: 1, name: "Harbour House", inboxToken: null }], "", []),
+      ...emptySnapshot([{ id: 1, name: "Harbour House" }], "", []),
       phase: "results" as const,
       stage: "comparing" as const,
       brief: { city: "Stockholm", startDate: "2026-11-12", attendeeCount: 40 },

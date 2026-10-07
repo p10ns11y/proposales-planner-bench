@@ -158,9 +158,7 @@ describe("live proposals with a stubbed client", () => {
 describe("seeded live drafts", () => {
   it("ranks the draft titles as live venues and ignores the account company name", async () => {
     const stub = stubClient(async () => liveDraftProposals);
-    const snapshot = openingSnapshot([
-      { id: 9, name: liveAccountCompanyName, inboxToken: null },
-    ]);
+    const snapshot = openingSnapshot([{ id: 9, name: liveAccountCompanyName }]);
     const captured = await runViewportAction({
       action: {
         type: "captureSubmitted",

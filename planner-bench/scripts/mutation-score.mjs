@@ -16,6 +16,7 @@ const files = [
   "src/views/speech-input.ts",
   "src/views/more-update.ts",
   "src/view-models/facts-line.ts",
+  "src/flow/client-company.ts",
 ];
 const detected = new Set(["Killed", "Timeout", "RuntimeError"]);
 const counted = new Set(["Killed", "Timeout", "RuntimeError", "Survived", "NoCoverage"]);
