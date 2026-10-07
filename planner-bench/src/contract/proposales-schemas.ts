@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { getDereferencedOpenAPIDocument, openAPISchemaToZod } from "@adaptate/utils/ssr";
@@ -32,12 +31,8 @@ export function proposalesSchemas(): Promise<ProposalesSchemas> {
 }
 
 async function loadProposalesSchemas(): Promise<ProposalesSchemas> {
-  const bundledSpec = path.resolve(process.cwd(), "src/contract/openapi.json");
-  const specPath = existsSync(bundledSpec)
-    ? bundledSpec
-    : path.resolve(process.cwd(), "../.firecrawl/openapi.json");
   const callSiteURL = pathToFileURL(path.join(process.cwd(), "package.json")).href;
-  const relativePathToSpecFile = path.relative(process.cwd(), specPath);
+  const relativePathToSpecFile = path.join("src", "contract", "openapi.json");
   const document = await getDereferencedOpenAPIDocument({
     location: "filesystem",
     callSiteURL,

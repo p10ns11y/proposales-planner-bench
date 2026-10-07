@@ -10,6 +10,14 @@ import {
   venueProposalFixtures,
 } from "../src/contract/fixtures";
 import { proposalesSchemas } from "../src/contract/proposales-schemas";
+import {
+  companyReader,
+  draftReader,
+  proposalEnvelopeReader,
+  rfpReader,
+  searchEnvelopeReader,
+  searchIdentityReader,
+} from "../src/proposales/http-client";
 
 const parsedProposalReader = z.object({
   blocks: z.array(
@@ -90,6 +98,113 @@ describe("proposales contract", () => {
         pending: null,
       }).success,
     ).toBe(false);
+  });
+
+  it("accepts spec-valid fixtures through the http readers with the same key fields", async () => {
+    const schemas = await proposalesSchemas();
+
+    const companies = companyFixtures.filter(
+      (company) => schemas.company.safeParse(company).success,
+    );
+    expect(companies).toHaveLength(companyFixtures.length);
+    const companyList = searchEnvelopeReader.parse({ data: [...companies] });
+    expect(companyList.data).toHaveLength(companies.length);
+    for (const company of companies) {
+      const spec = schemas.company.parse(company);
+      const reader = companyReader.parse(company);
+      expect(reader).toEqual({
+        id: company.id,
+        name: company.name,
+        inbox_token: company.inbox_token,
+      });
+      expect(spec).toMatchObject({
+        id: reader.id,
+        name: reader.name,
+        inbox_token: reader.inbox_token,
+      });
+    }
+
+    const proposals = venueProposalFixtures.filter(
+      (proposal) => schemas.proposal.safeParse(proposal).success,
+    );
+    expect(proposals).toHaveLength(venueProposalFixtures.length);
+    for (const proposal of proposals) {
+      const spec = schemas.proposal.parse(proposal);
+      const reader = proposalEnvelopeReader.parse({ data: proposal });
+      const keyFields = {
+        uuid: proposal.uuid,
+        expires_at: proposal.expires_at,
+        value_without_tax: proposal.value_without_tax,
+        blocks: proposal.blocks,
+      };
+      expect(reader.data).toMatchObject(keyFields);
+      expect(spec).toMatchObject(keyFields);
+    }
+
+    const rfpResponses = [{ id: 55 }].filter(
+      (body) => schemas.createRfpResponse.safeParse(body).success,
+    );
+    expect(rfpResponses).toHaveLength(1);
+    for (const body of rfpResponses) {
+      const spec = schemas.createRfpResponse.parse(body);
+      const reader = rfpReader.parse(body);
+      expect(reader).toEqual({ id: body.id });
+      expect(spec).toMatchObject({ id: reader.id });
+    }
+
+    const mutations = proposals.map((proposal) => ({
+      proposal: {
+        uuid: proposal.uuid,
+        url: `https://example.test/proposals/${proposal.uuid}`,
+      },
+    }));
+    const acceptedMutations = mutations.filter((body) =>
+      schemas.proposalMutationResponse.safeParse(body).success,
+    );
+    expect(acceptedMutations).toHaveLength(mutations.length);
+    for (const body of acceptedMutations) {
+      const spec = schemas.proposalMutationResponse.parse(body);
+      const reader = draftReader.parse(body);
+      expect(reader.proposal).toEqual({
+        uuid: body.proposal.uuid,
+        url: body.proposal.url,
+      });
+      expect(spec).toMatchObject({
+        proposal: {
+          uuid: reader.proposal.uuid,
+          url: reader.proposal.url,
+        },
+      });
+    }
+
+    const searchResults = proposals.map((proposal) => ({
+      created_at: 1_700_000_000,
+      updated_at: 1_700_000_100,
+      title: proposal.title,
+      uuid: proposal.uuid,
+      series_uuid: proposal.uuid,
+      company_id: proposal.company_id,
+      version: 1,
+      status: proposal.status,
+      data: proposal.data,
+      url: `https://example.test/proposals/${proposal.uuid}`,
+    }));
+    const acceptedSearch = searchResults.filter((item) =>
+      schemas.proposalSearchResult.safeParse(item).success,
+    );
+    expect(acceptedSearch).toHaveLength(searchResults.length);
+    const searchList = searchEnvelopeReader.parse({ data: acceptedSearch });
+    expect(searchList.data).toHaveLength(acceptedSearch.length);
+    for (const item of acceptedSearch) {
+      const spec = schemas.proposalSearchResult.parse(item);
+      const reader = searchIdentityReader.parse(item);
+      expect(reader.uuid).toBe(item.uuid);
+      expect(reader.data).toEqual(item.data);
+      expect(spec).toMatchObject({
+        uuid: reader.uuid,
+        data: reader.data,
+      });
+    }
   });
 
   it("ships two distinct sample briefs", () => {
