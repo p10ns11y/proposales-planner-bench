@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Briefcase, CircleAlert, Mic, Plus, SlidersHorizontal } from "lucide-react";
+import { ArrowDown, ArrowUp, Briefcase, CircleAlert, ListPlus, Mic, Plus } from "lucide-react";
 import { LayoutGroup } from "motion/react";
 import {
   useEffect,
@@ -303,7 +303,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           <span className="planner-brand" title="Planner bench">
             <Briefcase aria-hidden="true" />
           </span>
-          <button type="button" className="planner-rail-button" aria-label="New chat" onClick={newChat}>
+          <button type="button" className="planner-rail-button" aria-label="New chat" {...newChatEdge(viewModel.phase)} onClick={newChat}>
             <Plus aria-hidden="true" />
           </button>
         </nav>
@@ -313,16 +313,22 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
               <Briefcase />
             </span>
             <div className="planner-header-actions">
+              <button type="button" className="planner-pill" aria-label="New chat" {...newChatEdge(viewModel.phase)} onClick={newChat}>
+                <Plus aria-hidden="true" />
+                <span className="planner-pill-label">New chat</span>
+              </button>
               {historyControl}
               <button
                 type="button"
-                className="planner-pill planner-pill-strong"
+                className="planner-pill planner-pill-strong planner-detail-trigger"
                 data-must-show="more"
+                aria-label="Add details"
+                title="Add details"
                 {...openMoreEdge()}
                 onClick={openMore}
               >
-                <SlidersHorizontal aria-hidden="true" />
-                <span className="planner-pill-label">More</span>
+                <ListPlus aria-hidden="true" />
+                <span className="planner-pill-label">Add details</span>
               </button>
             </div>
           </header>
@@ -441,8 +447,15 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 submitDraft();
               }}
             >
-              <button type="button" className="planner-icon-button" aria-label="Add details" {...openMoreEdge()} onClick={openMore}>
-                <Plus aria-hidden="true" />
+              <button
+                type="button"
+                className="planner-icon-button planner-detail-trigger"
+                aria-label="Add details"
+                title="Add details"
+                {...openMoreEdge()}
+                onClick={openMore}
+              >
+                <ListPlus aria-hidden="true" />
               </button>
               <textarea
                 id="composer"
@@ -698,6 +711,17 @@ function sendSuccess(phase: ShellViewModel["phase"]): string {
     return "chat:results";
   }
   return chatState(phase);
+}
+
+function newChatEdge(phase: ShellViewModel["phase"]) {
+  const state = chatState(phase);
+  return lcvInteract({
+    event: "new-chat",
+    from: state,
+    success: "chat:capture",
+    fail: state,
+    interrupted: state,
+  });
 }
 
 function openMoreEdge() {

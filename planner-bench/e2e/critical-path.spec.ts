@@ -92,8 +92,8 @@ test("opens an offer in the url, closes with Escape, and keeps the list", async 
 
 test("saves a single More field", async ({ page }) => {
   await reachConfirm(page);
-  await page.getByRole("button", { name: "More" }).click();
-  const drawer = page.getByRole("dialog", { name: "Refine the brief" });
+  await headerButton(page, "Add details").click();
+  const drawer = page.getByRole("dialog", { name: "Add details" });
   await expect(drawer).toHaveAttribute("data-lcv-ui-state", "more:open");
   const labels = ["Event name", "Organisation", "Email", "Budget (EUR)", "Notes"] as const;
   const before = new Map<string, string>();
@@ -112,8 +112,8 @@ test("saves a single More field", async ({ page }) => {
   await drawer.locator("[data-lcv-event=save-more]").click();
   await expect(drawer).toBeHidden();
 
-  await page.getByRole("button", { name: "More" }).click();
-  const again = page.getByRole("dialog", { name: "Refine the brief" });
+  await headerButton(page, "Add details").click();
+  const again = page.getByRole("dialog", { name: "Add details" });
   await expect(again.getByLabel("Event name")).toHaveValue("Harbour day");
   for (const label of labels) {
     if (label === "Event name") {
@@ -161,7 +161,7 @@ async function fileEnglishBrief(page: Page, viewport: { width: number; height: n
   const detail = page.getByRole("dialog", { name: venue ?? "" });
   await expect(detail).toBeVisible();
   await detail.getByRole("button", { name: "File this brief" }).click();
-  const drawer = page.getByRole("dialog", { name: "Refine the brief" });
+  const drawer = page.getByRole("dialog", { name: "Add details" });
   await expect(drawer).toBeVisible();
   const email = drawer.getByLabel("Email");
   await expect(email).toBeFocused();
@@ -283,6 +283,79 @@ async function expectWideCompare(page: Page, shown: boolean) {
     return;
   }
   await expect(page.getByRole("button", { name: "Compare" })).toHaveCount(0);
+}
+
+const sizedViewports = [
+  { width: 390, height: 844 },
+  { width: 1280, height: 800 },
+] as const;
+
+test("starts a new chat from the header during a conversation", async ({ page }) => {
+  for (const viewport of sizedViewports) {
+    await page.setViewportSize(viewport);
+    await reachConfirm(page);
+    await expect(page.getByRole("button", { name: "Yes" })).toBeVisible();
+    const headerNew = headerButton(page, "New chat");
+    await expect(headerNew).toBeVisible();
+    await headerNew.click();
+    await expect(page.getByRole("heading", { level: 1, name: "What are you planning?" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "40 people in Stockholm, 12 Nov" })).toBeVisible();
+    await expect(page.getByText(fullDay)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Yes" })).toHaveCount(0);
+    await expect(page.locator("[data-offer-card]")).toHaveCount(0);
+    await expect(page.locator("[data-lcv-machine=chat]")).toHaveAttribute("data-lcv-ui-state", "chat:capture");
+  }
+});
+
+test("names the details control the same in the header, composer, and drawer", async ({ page }) => {
+  for (const viewport of sizedViewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const header = headerButton(page, "Add details");
+    const composer = page.locator(".planner-composer").getByRole("button", { name: "Add details" });
+    await expect(header).toBeVisible();
+    await expect(composer).toBeVisible();
+    await expect(header).toHaveAttribute("title", "Add details");
+    await expect(composer).toHaveAttribute("title", "Add details");
+    expect(await header.getAttribute("aria-label")).toBe(await composer.getAttribute("aria-label"));
+    const headerIcon = header.locator("svg");
+    const composerIcon = composer.locator("svg");
+    await expect(headerIcon).toHaveClass(/lucide-list-plus/);
+    await expect(composerIcon).toHaveClass(/lucide-list-plus/);
+    const headerIconBox = await headerIcon.boundingBox();
+    const composerIconBox = await composerIcon.boundingBox();
+    expect(headerIconBox).toBeTruthy();
+    expect(composerIconBox).toBeTruthy();
+    expect(Math.round(headerIconBox?.width ?? 0)).toBe(Math.round(composerIconBox?.width ?? 0));
+    expect(Math.round(headerIconBox?.height ?? 0)).toBe(Math.round(composerIconBox?.height ?? 0));
+    const headerBox = await header.boundingBox();
+    const composerBox = await composer.boundingBox();
+    expect(Math.round(headerBox?.height ?? 0)).toBe(Math.round(composerBox?.height ?? 0));
+    await header.click();
+    const drawer = page.getByRole("dialog", { name: "Add details" });
+    await expect(drawer.locator(".planner-drawer-title")).toHaveText("Add details");
+    await page.getByRole("button", { name: "Close" }).click();
+    await expect(drawer).toBeHidden();
+    await composer.click();
+    await expect(page.getByRole("dialog", { name: "Add details" })).toBeVisible();
+    await page.getByRole("button", { name: "Close" }).click();
+  }
+});
+
+test("separates the budget on the confirm step", async ({ page }) => {
+  for (const viewport of sizedViewports) {
+    await page.setViewportSize(viewport);
+    await reachConfirm(page);
+    await expect(page.locator("p[data-must-show=facts]")).toHaveText(
+      "Stockholm, 3 December 2026, 09:00\u201317:00, 25 people. Assumed 09:00\u201317:00 for a full day. Budget EUR 300 total.",
+    );
+    await expect(page.locator("span[data-lcv-fact=budget]")).toHaveText("EUR 300");
+    await expect(page.locator("span[data-lcv-fact=budget-basis]")).toHaveText("total");
+  }
+});
+
+function headerButton(page: Page, name: string) {
+  return page.locator(".planner-header").getByRole("button", { name, exact: true });
 }
 
 function countFromHeader(line: string): number {

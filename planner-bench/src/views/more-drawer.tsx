@@ -91,7 +91,7 @@ function MoreForm({
       open={open}
       onOpenChange={onOpenChange}
       side="right"
-      title="Refine the brief"
+      title="Add details"
       description="Optional details for the venue request."
       onSubmit={submit}
       onOpenAutoFocus={focusEmail ? focusEmailField : undefined}
