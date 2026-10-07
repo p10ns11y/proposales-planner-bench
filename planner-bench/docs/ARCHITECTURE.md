@@ -1,8 +1,8 @@
 # Architecture
 
-This document is for an engineer reviewing the planner bench against the code in `src`. Stored instants and the comparison date are UTC. Display converts those UTC calendar fields into weekday and month labels.
+The bench takes a brief, confirms it, and ranks venues. Instants and `today` are UTC. The screen turns each stored date into a weekday and a month with `Date.UTC`. `expires_at` seconds become a UTC instant. A row expires when that date is before `today`. Brief clocks stay `HH:MM`.
 
-## System context
+## System
 
 ```mermaid
 flowchart LR
@@ -19,11 +19,52 @@ flowchart LR
 
 The same picture is the System context page of [diagrams/architecture.tldr](diagrams/architecture.tldr).
 
-The browser runs `PlannerSession`. The page loads with `GET /api/session`, then posts each action to `POST /api/turn` with the action and the snapshot. The app is the Next.js project in `planner-bench`. On Vercel the project root is that directory. `src/app/api/session/route.ts` returns the opening snapshot. `src/app/api/turn/route.ts` runs the turn and sets `maxDuration` to 60.
+The browser runs `PlannerSession` from `planner-bench`. On Vercel that directory is the project root. Each post sends the action and the snapshot.
 
-Live mode calls the Proposales API from `createHttpClient`. Company list, proposal search, and proposal reads use the v3 paths. Filing posts a draft to `/v3/proposals`, or posts to `/v1/inbox/{token}` when the company has an inbox token. Brief extraction calls `generateObject` from the AI SDK through the xAI provider. The model id is `grok-4.7` unless `PLANNER_MODEL` sets another id. That call asks for low reasoning effort.
+## Request
 
-## Turn sequence
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Session as GET /api/session
+  participant Turn as POST /api/turn
+  participant API as Proposales
+  participant Model as xAI
+
+  Browser->>Session: open
+  Session->>API: GET /v3/companies
+  API-->>Session: companies, or a throw
+  Session-->>Browser: 200, phase capture
+  Browser->>Turn: action and snapshot
+  Note over Turn,Model: Only capture, a gap answer, or a results revision, and only with XAI_API_KEY
+  Turn->>Model: generateObject, 40 s, low effort
+  Model-->>Turn: patch, or a miss
+  Turn-->>Browser: 200, snapshot and planner
+```
+
+A company-list failure still returns 200: no companies, `filingAvailable` false, notice `Filing is unavailable right now.` A missing snapshot loads the session again. `today` comes from `new Date().toISOString()`.
+
+Turn and chat set `maxDuration` to 60. The page calls session and turn. It does not call chat. Chat streams a reply, a snapshot, and a `data-offer-group` part. The tools `updateBrief`, `fileBrief`, `addOffer`, and `compareOffers` run the scripted turn. A stream failure, including the 40 second abort, falls back to that turn. The shell builds the same part locally.
+
+A line that asks what this is sets `This finds a place for an event. Say the city, when it is, and how many people.` A line outside the planner sets `This bench finds a place for an event.` The phase stays.
+
+## Screen
+
+```mermaid
+flowchart TD
+  capture[capture] -->|brief text| confirm[confirm]
+  confirm -->|questionForGap| confirm
+  confirm -->|Does this brief look right?| favorites[favorites]
+  favorites -->|Skip, or Harbour House, Ridge Hall, Canal Loft| results[results]
+  results -->|open a card| detail[detail]
+  detail -->|close, offer query cleared| results
+  results -->|an edit that opens a gap| confirm
+  confirm -->|file| filing[file, phase stays]
+  results -->|file| filing
+  detail -->|file| filing
+```
+
+Detail sits over the thread and returns to the same place in the chat. The favorite mark does not change the sort. Post rules are in [Filing](#filing).
 
 ```mermaid
 flowchart TD
@@ -45,19 +86,126 @@ flowchart TD
 
 The same picture is the Turn sequence page of [diagrams/architecture.tldr](diagrams/architecture.tldr).
 
-`GET /api/session` lists companies into an opening snapshot whose phase is `capture`. A company-list failure still returns 200, with no companies, `filingAvailable` false, and the notice `Filing is unavailable right now.` `POST /api/turn` reads the action and the snapshot. A missing snapshot loads the session again. `today` is the UTC date from `new Date().toISOString()`.
+A comparable brief needs a city, a start date, a start time, an attendee count, and an end time. The end time can be absent when a duration is set, or when the end date is after the start date. Favorites asks `Which places do you already have in mind? You can skip.`
 
-Capture stores a brief patch and moves to `confirm`. While comparable fields are missing, the phase stays `confirm` and the reply asks `questionForGap` for the first gap. A budget with no per person, pp, each, or total qualifier then holds `confirm` and asks `Is that per person or total?` until the answer sets the basis. Yes and the confirm button stay on that question. The answer sets `budget.scope`: per person, pp, and each are per-person, and total is total. That basis is what later marks an offer Over budget. The scripted reader also treats per head, per attendee, per guest, a head, in total, and overall as a basis. An explicit qualifier skips the question. The model planner and the scripted extractor both follow these rules. With no gaps, the question is `Does this brief look right?` Confirm, from the button or from a yes, moves to `favorites` and asks which places are already in mind. Skip leaves that list empty. A name that matches Harbour House, Ridge Hall, or Canal Loft is marked on the row. Favorites then rank. Results keep a phase of `results`.
+`MoreDrawer` edits event name, organisation, email, language, rooms, meeting rooms, food, notes, and budget. Apply sends `moreEdited` for the fields that changed. The budget field is labeled `Budget (EUR)` and writes `budgetMinor`. It does not set `budget.scope`. Speech uses the browser speech API when the browser has it. Typing always works. Compare shows for two or three visible offers at 640 pixels or wider. Show more adds five rows. History stays in `localStorage`.
 
-Filing is optional. Confirm files when the brief is fileable, filing is still empty, and a company id is available. When the email is missing, confirm still moves on and sets the notice `What email should receive the venue replies?` A brief written in English with no stated language is stored as `en`, on the model path and the scripted path. Any other brief keeps its language unset until one is stated. The word `file` files from the current phase. When a filing is already stored, `file` returns that filing and does not call Proposales again. While a fileable field is missing, `file` asks for the first one and does not call Proposales. The offer detail shows the latest filing message. Its File button opens More with the email field focused when the email is missing. After a filing, including the filing confirm makes, the button reads Filed and is disabled. Saving More while that detail is open leaves the same offer open. A fileable brief has an email, start date, end date, attendee count, language, and a room count when the stay runs past the start date. `projectBriefFlow` projects the brief, the filing result, and the offers onto a stage: `collecting`, `fileable`, `filed`, or `comparing`.
+## Budget
 
-A text turn resolves a brief patch through the model planner when `XAI_API_KEY` is set. The call uses `AbortSignal.timeout` of 40 seconds. Capture, a gap answer, and a revision during results are the turns that ask. Confirm, favorites, show more, and opening a row leave the planner field as `scripted`. A missing key returns the scripted patch from `extractBriefPatch` before any model request. A throw, including that timeout, or an object that fails `plannerBriefSchema`, returns the scripted patch as well. The turn still responds 200, and `planner` is `model` or `scripted`. The prompt tells the model to leave unknown fields out. The model extraction schema omits `budgetMinor` and stores only `timeAssumption.dayPart`, with the assumed span filled in code. The merge keeps a scripted field when both sides set it, and includes a model field the script left unset. A scripted budget that repeats the same amount and currency without a basis keeps the basis the model already set.
+```mermaid
+flowchart TD
+  bare{budget set, and scope missing?}
+  bare -->|yes| hold["Stay on confirm. Ask: Is that per person or total? The Yes button stays hidden."]
+  bare -->|no| kind{Ceiling}
+  kind -->|per-person| heads{Attendees above zero?}
+  heads -->|no| none[No ceiling]
+  heads -->|yes| pp["Minor units times the attendee count"]
+  kind -->|total| tot[Minor units]
+  kind -->|no budget object| minor["budgetMinor, and only then"]
+  pp --> same{Same currency, and the total is above the ceiling?}
+  tot --> same
+  same -->|yes| over[Over budget]
+  minor --> above{Total above budgetMinor? No currency check.}
+  above -->|yes| over
+```
 
-`/api/turn` and `/api/chat` both set `maxDuration` to 60, which leaves room after the 40 second window for the scripted fallback. The page calls `/api/session` and `/api/turn`. `/api/chat` streams a reply, a snapshot, and a `data-offer-group` part. Its tools run the scripted turn, and a failure of that stream, including the same 40 second abort, falls back to a scripted reply. The shell builds the offer part locally.
+Minor units are the rounded major amount times 100. Per person, pp, and each set `budget.scope` to `per-person`. Total sets `total`. The scripted reader also accepts per head, per attendee, per guest, and a head as per-person, and in total and overall as total. An answer calls `readBudgetScope` first, so those words set the basis on either path. A stated basis skips the question. The word yes does not.
 
-A line that asks what this is explains and waits. A line outside the planner sets a short hold. The phase stays where it was.
+## Extraction
 
-## Components
+```mermaid
+flowchart TD
+  words[Capture, gap answer, or results revision] --> key{XAI_API_KEY set?}
+  key -->|no| scripted["extractBriefPatch. No model call. planner scripted. 200"]
+  key -->|yes| gen["generateObject on the Vercel AI SDK, xAI provider. briefExtractionSchema stores timeAssumption.dayPart only, and has no budgetMinor."]
+  gen --> modelId["grok-4.7, or PLANNER_MODEL. Low effort. Abort at 40 s."]
+  modelId --> result{Patch passes plannerBriefSchema?}
+  result -->|no, or the call throws| scripted
+  result -->|yes| merge["Scripted field wins. A model field stays when the script left it unset."]
+  merge --> modelPath["planner model. 200"]
+```
+
+Confirm, favorites, show more, and opening a row leave `planner` as `scripted`. The prompt says to leave unknown fields out. `assumedSpan` fills the clocks and the statement. Full day and all day are 09:00–17:00. Half day and morning are 09:00–12:00. Afternoon is 13:00–17:00.
+
+A scripted budget with the same amount and currency, and no basis, keeps the basis the model set. The brief keeps its span on `timeAssumption`. Offer day parts are separate, and they do not filter or rank: `full_day`, `half_day_morning`, `half_day_afternoon`, `evening`, `overnight`, `multi_day`.
+
+## Rank
+
+```mermaid
+flowchart TD
+  city{Either city blank?}
+  city -->|yes| keep[Keep the offer]
+  city -->|no| fold["Trim, lower case, strip accents"]
+  fold --> sameCity{Same city?}
+  sameCity -->|no| drop[Drop the offer]
+  sameCity -->|yes| people{Attendee count set?}
+  people -->|no| keep
+  people -->|under a set minimum, or over a set maximum| drop
+  people -->|within the bounds the offer sets| keep
+  keep --> stated{budget.currency set?}
+  stated -->|yes| lead["That currency leads. EUR brief: every EUR row before every SEK row. SEK brief: SEK first."]
+  stated -->|no| few["Fewest gaps pick the lead. Equal gaps: currency A to Z, so EUR before SEK, then the lower total. Fewer SEK gaps lead even when the total is larger."]
+  lead --> inside["Inside one currency: fewer gaps, then the lower total. No conversion."]
+  few --> inside
+  inside --> best["Best match: first row that is not expired. If none, bestNonExpiredIndex is -1. An expired row can still sort first."]
+```
+
+## Not stated
+
+```mermaid
+flowchart TD
+  brief[Brief] --> rooms{Breakout count stated?}
+  rooms -->|no| chipRooms["Card and detail. Text: Not stated. Name: Breakout not stated. neutral, not a gap."]
+  rooms -->|yes, and the offer is short| gapRooms[Gap: breakout]
+  brief --> diets{A diet is named?}
+  diets -->|no| chipDiet["Card and detail. Text: Not stated. Name: Diet not stated. neutral, not a gap."]
+  diets -->|yes, and the offer misses it| gapDiet[Gap: that diet name]
+```
+
+## Where the code lives
+
+```mermaid
+flowchart LR
+  subgraph appBox ["src/app"]
+    page[planner-session]
+    sessionRoute[api/session]
+    turnRoute[api/turn]
+    chatRoute[api/chat]
+  end
+  subgraph flowBox ["src/flow"]
+    viewport[viewport-turn]
+    extract[agent-mode]
+    stage[brief-flow]
+  end
+  subgraph domainBox ["src/domain"]
+    briefNode[planner-brief]
+    rankNode[compare-offers]
+    fitNode[fitness]
+  end
+  subgraph ioBox ["src/proposales"]
+    http[http-client]
+    fixture[fixture-client]
+    fileNode[filing]
+  end
+  subgraph viewBox ["src/views"]
+    shell[planner-shell]
+    detailNode[offer-detail]
+    drawer[more-drawer]
+  end
+  page --> sessionRoute
+  page --> turnRoute
+  turnRoute --> viewport
+  chatRoute --> extract
+  viewport --> extract
+  viewport --> rankNode
+  viewport --> stage
+  rankNode --> fitNode
+  rankNode --> http
+  rankNode --> fixture
+  viewport --> fileNode
+  shell --> detailNode
+  shell --> drawer
+```
 
 ```mermaid
 flowchart TB
@@ -77,17 +225,13 @@ flowchart TB
   rank --> client
 ```
 
-**Domain.** `mergeBrief` lets the incoming patch replace a field it sets. A patch that touches the clock replaces `timeAssumption`. Food requests merge meal and diets, and a food request sets `foodRequired` when it was unset. Diet names are canonicalized. Budget currency is stored in uppercase. Day parts fill a clock when the words name a span and no clock was given: full day and all day are 09:00–17:00, half day and morning are 09:00–12:00, and afternoon is 13:00–17:00. Fitness checks use `makeConditionalSchemaTransformer` from `@adaptate/core`, a runtime dependency. A comparable brief needs a city, a start date, a start time, an attendee count, and an end time unless a duration is set or the end date is after the start date. A fileable brief needs an email, both dates, an attendee count, a language, and rooms when the stay continues. `normaliseProposal` sums each block's package split times its quantity into rooms, food, space, and extras. `value_without_tax` is used when present, otherwise `value_with_tax`. A title ending in ` (demo venue)` is shown without that suffix.
+`renderPart` takes that part plus `hiddenCount`, `openName`, `onOpen`, and `onShowMore`, and draws `OfferGroupCard`. An AG-UI stream can hand the same part in.
 
-**Proposales client.** `PROPOSALES_MODE=live` selects `createHttpClient`. Any other value, including an unset value, selects the fixture client. The runtime readers are `companyReader`, `rfpReader`, `draftReader`, `proposalEnvelopeReader`, `searchEnvelopeReader`, and `searchIdentityReader`. They accept a null inbox token. Proposal and search `data` is `unknown`, so the fields on that object are included in the value passed on. Search reads `/v3/proposal-search?limit=25`, skips rows whose `data.planner_bench_brief` is true, and fetches the remaining drafts five at a time. Every request sends the user agent `planner-bench/` plus the version in `package.json`, currently `planner-bench/0.1.0`.
+`mergeBrief` lets a set field on the patch replace the old one. A patch that touches the clock replaces `timeAssumption`, and can clear it. Food requests merge meal and diets, and set `foodRequired` when it was unset. Diet names map to one spelling. The merge stores budget currency in upper case. Fitness uses `makeConditionalSchemaTransformer` from `@adaptate/core`.
 
-**Compare and ranking.** `offersForBrief` keeps an offer when either city is blank. When both are set, they match after trim, lowercasing, and stripping accents. The offer drops when the attendee count is below `minCapacity` or above `capacity`. A missing bound keeps the offer. Unstated breakout rooms and unstated dietary needs each render a neutral chip whose text is `Not stated`, on the offer card and in the detail view. The accessible name is `Breakout not stated` or `Diet not stated`. Those marks are excluded from the gap count. A breakout gap is recorded only when the brief states a count the offer fails. A diet gap is recorded only for a named diet the offer does not cover. `rankComparisonRows` places rows in the brief's budget currency first when that currency is set. Otherwise the lead currency comes from the row with the fewest gaps, with ties broken by currency code from A to Z and then by the lower total. Inside one currency, fewer gaps come first, then a lower total. No currency conversion happens. A per-person basis multiplies the budget by the attendee count when that count is above zero. A total basis uses the budget amount. An offer total above that ceiling is an Over budget gap when the currencies match. A budget with no basis sets no ceiling. `budgetMinor` counts only when no budget is set, and a total above it counts as a gap then. The favorite flag sits on the row and is separate from the sort. The best match is the first ranked row that is still unexpired. When every row is expired, `bestNonExpiredIndex` is -1 and no row is marked best match. An expired row can still sort first.
+`normaliseProposal` sums each block's package split times its quantity into rooms, food, space, and extras. It uses `value_without_tax` when that value is present, and `value_with_tax` otherwise. It drops a trailing ` (demo venue)` from the title.
 
-**Contract seam.** Results become an `OfferGroupPart`, wrapped as a part whose type is `data-offer-group`. `renderPart` accepts that part and four props: `hiddenCount`, `openName`, `onOpen`, and `onShowMore`. It parses the part and renders `OfferGroupCard` from those props. This is the seam where an AG-UI stream, or the existing `/api/chat` writer, can hand the same part to `renderPart`.
-
-**UI.** `PlannerShell` is the chat: a thread, a sticky composer, and suggestions on an empty capture. Speech uses the browser speech API when the browser has it. Typing always works. The offer cards sit in the assistant reply. Compare appears when the visible group has two or three offers and is at least 640 pixels wide. Show more adds five rows. `OfferDetail` opens over the thread, records the offer on the `offer` query, and closes back to the same place in the chat. `MoreDrawer` edits event name, organisation, email, language, rooms, meeting rooms, food, notes, and budget. Save sends `moreEdited` for the fields that changed. History stays in `localStorage` on the browser.
-
-## Data and error paths
+## Offers and failures
 
 ```mermaid
 flowchart TD
@@ -101,17 +245,84 @@ flowchart TD
   keys["API keys"] --> server["Server-side requests"]
 ```
 
-Fixture mode is the default. The fixture client serves the committed venue proposals from memory, and the screen shows no source chip. Live mode uses the HTTP client. Rows from that load say `Live offers`. An empty search, a thrown load, or a proposal that fails normalisation substitutes the sample proposals and the screen says `Sample offers`. One draft that fails normalisation replaces the whole list. A draft response that fails the envelope reader is dropped, and the other drafts remain.
+```mermaid
+flowchart TD
+  mode{PROPOSALES_MODE}
+  mode -->|anything but live, including unset| quiet["Fixture rows. No source chip."]
+  mode -->|live| search["GET /v3/proposal-search?limit=25"]
+  search --> skip["Skip data.planner_bench_brief. Fetch the rest five at a time."]
+  skip --> envelope{Envelope reads?}
+  envelope -->|one draft fails| drop["Drop that draft. Keep the others."]
+  envelope -->|the rest| norm{Each remaining draft normalises?}
+  drop --> norm
+  norm -->|one fails| sample["Replace the whole list. Sample offers."]
+  norm -->|all pass| liveRows[Live offers]
+  search -->|empty, or the load throws| sample
+  readers["companyReader, rfpReader, draftReader, proposalEnvelopeReader, searchEnvelopeReader, searchIdentityReader. Null inbox token. data stays unknown."] --> search
+  ua["User agent planner-bench/0.1.0"] --> search
+```
 
-Unknown fields travel in two places. The extraction prompt tells the model to leave unknown fields out, and the merge includes a model field the scripted patch left unset. On the wire, proposal and search readers keep `data` as `unknown`, so those fields are included for normalisation. Normalisation copies city, capacity, `min_capacity`, `day_part`, and `event_type` when they parse. Offer day parts are `full_day`, `half_day_morning`, `half_day_afternoon`, `evening`, `overnight`, and `multi_day`. Day part and event type neither filter nor rank. The brief stores its span on `timeAssumption`, which is a separate vocabulary from the offer's `dayPart`.
+Normalisation copies city, capacity, `min_capacity`, `day_part`, and `event_type` when they parse. `XAI_API_KEY` and `PROPOSALES_API_KEY` stay on the server. Requests that send the API key also send the bearer. The model key goes to the xAI provider. The turn JSON returns the snapshot and `planner`. Each company in that snapshot includes `inboxToken`.
 
-A missing `XAI_API_KEY`, a model error, or the 40 second timeout resolves the brief with the scripted extractor. The turn response stays 200. A Proposales response with a failed status throws, and the error carries that status. Session open still succeeds when company lookup throws. Ranking still runs, with the filing notice set. A failed `fileBrief` keeps that notice, and the draft-created sentence stays unset. The browser shows `Couldn't reach Proposales. Your brief is saved.` when the turn status has failed, the snapshot fails to parse, or the fetch throws. A turn body that is not a JSON object, or an unknown action, is a 400. Invalid JSON or a snapshot that fails the schema throws, and the route has no handler around it. Live mode with an empty API key throws from `createClient`. The turn route has no handler around that throw.
+| What happens | Status |
+| --- | --- |
+| Invalid JSON. `request.json()` throws on turn and on chat. Neither route catches it. | 500 |
+| The snapshot fails its schema. `parse` throws. | 500 |
+| Live mode and an empty key. `createClient` throws on session, turn, and chat. | 500 |
+| The turn body is not a JSON object, or the action is unknown. | 400 |
+| Missing key, model error, or the 40 second timeout. | 200, `planner` is `scripted` |
+| Company lookup throws while the session opens. | 200. Ranking still runs. Notice: `Filing is unavailable right now.` |
+| The turn status failed, the snapshot fails to parse, or the fetch throws. | The browser shows `Couldn't reach Proposales. Your brief is saved.` |
 
-The browser posts the action and the snapshot. `XAI_API_KEY` and `PROPOSALES_API_KEY` are read on the server. The bearer token is set on the server-side Proposales request, and the model key is passed to the xAI provider. The inbox post goes out without the bearer token. The turn JSON contains the snapshot and `planner`. Company records in that snapshot include the inbox token.
+## Filing
 
-Dates and times are computed in UTC. `today` and history timestamps come from `toISOString`. `expires_at` seconds become a UTC instant, and a row is expired when that instant's UTC date is before `today`. Display converts the UTC calendar date into a weekday and a month label, using `Date.UTC` so the weekday matches the stored date. Brief clocks stay `HH:MM` strings. Filing joins a date and a clock into a `Z` timestamp, using `00:00` when no clock is set.
+```mermaid
+flowchart TD
+  need["Fileable: email, both dates, attendees, language, and rooms when the end date is after the start"]
+  yes["Yes, on Does this brief look right?"] --> yesReady{Fileable, and filing is empty?}
+  yesReady -->|no| yesSkip["No post from Yes. Phase becomes favorites."]
+  yesReady -->|yes| yesCo["Selected company, else the first"]
+  need --> yesReady
+  word["file, or a line that contains file the brief"] --> wordGap{A fileable field is missing?}
+  yesCo --> yesId{Company id?}
+  yesId -->|no, filing open| yesSilent["No post. Notice stays empty."]
+  yesId -->|no, filing closed| yesClosed["Filing is unavailable right now."]
+  yesId -->|yes| yesPost[fileBrief]
+  yesPost --> yesKind{Inbox token?}
+  yesKind -->|yes| yesInbox["POST /v1/inbox/ and the token. No bearer. No inbox sentence."]
+  yesKind -->|no| yesDraft["POST /v3/proposals. Bearer. A draft was created in Proposales."]
+  yesPost -->|throw| yesFail["Filing is unavailable right now. This post sets no draft sentence."]
+  yesSilent --> yesDone[Phase becomes favorites]
+  yesClosed --> yesDone
+  yesInbox --> yesDone
+  yesDraft --> yesDone
+  yesFail --> yesDone
+  wordGap -->|yes| wordAsk["Notice asks questionForGap. No post."]
+  wordGap -->|no| wordId{Company id?}
+  wordId -->|no, filing open| wordWhich["Which company should receive the brief?"]
+  wordId -->|no, filing closed| wordClosed["Filing is unavailable right now."]
+  wordId -->|yes| wordPost["fileBrief, again if one is already stored"]
+  wordPost --> wordKind{Inbox token?}
+  wordKind -->|yes| wordInbox["POST /v1/inbox/ and the token. No bearer. The brief is filed."]
+  wordKind -->|no| wordDraft["POST /v3/proposals. Bearer. A draft was created in Proposales."]
+  wordPost -->|throw| wordFail["Filing is unavailable right now. This post sets no draft sentence."]
+  wordAsk --> wordPhase[Phase stays]
+  wordWhich --> wordPhase
+  wordClosed --> wordPhase
+  wordInbox --> wordPhase
+  wordDraft --> wordPhase
+  wordFail --> wordPhase
+```
 
-## Contract testing
+The detail button sends `file`.
+
+`projectBriefFlow` sets the stage to `collecting`, `fileable`, `filed`, or `comparing`. Offers join that stage only after a filing result is stored. Ranked rows can still show while the stage is `collecting` or `fileable`.
+
+An empty event name titles the draft with the city and the date. Each filed date joins its clock as a `Z` timestamp, and uses `00:00` when the clock is missing. The inbox body sets `is_test` to `1`. Draft data sets `planner_bench_brief` to true.
+
+`/api/chat` files in `runFixtureTurn`, and only when the text says file. It uses `selectedCompanyId`, does not take the first company, and can post again.
+
+## Contract
 
 ```mermaid
 flowchart LR
@@ -120,6 +331,21 @@ flowchart LR
   readers["Tolerant readers in http-client.ts"] --> http["createHttpClient"]
 ```
 
-The committed spec is `src/contract/openapi.json`. `proposalesSchemas()` loads that file from the filesystem, dereferences it with `@adaptate/utils`, and builds Zod schemas for Proposal, Company, CreateRfpRequest, CreateProposalRequest, ProposalMutationResponse, CreateRfpResponse, and ProposalSearchResult. `@adaptate/utils` is a devDependency, and only the contract test imports the OpenAPI loader. The import of `proposalesSchemas` lives in `tests/contract.test.ts`.
+`proposalesSchemas()` reads that file, follows its refs with `@adaptate/utils`, and builds Zod schemas for Proposal, Company, CreateRfpRequest, CreateProposalRequest, ProposalMutationResponse, CreateRfpResponse, and ProposalSearchResult. `@adaptate/utils` is a devDependency. Only the contract test imports the loader.
 
-The running client checks responses with the readers in `src/proposales/http-client.ts`. The contract test shows the generated company schema rejects a null timezone and a loose website URL, and the generated proposal schema rejects a loose email, a loose website, and null `is_agreement` and `pending`. The HTTP client tests parse a company and a proposal that carry those values. The readers keep the id, name, inbox token, and the unknown `data` they were asked to read.
+The company schema rejects a null timezone and a loose website URL. The proposal schema rejects a loose email, a loose website, and null `is_agreement` and `pending`. The HTTP client tests parse a company and a proposal that carry those values. The readers keep the id, the name, the inbox token, and the unknown `data`.
+
+## Checks
+
+```mermaid
+flowchart LR
+  chat["chat:capture, chat:confirm, chat:favorites, chat:results"] --> e2e["pnpm e2e. Playwright Chromium. Fixture mode."]
+  detail["detail:open or detail:closed"] --> e2e
+  more["more:open or more:closed"] --> e2e
+  facts["city, date, time, attendees, budget, budget basis"] --> e2e
+  chips["best match, expired, no food, over budget, not stated"] --> e2e
+  e2e --> probe["e2e/run-probe.mjs"]
+  probe --> plugin["layout-content-view, commit pinned in the README"]
+```
+
+CI runs `pnpm e2e`, then the probe.
