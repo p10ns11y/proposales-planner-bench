@@ -13,6 +13,8 @@ export const venueOfferSchema = z.object({
   spaceMinor: minorUnitsSchema.optional(),
   extrasMinor: minorUnitsSchema.optional(),
   totalMinor: minorUnitsSchema.optional(),
+  breakoutRoomCount: z.number().int().nonnegative().optional(),
+  dietaryNeeds: z.array(z.string()).optional(),
 });
 
 export type VenueOffer = z.infer<typeof venueOfferSchema>;

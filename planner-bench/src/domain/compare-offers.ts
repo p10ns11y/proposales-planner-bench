@@ -91,7 +91,59 @@ export function comparisonGaps(brief: PlannerBrief, offer: VenueOffer, today: st
   if (offer.expiresAt !== undefined && offer.expiresAt.slice(0, 10) < today) {
     gaps.push("expired");
   }
+  const neededBreakout = brief.breakoutRoomCount ?? 0;
+  if (neededBreakout > 0 && (offer.breakoutRoomCount ?? 0) < neededBreakout) {
+    gaps.push("breakout");
+  }
+  const coveredDiets = new Set((offer.dietaryNeeds ?? []).map((need) => need.trim().toLowerCase()));
+  for (const need of brief.foodRequest?.dietaryNeeds ?? []) {
+    if (!coveredDiets.has(need.trim().toLowerCase())) {
+      gaps.push(need);
+    }
+  }
+  if (offerExceedsBudget(brief, offer)) {
+    gaps.push("budget");
+  }
   return gaps;
+}
+
+function offerExceedsBudget(brief: PlannerBrief, offer: VenueOffer): boolean {
+  const total = offer.totalMinor?.amount;
+  if (total === undefined) {
+    return false;
+  }
+  if (brief.budget !== undefined) {
+    const ceiling = budgetCeilingMinor(brief.budget, brief.attendeeCount);
+    if (ceiling === undefined) {
+      return false;
+    }
+    const offerCurrency = offer.currency?.trim().toUpperCase();
+    if (offerCurrency === undefined || offerCurrency === "") {
+      return false;
+    }
+    if (offerCurrency !== brief.budget.currency.trim().toUpperCase()) {
+      return false;
+    }
+    return total > ceiling;
+  }
+  if (brief.budgetMinor !== undefined) {
+    return total > brief.budgetMinor.amount;
+  }
+  return false;
+}
+
+function budgetCeilingMinor(
+  budget: NonNullable<PlannerBrief["budget"]>,
+  attendeeCount: number | undefined,
+): number | undefined {
+  const unitMinor = Math.round(budget.amount * 100);
+  if (budget.scope === "per-person") {
+    if (attendeeCount === undefined || attendeeCount <= 0) {
+      return undefined;
+    }
+    return unitMinor * attendeeCount;
+  }
+  return unitMinor;
 }
 
 export function briefGapsForStage(

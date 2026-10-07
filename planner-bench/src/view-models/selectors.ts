@@ -174,7 +174,15 @@ function factsSentence(brief: PlannerBrief): string {
   if (brief.attendeeCount !== undefined) {
     parts.push(`${brief.attendeeCount} people`);
   }
-  return parts.join(", ");
+  const sentence = parts.join(", ");
+  const assumption = brief.timeAssumption?.statement;
+  if (assumption === undefined || assumption === "") {
+    return sentence;
+  }
+  if (sentence === "") {
+    return assumption;
+  }
+  return `${sentence}. ${assumption}`;
 }
 
 function schedulePhrase(brief: PlannerBrief): string {
