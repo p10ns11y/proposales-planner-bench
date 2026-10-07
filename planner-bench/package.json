@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@adaptate/core": "^2.2.2",
-    "@adaptate/utils": "^2.2.2",
     "@ai-sdk/react": "^4.0.131",
     "@ai-sdk/xai": "5.0.15",
     "@radix-ui/react-dialog": "^1.2.0",
@@ -32,6 +31,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@adaptate/utils": "^2.2.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.19.1",
     "@types/react": "^19",
