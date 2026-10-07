@@ -90,7 +90,7 @@ S3 and S4 can run in parallel after S2.
 ## compact context for any new agent
 - Read only: this card, `workflow.md`, and `planner-bench/src/contract/openapi.json`.
 - Do not read: `proposales-report.md`, `review.md`, `journey.md`, or agent transcripts, unless a step needs a fact that is missing here.
-- Workspace: `/home/sustainableabundance/dev/tech-cases/proposales/`. App: `planner-bench/`. Node 24, pnpm 9.
+- Workspace: `.` (repository root). App: `planner-bench/`. Node 24, pnpm 9.
 - Git root is this workspace, not `planner-bench/`. Do not run `git init` inside the app. Small steps can commit to `main`. Larger features go on a branch and a pull request.
 - No secrets exist yet. Fixture mode is the default. Never ask the human during EXECUTE; log open decisions on this card.
 
