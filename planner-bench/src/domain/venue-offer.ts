@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { minorUnitsSchema } from "./minor-units";
-import { dayPartSchema } from "./planner-brief";
+
+export const offerDayPartSchema = z.enum([
+  "full_day",
+  "half_day_morning",
+  "half_day_afternoon",
+  "evening",
+  "overnight",
+  "multi_day",
+]);
 
 export const venueOfferSchema = z.object({
   venueName: z.string().optional(),
@@ -8,7 +16,9 @@ export const venueOfferSchema = z.object({
   companyId: z.number().int().optional(),
   city: z.string().optional(),
   capacity: z.number().int().positive().optional(),
-  dayPart: dayPartSchema.optional(),
+  minCapacity: z.number().int().positive().optional(),
+  dayPart: offerDayPartSchema.optional(),
+  eventType: z.string().min(1).optional(),
   currency: z.string().optional(),
   expiresAt: z.string().optional(),
   roomsMinor: minorUnitsSchema.optional(),

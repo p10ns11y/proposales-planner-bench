@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { addMinorUnits, minorUnits } from "./minor-units";
-import type { DayPart } from "./planner-brief";
-import type { VenueOffer } from "./venue-offer";
+import { offerDayPartSchema, type VenueOffer } from "./venue-offer";
 
 const packageSplitTypeSchema = z.enum(["accommodation", "meetingRoom", "food", "other"]);
 
@@ -80,26 +79,24 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
   };
 }
 
-const dayPartAliases: Record<string, DayPart> = {
-  "full-day": "full-day",
-  "all-day": "all-day",
-  "half-day": "half-day",
-  morning: "morning",
-  afternoon: "afternoon",
-};
-
-function readProposalData(data: unknown): Pick<VenueOffer, "city" | "capacity" | "dayPart"> {
+function readProposalData(
+  data: unknown,
+): Pick<VenueOffer, "city" | "capacity" | "minCapacity" | "dayPart" | "eventType"> {
   if (typeof data !== "object" || data === null) {
     return {};
   }
   const record = data as Record<string, unknown>;
   const city = readCity(record.city);
   const capacity = readCapacity(record.capacity);
+  const minCapacity = readCapacity(record.min_capacity);
   const dayPart = readDayPart(record.day_part);
+  const eventType = readLabel(record.event_type);
   return {
     ...(city !== undefined ? { city } : {}),
     ...(capacity !== undefined ? { capacity } : {}),
+    ...(minCapacity !== undefined ? { minCapacity } : {}),
     ...(dayPart !== undefined ? { dayPart } : {}),
+    ...(eventType !== undefined ? { eventType } : {}),
   };
 }
 
@@ -119,12 +116,21 @@ function readCapacity(value: unknown): number | undefined {
   return numeric;
 }
 
-function readDayPart(value: unknown): DayPart | undefined {
+function readDayPart(value: unknown): VenueOffer["dayPart"] {
   if (typeof value !== "string") {
     return undefined;
   }
-  const key = value.trim().toLowerCase().replace(/[\s_]+/g, "-");
-  return dayPartAliases[key];
+  const key = value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const parsed = offerDayPartSchema.safeParse(key);
+  return parsed.success ? parsed.data : undefined;
+}
+
+function readLabel(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const label = value.trim();
+  return label === "" ? undefined : label;
 }
 
 const demoVenueSuffix = " (demo venue)";

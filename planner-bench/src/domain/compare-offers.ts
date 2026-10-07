@@ -222,8 +222,15 @@ function citiesAgree(brief: PlannerBrief, offer: VenueOffer): boolean {
 }
 
 function capacityAllows(brief: PlannerBrief, offer: VenueOffer): boolean {
-  if (brief.attendeeCount === undefined || offer.capacity === undefined) {
+  const attendees = brief.attendeeCount;
+  if (attendees === undefined) {
     return true;
   }
-  return offer.capacity >= brief.attendeeCount;
+  if (offer.minCapacity !== undefined && attendees < offer.minCapacity) {
+    return false;
+  }
+  if (offer.capacity !== undefined && attendees > offer.capacity) {
+    return false;
+  }
+  return true;
 }
