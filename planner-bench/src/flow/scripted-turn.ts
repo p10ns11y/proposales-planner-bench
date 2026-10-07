@@ -6,6 +6,7 @@ import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
 import { briefDraftFromPlanner } from "./brief-draft";
 import { projectBriefFlow } from "./brief-flow";
+import { addEnglishLanguage } from "./brief-language";
 import { extractBriefPatch, extractPastedOffer, readBudgetScope, turnIntent } from "./fixture-extractor";
 import type { PlannerSnapshot } from "./planner-snapshot";
 
@@ -135,7 +136,7 @@ export async function runFixtureTurn(input: {
 }
 
 function briefWithAnsweredBasis(current: PlannerSnapshot["brief"], text: string): PlannerSnapshot["brief"] {
-  const patch = extractBriefPatch(text);
+  const patch = addEnglishLanguage(text, current, extractBriefPatch(text));
   const merged = mergeBrief(current, patch);
   const scope = patch.budget === undefined ? readBudgetScope(text) : undefined;
   if (scope === undefined || merged.budget === undefined || merged.budget.scope !== undefined) {

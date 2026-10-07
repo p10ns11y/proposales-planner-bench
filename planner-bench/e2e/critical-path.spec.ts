@@ -128,6 +128,11 @@ test("saves a single More field", async ({ page }) => {
   await expect(again.getByRole("switch", { name: "Food" })).toHaveAttribute("aria-checked", food ?? "false");
 });
 
+test("files an English brief from the detail after the email is filled", async ({ page }) => {
+  await fileEnglishBrief(page, { width: 1280, height: 800 });
+  await fileEnglishBrief(page, { width: 390, height: 844 });
+});
+
 test("shows Compare for two or three wide offers only", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await reachResults(page);
@@ -145,6 +150,39 @@ test("shows Compare for two or three wide offers only", async ({ page }) => {
   await reachResults(page, 5);
   await expectWideCompare(page, false);
 });
+
+async function fileEnglishBrief(page: Page, viewport: { width: number; height: number }) {
+  await page.setViewportSize(viewport);
+  await reachResults(page);
+  const card = page.locator("[data-offer-card]").first();
+  const venue = await card.getAttribute("data-venue");
+  expect(venue).toBeTruthy();
+  await card.click();
+  const detail = page.getByRole("dialog", { name: venue ?? "" });
+  await expect(detail).toBeVisible();
+  await detail.getByRole("button", { name: "File this brief" }).click();
+  const drawer = page.getByRole("dialog", { name: "Refine the brief" });
+  await expect(drawer).toBeVisible();
+  const email = drawer.getByLabel("Email");
+  await expect(email).toBeFocused();
+  await email.fill("planner@northwind.example");
+  const saved = page.waitForResponse(
+    (response) => response.url().includes("/api/turn") && response.request().method() === "POST",
+  );
+  await drawer.locator("[data-lcv-event=save-more]").click();
+  await saved;
+  await expect(drawer).toBeHidden();
+  await expect(detail).toBeVisible();
+  const filed = page.waitForResponse(
+    (response) => response.url().includes("/api/turn") && response.request().method() === "POST",
+  );
+  await detail.getByRole("button", { name: "File this brief" }).click();
+  await filed;
+  await expect(detail.getByRole("status")).toHaveText("The brief is filed.");
+  const filedButton = detail.getByRole("button", { name: "Filed" });
+  await expect(filedButton).toBeDisabled();
+  await expect(filedButton).toHaveAttribute("data-lcv-event", "file-brief");
+}
 
 async function reachBasisQuestion(page: Page) {
   await page.goto("/");

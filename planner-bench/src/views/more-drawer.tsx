@@ -10,6 +10,7 @@ type MoreDrawerProps = {
   more: MoreFieldValues;
   moreStamp: string;
   open: boolean;
+  focusEmail: boolean;
   disabled: boolean;
   onOpenChange: (open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
@@ -33,6 +34,7 @@ export function MoreDrawer({
   more,
   moreStamp,
   open,
+  focusEmail,
   disabled,
   onOpenChange,
   onCloseAutoFocus,
@@ -44,6 +46,7 @@ export function MoreDrawer({
       key={moreStamp}
       more={more}
       open={open}
+      focusEmail={focusEmail}
       disabled={disabled}
       onOpenChange={onOpenChange}
       onCloseAutoFocus={onCloseAutoFocus}
@@ -59,6 +62,7 @@ export function MoreDrawer({
 function MoreForm({
   more,
   open,
+  focusEmail,
   disabled,
   onOpenChange,
   onCloseAutoFocus,
@@ -66,6 +70,7 @@ function MoreForm({
 }: {
   more: MoreFieldValues;
   open: boolean;
+  focusEmail: boolean;
   disabled: boolean;
   onOpenChange: (open: boolean) => void;
   onCloseAutoFocus?: (event: Event) => void;
@@ -89,6 +94,7 @@ function MoreForm({
       title="Refine the brief"
       description="Optional details for the venue request."
       onSubmit={submit}
+      onOpenAutoFocus={focusEmail ? focusEmailField : undefined}
       onCloseAutoFocus={onCloseAutoFocus}
       contentAttributes={lcvMachine("more", "more:open", "more:closed more:open")}
       closeAttributes={lcvInteract({
@@ -259,6 +265,14 @@ function stepCount(current: string, delta: number): string {
     return "";
   }
   return String(next);
+}
+
+function focusEmailField(event: Event) {
+  event.preventDefault();
+  const field = document.getElementById("more-contactEmail");
+  if (field instanceof HTMLInputElement) {
+    field.focus();
+  }
 }
 
 function TextField({

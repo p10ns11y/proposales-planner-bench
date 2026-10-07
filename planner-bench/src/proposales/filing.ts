@@ -53,6 +53,8 @@ export function isPlannerBenchBrief(data: unknown): boolean {
 
 export const draftCreatedNotice = "A draft was created in Proposales.";
 
+export const briefFiledNotice = "The brief is filed.";
+
 export const filingUnavailableNotice = "Filing is unavailable right now.";
 
 export function draftTitle(brief: BriefDraft): string {

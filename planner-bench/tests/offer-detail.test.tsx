@@ -56,6 +56,8 @@ function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
     askLabelsComposer: true,
     notice: null,
     draftConfirmation: null,
+    filingMessage: null,
+    filed: false,
     offerLabel: null,
     factsSentence: "Stockholm, 12 November 2026, 40 people",
     confirmRuns: [],
@@ -120,6 +122,59 @@ describe("offer detail", () => {
     );
     expect(document.activeElement).toBe(screen.getByRole("button", { name: /Canal Loft/ }));
     expect(thread.scrollTop).toBe(held);
+  });
+
+  it("shows the server filing message in the detail", () => {
+    installDomShims();
+    const message = "What email should receive the venue replies?";
+    render(
+      <PlannerShell
+        viewModel={model({ openRow: canalLoft, filingMessage: message })}
+        onEvent={() => undefined}
+        historyControl={null}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Canal Loft" });
+    expect(within(dialog).getByRole("status").textContent).toBe(message);
+    expect(within(dialog).getByRole("button", { name: "File this brief" })).toBeTruthy();
+  });
+
+  it("reads Filed and stays disabled once the brief is filed", () => {
+    installDomShims();
+    render(
+      <PlannerShell
+        viewModel={model({
+          openRow: canalLoft,
+          filed: true,
+          filingMessage: "The brief is filed.",
+        })}
+        onEvent={() => undefined}
+        historyControl={null}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Canal Loft" });
+    const filed = within(dialog).getByRole("button", { name: "Filed" });
+    expect(filed).toHaveProperty("disabled", true);
+    expect(filed.getAttribute("data-lcv-event")).toBe("file-brief");
+    expect(within(dialog).getByRole("status").textContent).toBe("The brief is filed.");
+  });
+
+  it("opens More on the email field when File is pressed without an email", async () => {
+    installDomShims();
+    const user = userEvent.setup();
+    const events: PlannerViewEvent[] = [];
+    render(
+      <PlannerShell
+        viewModel={model({ openRow: canalLoft })}
+        onEvent={(event) => events.push(event)}
+        historyControl={null}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "File this brief" }));
+    expect(events.some((event) => event.type === "composerSubmitted")).toBe(false);
+    const email = screen.getByLabelText("Email");
+    expect(email).toBe(document.activeElement);
+    expect(email.getAttribute("id")).toBe("more-contactEmail");
   });
 });
 
