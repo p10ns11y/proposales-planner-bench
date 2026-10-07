@@ -33,7 +33,7 @@ export async function runFixtureTurn(input: {
       notes.push("Which company should receive the brief?");
     } else {
       filing = await input.client.fileBrief(briefDraftFromPlanner(brief, selectedCompanyId));
-      notes.push("The brief is filed.");
+      notes.push(filing.path === "draft" ? "A draft was created in Proposales." : "The brief is filed.");
     }
   }
 
@@ -99,6 +99,7 @@ export async function runFixtureTurn(input: {
       visibleRowCount: input.snapshot.visibleRowCount,
       openVenueName: null,
       notice: null,
+      sampleOffers: false,
     },
   };
 }

@@ -121,6 +121,11 @@ describe("brief fitness", () => {
     expect(findBriefGaps(withoutEmail, "brief:fileable")).toEqual(["contactEmail"]);
   });
 
+  it("files without an event name when the other filing fields are present", () => {
+    const withoutTitle = { ...northwindDayBrief, eventTitle: undefined };
+    expect(findBriefGaps(withoutTitle, "brief:fileable")).toEqual([]);
+  });
+
   it("keeps an explicit false when merging a brief", () => {
     const merged = mergeBrief(plannerBriefSchema.parse(northwindDayBrief), { foodRequired: false });
     expect(merged.foodRequired).toBe(false);

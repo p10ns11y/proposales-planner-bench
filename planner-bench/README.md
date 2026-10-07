@@ -22,7 +22,18 @@ Say yes, then skip favorites. Three ranked rows appear. Filing still needs an em
 
 ## Live Proposales
 
-Set `PROPOSALES_MODE=live` and `PROPOSALES_API_KEY`. Leave both unset to stay on the fixture. The key is added later, outside this repo.
+Copy `.env.example` to `.env.local` in `planner-bench/` and set the values there. Leave the mode unset to stay on the fixture.
+
+```
+PROPOSALES_MODE=live
+PROPOSALES_API_KEY=
+```
+
+Put the API key in `PROPOSALES_API_KEY`. Do not commit `.env.local`.
+
+Restart `pnpm dev`, then open localhost port 3000. Use the same Stockholm line, confirm, and skip favorites. Company lookup and filing use the live API. If that account has no proposals, the rows are sample offers and the screen says `Sample offers`. Under More, set Email and Language, save, and say `file`. Leave Event name empty to title the draft with the city and date, or set Event name to use that instead. The screen says `A draft was created in Proposales.`
+
+`AI_GATEWAY_API_KEY` and `PLANNER_MODEL` stay empty unless you want a live model. An empty gateway key keeps the scripted extractor.
 
 ## Model
 

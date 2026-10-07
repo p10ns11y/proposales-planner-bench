@@ -29,7 +29,6 @@ function needsClockEnd(data: unknown): boolean {
 }
 
 export const briefFileableConfig = {
-  eventTitle: true,
   contactEmail: true,
   startDate: true,
   endDate: true,

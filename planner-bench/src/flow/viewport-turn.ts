@@ -10,6 +10,8 @@ import { mergeBrief, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import type { ProposalesClient } from "../proposales/types";
 import { briefDraftFromPlanner } from "./brief-draft";
+import { loadComparableProposals, sampleProposalRecords } from "../proposales/comparable-proposals";
+import { draftCreatedNotice } from "../proposales/filing";
 import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
@@ -219,7 +221,7 @@ async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Pro
     filing: projected.filing,
     stage: projected.stage,
     selectedCompanyId,
-    notice: "The brief is filed.",
+    notice: filing.path === "draft" ? draftCreatedNotice : "The brief is filed.",
   };
 }
 
@@ -256,14 +258,29 @@ async function rerank(
   return rankSnapshot(snapshot, client, today);
 }
 
+function normaliseLoaded(proposals: unknown[]): {
+  offers: ReturnType<typeof normaliseProposal>[];
+  sample: boolean;
+} {
+  try {
+    return { offers: proposals.map((proposal) => normaliseProposal(proposal)), sample: false };
+  } catch {
+    return {
+      offers: sampleProposalRecords().map((proposal) => normaliseProposal(proposal)),
+      sample: true,
+    };
+  }
+}
+
 async function rankSnapshot(
   snapshot: PlannerSnapshot,
   client: ProposalesClient,
   today: string,
 ): Promise<PlannerSnapshot> {
-  const proposals = await client.loadVenueProposals();
-  const normalised = proposals.map((proposal) => normaliseProposal(proposal));
-  const offers = offersMatchingCity(snapshot.brief, normalised);
+  const loaded = await loadComparableProposals(client);
+  const normalised = normaliseLoaded(loaded.proposals);
+  const sample = loaded.sample || normalised.sample;
+  const offers = offersMatchingCity(snapshot.brief, normalised.offers);
   const grid = rankComparisonRows(
     compareOffers(snapshot.brief, offers, today, {
       favoriteVenueNames: snapshot.favoriteVenueNames,
@@ -285,6 +302,7 @@ async function rankSnapshot(
     phase: "results",
     nextQuestion: "",
     notice: null,
+    sampleOffers: sample,
     visibleRowCount: snapshot.visibleRowCount || defaultVisibleRowCount,
     openVenueName: null,
   };

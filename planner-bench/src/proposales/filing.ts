@@ -42,6 +42,28 @@ export function inboxBody(brief: BriefDraft): Record<string, string> {
   return body;
 }
 
+export const draftCreatedNotice = "A draft was created in Proposales.";
+
+export function draftTitle(brief: BriefDraft): string {
+  const eventTitle = brief.eventTitle?.trim() ?? "";
+  if (eventTitle !== "") {
+    return eventTitle;
+  }
+  const city = brief.city?.trim() ?? "";
+  const date = brief.startDate === null ? "" : brief.startDate.slice(0, 10);
+  if (city !== "" && date !== "") {
+    return `${city}, ${date}`;
+  }
+  if (city !== "") {
+    return city;
+  }
+  if (date !== "") {
+    return date;
+  }
+  const message = brief.message.trim();
+  return message === "" ? "Event" : message;
+}
+
 export function draftBody(brief: BriefDraft): {
   company_id: number;
   language: string;
@@ -51,7 +73,7 @@ export function draftBody(brief: BriefDraft): {
   return {
     company_id: brief.companyId,
     language: brief.language,
-    title_md: brief.eventTitle ?? brief.message,
+    title_md: draftTitle(brief),
     data: inboxBody(brief),
   };
 }
