@@ -1,68 +1,96 @@
 import { z } from "zod";
-import { minorUnits } from "../domain/minor-units";
+import { minorFromBudgetMajor, minorUnits } from "../domain/minor-units";
 import { plannerBriefSchema, type PlannerBrief } from "../domain/planner-brief";
 
+const textField = z.string().optional();
+
 export const moreDetailsSchema = z.object({
-  eventTitle: z.string(),
-  organisationName: z.string(),
-  contactEmail: z.string(),
-  language: z.string(),
-  roomCount: z.string(),
-  meetingRoomCount: z.string(),
-  foodRequired: z.enum(["", "yes", "no"]),
-  notes: z.string(),
-  budget: z.string(),
+  eventTitle: textField,
+  organisationName: textField,
+  contactEmail: textField,
+  language: textField,
+  roomCount: textField,
+  meetingRoomCount: textField,
+  foodRequired: z.enum(["", "yes", "no"]).optional(),
+  notes: textField,
+  budget: textField,
 });
 
 export type MoreDetails = z.infer<typeof moreDetailsSchema>;
 
 export function applyMoreDetails(brief: PlannerBrief, details: MoreDetails): PlannerBrief {
-  return plannerBriefSchema.parse({
-    ...brief,
-    eventTitle: blank(details.eventTitle),
-    organisationName: blank(details.organisationName),
-    contactEmail: blank(details.contactEmail),
-    language: blank(details.language),
-    roomCount: countOrUndefined(details.roomCount),
-    meetingRoomCount: countOrUndefined(details.meetingRoomCount),
-    foodRequired: foodOrUndefined(details.foodRequired),
-    notes: blank(details.notes),
-    budgetMinor: budgetOrUndefined(details.budget),
-  });
+  const next: PlannerBrief = { ...brief };
+  assignText(next, "eventTitle", details.eventTitle);
+  assignText(next, "organisationName", details.organisationName);
+  assignText(next, "contactEmail", details.contactEmail);
+  assignText(next, "language", details.language);
+  assignText(next, "notes", details.notes);
+  assignCount(next, "roomCount", details.roomCount);
+  assignCount(next, "meetingRoomCount", details.meetingRoomCount);
+  assignFood(next, details.foodRequired);
+  assignBudget(next, details.budget);
+  return plannerBriefSchema.parse(next);
 }
 
-function blank(value: string): string | undefined {
-  const trimmed = value.trim();
-  return trimmed === "" ? undefined : trimmed;
-}
-
-function countOrUndefined(value: string): number | undefined {
+function assignText(
+  brief: PlannerBrief,
+  key: "eventTitle" | "organisationName" | "contactEmail" | "language" | "notes",
+  value: string | undefined,
+) {
+  if (value === undefined) {
+    return;
+  }
   const trimmed = value.trim();
   if (trimmed === "") {
-    return undefined;
+    delete brief[key];
+    return;
+  }
+  brief[key] = trimmed;
+}
+
+function assignCount(
+  brief: PlannerBrief,
+  key: "roomCount" | "meetingRoomCount",
+  value: string | undefined,
+) {
+  if (value === undefined) {
+    return;
+  }
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    delete brief[key];
+    return;
   }
   const count = Number(trimmed);
   if (!Number.isInteger(count) || count < 0) {
-    return undefined;
+    return;
   }
-  return count;
+  brief[key] = count;
 }
 
-function foodOrUndefined(value: MoreDetails["foodRequired"]): boolean | undefined {
+function assignFood(brief: PlannerBrief, value: MoreDetails["foodRequired"]) {
+  if (value === undefined) {
+    return;
+  }
   if (value === "") {
-    return undefined;
+    delete brief.foodRequired;
+    return;
   }
-  return value === "yes";
+  brief.foodRequired = value === "yes";
 }
 
-function budgetOrUndefined(value: string): PlannerBrief["budgetMinor"] {
+function assignBudget(brief: PlannerBrief, value: string | undefined) {
+  if (value === undefined) {
+    return;
+  }
   const trimmed = value.trim();
   if (trimmed === "") {
-    return undefined;
+    delete brief.budgetMinor;
+    return;
   }
-  const amount = Number(trimmed);
-  if (!Number.isInteger(amount)) {
-    return undefined;
+  const amount = minorFromBudgetMajor(trimmed);
+  if (amount === undefined) {
+    return;
   }
-  return minorUnits(amount);
+  brief.budgetMinor = minorUnits(amount);
 }

@@ -8,14 +8,18 @@ import {
   type UIMessage,
 } from "ai";
 import { z } from "zod";
+import type { OfferGroupPart } from "../contract/offer-group";
 import { createClient } from "../proposales/client";
 import type { ProposalesClient } from "../proposales/types";
+import { toOfferDataPart } from "../transport/ai-sdk-offers";
+import { offerGroupFromShell } from "../view-models/offer-part";
+import { shellViewModel } from "../view-models/selectors";
 import { modelAttemptSignal, modelIsUsable, plannerLanguageModel } from "./agent-mode";
 import { latestUserText, readChatRequest, readSessionSnapshot, type ChatTurnMessage } from "./chat-request";
 import type { PlannerSnapshot } from "./planner-snapshot";
 import { runFixtureTurn } from "./scripted-turn";
 
-export type PlannerUIMessage = UIMessage<unknown, { snapshot: PlannerSnapshot }>;
+export type PlannerUIMessage = UIMessage<unknown, { snapshot: PlannerSnapshot; "offer-group": OfferGroupPart }>;
 
 export type PlannerChatEnv = {
   PROPOSALES_MODE?: string;
@@ -50,6 +54,18 @@ export async function handlePlannerChat(request: Request, env: PlannerChatEnv = 
       writer.write({ type: "text-delta", id: textId, delta: turn.reply });
       writer.write({ type: "text-end", id: textId });
       writer.write({ type: "data-snapshot", data: turn.snapshot });
+      const group = offerGroupFromShell(
+        shellViewModel({
+          snapshot: turn.snapshot,
+          busy: false,
+          errorText: null,
+          speechAvailable: false,
+        }),
+      );
+      if (group !== null) {
+        const part = toOfferDataPart(group);
+        writer.write({ type: part.type, id: part.id, data: part.data });
+      }
     },
   });
   return createUIMessageStreamResponse({ stream });

@@ -2,10 +2,11 @@ export type PlannerViewEvent =
   | { type: "composerSubmitted"; text: string }
   | { type: "briefConfirmed" }
   | { type: "favoritesSubmitted"; text: string }
-  | { type: "moreEdited"; details: MoreFieldValues }
+  | { type: "moreEdited"; details: Partial<MoreFieldValues> }
   | { type: "showMore" }
   | { type: "rowOpened"; venueName: string }
   | { type: "rowClosed" }
+  | { type: "sessionReset" }
   | { type: "historyToggled"; open: boolean }
   | { type: "historyEntryChosen"; entryId: string };
 
@@ -21,9 +22,21 @@ export type MoreFieldValues = {
   budget: string;
 };
 
+export type ShellBlock = {
+  title: string;
+  quantity: number;
+};
+
 export type ShellRow = {
   venueName: string;
+  proposalUuid: string;
   heldByCompanyName: string | null;
+  currency: string;
+  roomsMinor: number;
+  foodMinor: number;
+  spaceMinor: number;
+  extrasMinor: number;
+  totalMinor: number;
   rooms: string;
   foodAndBeverage: string;
   space: string;
@@ -32,6 +45,7 @@ export type ShellRow = {
   expires: string;
   gaps: string[];
   favorite: boolean;
+  blocks: ShellBlock[];
 };
 
 export type ShellViewModel = {
@@ -55,6 +69,8 @@ export type ShellViewModel = {
   more: MoreFieldValues;
   moreStamp: string;
   composerPlaceholder: string;
+  offerSummary: string | null;
+  contextChips: string[];
   inputMode: "email" | "numeric" | "text";
   inputType: "email" | "text";
   autoComplete: string | undefined;

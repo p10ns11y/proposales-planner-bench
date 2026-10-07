@@ -1,42 +1,66 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import type { ReactNode } from "react";
+import { X } from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
 import { cn } from "../cn";
 
 type SheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  trigger: ReactNode;
+  description: string;
+  trigger?: ReactNode;
   children: ReactNode;
+  footer?: ReactNode;
   side?: "left" | "right";
+  onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 };
 
 export function Sheet({
   open,
   onOpenChange,
   title,
+  description,
   trigger,
   children,
-  side = "left",
+  footer,
+  side = "right",
+  onSubmit,
+  onCloseAutoFocus,
 }: SheetProps) {
+  const body = (
+    <>
+      <div className="planner-drawer-head">
+        <div>
+          <Dialog.Title className="planner-drawer-title">{title}</Dialog.Title>
+          <Dialog.Description className="planner-drawer-desc">{description}</Dialog.Description>
+        </div>
+        <Dialog.Close type="button" className="planner-icon-button planner-round" aria-label="Close">
+          <X />
+        </Dialog.Close>
+      </div>
+      <div className="planner-drawer-body">{children}</div>
+      {footer ? <div className="planner-drawer-footer">{footer}</div> : null}
+    </>
+  );
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+      {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-foreground/15" />
+        <Dialog.Overlay className="planner-scrim" />
         <Dialog.Content
-          className={cn(
-            "fixed top-0 flex h-dvh w-full max-w-sm flex-col gap-4 border-border bg-card p-4",
-            side === "left" ? "left-0 border-r" : "right-0 border-l",
-          )}
+          className={cn("planner-drawer", side === "left" && "planner-drawer-left")}
+          onCloseAutoFocus={onCloseAutoFocus}
         >
-          <Dialog.Title className="text-lg">{title}</Dialog.Title>
-          <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-          <Dialog.Close className="rounded-md border border-border bg-card px-3 py-2 text-sm">
-            Close
-          </Dialog.Close>
+          {onSubmit ? (
+            <form className="planner-drawer-form" onSubmit={onSubmit}>
+              {body}
+            </form>
+          ) : (
+            <div className="planner-drawer-form">{body}</div>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

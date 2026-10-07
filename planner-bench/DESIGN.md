@@ -1,170 +1,278 @@
 ---
 name: Planner bench
-description: A paper-quiet web bench with one sticky line at the bottom.
+description: A cool grey chat column with the venue reply nested inside the thread.
 colors:
-  ink: "#1c1915"
-  paper: "#f4f1ea"
-  card: "#fffdf8"
-  clay: "#5e584e"
-  rule: "#d8d0c4"
+  canvas: "#F9F9F9"
+  rail: "#F4F4F4"
+  assistant: "#ECECEC"
+  card: "#FAFAFA"
+  raised: "#FFFFFF"
+  selected: "#DEDEDE"
+  chip: "#EEEEEE"
+  hairline: "#E2E2E2"
+  input-border: "#D4D4D4"
+  ink: "#151515"
+  secondary: "#666666"
+  placeholder: "#6E6E6E"
+  action: "#070707"
+  action-hover: "#2A2A2A"
+  coral: "#FB3D50"
+  danger: "#B3261E"
+  status: "#444444"
+  on-action: "#FFFFFF"
 typography:
   display:
-    fontFamily: "Iowan Old Style, Palatino Linotype, Palatino, Book Antiqua, Georgia, serif"
-    fontSize: "1.5rem"
-    fontWeight: 400
-    lineHeight: 1.25
+    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontSize: "28px"
+    fontWeight: 500
+    lineHeight: 1.21
+    letterSpacing: "-0.02em"
+  title:
+    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 600
+    lineHeight: 1.27
+    letterSpacing: "normal"
+  card:
+    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontSize: "17px"
+    fontWeight: 600
+    lineHeight: 1.41
     letterSpacing: "normal"
   body:
-    fontFamily: "Iowan Old Style, Palatino Linotype, Palatino, Book Antiqua, Georgia, serif"
-    fontSize: "1rem"
+    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontSize: "15px"
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.47
     letterSpacing: "normal"
-  label:
-    fontFamily: "Iowan Old Style, Palatino Linotype, Palatino, Book Antiqua, Georgia, serif"
-    fontSize: "0.875rem"
-    fontWeight: 400
-    lineHeight: 1.4
+  meta:
+    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 500
+    lineHeight: 1.38
+    letterSpacing: "normal"
+  chip:
+    fontFamily: "Instrument Sans, system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 500
+    lineHeight: 1.33
     letterSpacing: "normal"
 rounded:
-  control: "0.375rem"
+  bubble: "16px"
+  group: "16px"
+  row: "12px"
+  tile: "10px"
+  field: "10px"
+  sheet: "20px"
+  pill: "999px"
+  tail: "2px"
+  grown: "24px"
 spacing:
-  control-x: "12px"
-  control-y: "8px"
-  composer-pad: "16px"
+  step: "4px"
+  bubble-y: "14px"
+  bubble-x: "16px"
+  row-y: "12px"
+  row-x: "14px"
+  turn: "24px"
+  column: "720px"
+  drawer: "400px"
 components:
   button-primary:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.paper}"
-    rounded: "{rounded.control}"
-    padding: "8px 16px"
-    height: "48px"
+    backgroundColor: "{colors.action}"
+    textColor: "{colors.on-action}"
+    typography: "{typography.body}"
+    rounded: "{rounded.field}"
+    padding: "0 16px"
+    height: "44px"
+  button-primary-hover:
+    backgroundColor: "{colors.action-hover}"
+    textColor: "{colors.on-action}"
+    rounded: "{rounded.field}"
+    height: "44px"
+  button-send:
+    backgroundColor: "{colors.action}"
+    textColor: "{colors.on-action}"
+    rounded: "{rounded.pill}"
+    height: "32px"
+    width: "32px"
   button-ghost:
+    backgroundColor: "{colors.chip}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.pill}"
+    padding: "0 16px"
+    height: "44px"
+  input-field:
     backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
-    padding: "8px 16px"
-    height: "48px"
-  input-line:
+    typography: "{typography.body}"
+    rounded: "{rounded.field}"
+    padding: "0 12px"
+    height: "44px"
+  composer:
     backgroundColor: "{colors.card}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
-    padding: "12px"
-    height: "48px"
+    typography: "{typography.body}"
+    rounded: "{rounded.pill}"
+    padding: "8px"
+    height: "56px"
+  chip:
+    backgroundColor: "{colors.chip}"
+    textColor: "{colors.status}"
+    typography: "{typography.chip}"
+    rounded: "{rounded.pill}"
+    padding: "2px 8px"
+    height: "20px"
+  offer-row:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    typography: "{typography.card}"
+    rounded: "{rounded.row}"
+    padding: "12px 14px"
+    height: "56px"
 ---
 
 # Design System: Planner bench
 
 ## Overview
 
-**Creative North Star: "The sticky line"**
+**Creative North Star: "The nested reply"**
 
-Taken from the brief that the bench should feel like a regular chat, close to Grok: one input, fixed, and the work appearing behind it. The north star is that line. Everything else is paper, type, and the few elements the thread is allowed to show.
+The bench is a chat column. A person writes one line. The reply sits in a cool grey bubble, and the venues sit inside that bubble as lighter cards. The composer stays on the bottom edge. More arrives from the right. A venue's detail covers the column and then returns to the same place in the thread.
 
-The material already in the app is warm paper and old-style serif. Density stays low. The page is one column. The composer sits on the bottom edge and does not move. The thread above it is the only region that moves. A result's detail leaves the thread and opens as an overlay or a modal.
-
-The split pane and the full brief form in the current branch are the previous pass. They are not the layout to copy.
+The material is cool grey, hairlines, and one sans. Coral is identity, used twice at most: the brand mark, and one dot on the best valid offer.
 
 **Key Characteristics:**
 
-- One composer, stuck to the bottom.
-- Paper and ink, no second accent.
-- Serif throughout, including the input.
-- Elements appear in the thread only for the current step.
-- Flat surfaces. A border is the edge.
+- One composer, floating above the bottom edge.
+- Offer cards live inside the assistant reply.
+- Cool greys separated by hairlines.
+- Instrument Sans for every role, including prices.
+- Black for the primary action. Coral is never a fill.
 
 ## Colors
 
-The palette is ink on warm paper. One dark color does the work of both text and the primary control.
+Surfaces step from canvas to rail to assistant to card to white. Text is ink, secondary, or placeholder. One black does the primary actions.
 
 ### Primary
 
-- **Ink** (`{colors.ink}`): text, the primary button, selection, and the focus ring.
+- **Action** (`{colors.action}`): Send, Apply, and File this brief. Hover is `{colors.action-hover}`.
+- **Ink** (`{colors.ink}`): primary text, and the Compare pill when it is on.
 
 ### Neutral
 
-- **Paper** (`{colors.paper}`): the page.
-- **Card** (`{colors.card}`): the composer, inputs, and overlay surfaces.
-- **Clay** (`{colors.clay}`): secondary text and placeholders.
-- **Rule** (`{colors.rule}`): borders and the line between thread and composer.
+- **Canvas** (`{colors.canvas}`): the page.
+- **Rail** (`{colors.rail}`): the left rail.
+- **Assistant** (`{colors.assistant}`): the reply bubble and the offer group.
+- **Card** (`{colors.card}`): offer rows, compare cards, the composer, and fields.
+- **Raised** (`{colors.raised}`): the drawer and the detail sheet.
+- **Chip** (`{colors.chip}`): chips, the Compare pill when it is off, and the monogram tile.
+- **Selected** (`{colors.selected}`): a pressed or selected segment.
+- **Hairline** (`{colors.hairline}`): row and card edges.
+- **Input border** (`{colors.input-border}`): field borders, and the disabled send face.
+- **Secondary** (`{colors.secondary}`): meta text and the price note.
+- **Placeholder** (`{colors.placeholder}`): input placeholders. This is darker than the frame's `#8A8A8A` so placeholder text clears WCAG AA on `{colors.card}`.
+- **Status** (`{colors.status}`): chip text, including Expired.
 
-**The One Ink Rule.** Ink is the only strong color. Status is said in words, not in a new hue.
+### Accent
+
+- **Coral** (`{colors.coral}`): the brand mark and the 6px Best match dot. Never a button, a wash, an error, or body text.
+
+### Danger
+
+- **Danger** (`{colors.danger}`): error text, always with an icon. Never a red fill.
+
+**The Coral Rule.** Coral appears on the brand mark and on at most one Best match dot. Status, including Expired, is a neutral chip: icon plus word.
 
 ## Typography
 
-**Display Font:** Iowan Old Style (with Palatino Linotype, Palatino, Book Antiqua, Georgia)
-**Body Font:** the same stack
-**Label/Mono Font:** the same stack. There is no mono role.
+**Display Font:** Instrument Sans
+**Body Font:** Instrument Sans
+**Label/Mono Font:** Instrument Sans. Prices use tabular numbers at weight 600. There is no second family.
 
-**Character:** One serif family, set like a letter. The composer uses the same face at body size so the input does not feel like a form widget.
+**Character:** A neutral grotesque, set tight on the display and regular on the body. Nothing is set in capitals.
 
 ### Hierarchy
 
-- **Display** (regular, 1.5rem, line-height 1.25): the current question, when the thread needs a heading.
-- **Body** (regular, 1rem, line-height 1.5): the brief sentence, the rows, the composer. Inputs stay at 1rem so a phone does not zoom them.
-- **Label** (regular, 0.875rem, line-height 1.4): secondary facts on a row, such as who holds the venue.
+- **Display** (500, 28px / 34px, tracking -0.02em): the empty-state question.
+- **Title** (600, 22px / 28px): the detail venue name and the drawer title.
+- **Card** (600, 17px / 24px): a venue name.
+- **Body** (400, 15px / 22px): the reply, the composer, and prices.
+- **Meta** (500, 13px / 18px): held-by, the group summary, and the breakdown.
+- **Chip** (500, 12px / 16px): chips and the VAT line.
 
-**The Same Face Rule.** Do not introduce a sans for UI chrome.
+**The One Face Rule.** Instrument Sans is the only face. Placeholder text uses `{colors.placeholder}` (`#6E6E6E`), not `#8A8A8A`.
 
 ## Layout
 
-The page is one column inside the viewport. The composer is fixed to the bottom and stays fully on screen, including its action. The thread occupies the space above it.
+The page is a 64px rail plus a column. The column's content maxes at 720px. The composer floats 16px above the bottom. Messages sit 8px apart inside a turn and 24px between turns.
 
-On a phone the same stack holds. The composer does not collapse into the thread, and the current action stays visible.
+Below 640px the rail hides, the header sticks, and the More drawer and the detail sheet become full width. Compare is measured on the offer group, not the window: it exists only for two or three offers when that group is at least 640px wide.
 
-The earlier 38/62 column split is recorded in the CSS as the previous pass. New work does not extend that split.
-
-**The Sticky Line Rule.** The input remains in place. If something must move, it is the thread.
+**The Sticky Composer Rule.** The input remains in place. Results, More, and detail come and go around it.
 
 ## Elevation & Depth
 
-Surfaces are flat. Depth is a change of tone from paper to card, plus a 1px rule. An overlay sits on a tint of ink over the page and uses the card surface. It does not use a drop shadow.
+Most surfaces are flat, separated by a hairline.
 
-**The Flat Paper Rule.** Do not add a shadow to make a control look clickable. The fill and the border do that.
+- **e1**, row hover: `0 1px 2px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.04)`.
+- **e2**, composer: `0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06)`.
+- **e3**, drawer: `-16px 0 48px rgba(0,0,0,.10)`.
+- **e4**, detail: `0 24px 80px rgba(0,0,0,.18)`.
+
+The scrim is `rgba(10,10,10,.32)`.
+
+Motion is transform and opacity. The drawer enters in 320ms and leaves in 220ms. Rows fade and rise 8px over 200ms, staggered 40ms, at most four. Card to detail uses a spring (stiffness 380, damping 34) on the card, the title, and the price. List and compare crossfade in 200ms. Reduced motion is a 150ms opacity change. Never `transition: all`.
+
+**The Hairline Rule.** A shadow is for the composer, the drawer, the detail sheet, or a hovered row. It is not a default card treatment.
 
 ## Shapes
 
-Controls use a small radius (0.375rem). Corners are slightly soft, never pills, except where a control is already a short button. Borders are the rule color, 1px.
+Bubbles and the offer group use 16px, with a 2px corner where the bubble meets its speaker. Rows and compare cards use 12px. Tiles and fields use 10px. Chips, the composer, and the header pills are full pills. A multi-line composer uses 24px. The detail sheet uses 20px on desktop and 0 on a phone.
+
+The best compare card adds a 1.5px `{colors.ink}` outline. That outline follows the Best match badge, so it never lands on an expired offer.
 
 ## Components
 
 ### Buttons
 
-- **Shape:** small radius (0.375rem), at least 48px tall.
-- **Primary:** ink fill, paper text. The step's main action.
-- **Ghost:** card fill, ink text, rule border. History, skip, and dismiss.
-- **Hover / Focus:** focus is a 2px ink outline, 2px outside the control. Hover does not add a shadow.
+- **Shape:** primary actions are 44px tall with a 10px radius, except Send, which is a 32px black circle inside a 44px hit area.
+- **Primary:** `{colors.action}` fill, white text. Apply and File this brief.
+- **Ghost:** `{colors.chip}` fill or text-only. Reset, Open, Back to chat, Try again.
+- **Hover / Focus:** primary hover is `{colors.action-hover}`. Focus is `0 0 0 2px #F9F9F9, 0 0 0 4px #151515`. Press scales to 0.98.
+- **Disabled send:** the 32px face is `{colors.input-border}` and the arrow stays `{colors.ink}`.
 
 ### Inputs / Fields
 
-- **Style:** card fill, 1px rule, body type, 1rem.
-- **Focus:** the same 2px ink outline.
-- **The composer:** the sticky input at the bottom. It is the signature control. Placeholder text is clay, and it shows a real example of a request.
+- **Style:** `{colors.card}` fill, 1px `{colors.input-border}`, 15px type, 44px tall, 10px radius.
+- **Focus:** the same 2px ink ring.
+- **The composer:** a pill, max-width 720px, hairline, e2. Placeholder: "Describe the event: place, people, date, time". The left plus opens More and is named Add details. The header pill is named More.
 
 ### The thread
 
-- **Style:** paper, no card around the whole thread.
-- **A row:** venue name and total on one line, a quiet second line only when the row has something to add. The row itself opens the overlay.
-- **An element for a step:** one block in the thread. It does not stack every brief field.
+- **Style:** canvas, with the assistant reply on `{colors.assistant}`.
+- **A row:** a 56px button. Monogram, name, chips, held-by, and one 96px right-aligned price. An expired price is 60% opacity with a line-through.
+- **Best match:** one coral dot and the words Best match, on the best non-expired offer. Never on an expired offer.
+- **Compare:** side-by-side cards, only through the Compare toggle, and only when the group qualifies. Breakdown lines come from the offer's own amounts and always sum to the total. A remainder is labelled Other.
+- **Footer:** "Prices are totals for the day, excl. VAT".
 
-### Overlay
+### Drawer and detail
 
-- **Corner Style:** the same small radius as controls.
-- **Background:** card, on a tint of ink.
-- **Shadow Strategy:** none.
-- **Border:** 1px rule.
-- **Internal Padding:** comfortable, from the page padding, not a new scale.
+- **More:** a 400px right drawer, white, e3. Full width below 640px. Title "Refine the brief".
+- **Detail:** desktop inset 12px, radius 20, e4. Phone is full screen, radius 0. Overview shows the proposal block, who holds it, and the total. No invented amenities.
 
 ## Do's and Don'ts
 
 ### Do:
 
 - **Do** keep the composer on screen and the current action reachable.
-- **Do** use ink, paper, card, clay, and rule as they are tokenised above.
-- **Do** open detail in an overlay or a modal.
+- **Do** put Best match on the best non-expired offer, and Expired on a neutral chip.
+- **Do** render breakdown lines from the offer so they sum to the total.
+- **Do** use canvas, rail, assistant, card, ink, and coral as they are tokenised above.
 
 ### Don't:
 
-- **Don't** rebuild the brief as a field grid.
-- **Don't** put Company before the input.
-- **Don't** add a second accent, a gradient, or a shadow to create hierarchy.
+- **Don't** use cream, a serif, or a `<details>` element for More.
+- **Don't** hard-code Best match, or put it on an expired offer.
+- **Don't** invent photos, ratings, amenities, or prices that do not sum.
+- **Don't** use coral as a fill, a wash, or error text.
