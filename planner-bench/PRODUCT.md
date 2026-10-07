@@ -38,6 +38,8 @@ Everything else lives in More, a drawer from the right. Event name, organisation
 
 Filing needs an email; matching does not. The email stays editable in More. Favorites stay a mark on the ranked list, not a field in More.
 
+A model attempt waits 40 seconds. The turn and chat routes set maxDuration to 60. A missing key, a model error, or that window falls back to the scripted extractor.
+
 Confirmed for this pass:
 
 - Free text, then clean, then confirm the required facts, then structured data, then AI-UI views. More is the form for the rest.
