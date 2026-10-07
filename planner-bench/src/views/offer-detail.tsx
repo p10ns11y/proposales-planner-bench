@@ -11,6 +11,7 @@ import {
 } from "../contract/offer-group";
 import { gapLabel, neutralChipName } from "./offer-copy";
 import { GapIcon } from "./offer-group";
+import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
 
@@ -62,12 +63,18 @@ export function OfferDetail({
         {offer ? (
           <Dialog.Content
             className="planner-detail-sheet"
+            {...lcvMachine("detail", "detail:open", "detail:closed detail:open")}
             onCloseAutoFocus={(event) => {
               event.preventDefault();
             }}
           >
             <div className="planner-detail-top">
-              <Dialog.Close type="button" className="planner-icon-button planner-round" aria-label="Close">
+              <Dialog.Close
+                type="button"
+                className="planner-icon-button planner-round"
+                aria-label="Close"
+                {...closeDetailEdge()}
+              >
                 <X />
               </Dialog.Close>
               <div className="planner-detail-tools">
@@ -76,6 +83,7 @@ export function OfferDetail({
                     type="button"
                     className="planner-icon-button planner-round"
                     aria-label="Share offer"
+                    {...lcvStay("share-offer", "detail:open")}
                     onClick={() => {
                       void shareOffer(offer, price);
                     }}
@@ -87,6 +95,7 @@ export function OfferDetail({
                   type="button"
                   className="planner-icon-button planner-round"
                   aria-label={copied ? "Copied" : "Copy offer"}
+                  {...lcvStay("copy-offer", "detail:open")}
                   onClick={() => {
                     void copyOffer(offer, price).then((ok) => setCopied(ok));
                   }}
@@ -110,18 +119,19 @@ export function OfferDetail({
                         layoutId={reduce ? undefined : `title-${offer.venueName}`}
                         transition={reduce ? { duration: 0.15 } : detailSpring}
                         className="planner-detail-title"
+                        data-lcv="must-show"
                       >
                         {offer.venueName}
                       </motion.h2>
                     </Dialog.Title>
                     {offer.bestMatch ? (
-                      <span className="planner-chip planner-chip-best">
+                      <span className="planner-chip planner-chip-best" data-lcv="must-show" data-lcv-chip="best-match">
                         <span className="planner-best-dot" aria-hidden="true" />
                         Best match
                       </span>
                     ) : null}
                     {offer.gaps.map((gap) => (
-                      <span key={gap} className="planner-chip planner-chip-status">
+                      <span key={gap} className="planner-chip planner-chip-status" {...detailChipMark(gap)}>
                         <GapIcon gap={gap} />
                         {gapLabel(gap)}
                       </span>
@@ -132,13 +142,17 @@ export function OfferDetail({
                         className="planner-chip planner-chip-not-stated"
                         data-facet={mark}
                         aria-label={neutralChipName(mark)}
+                        data-lcv="must-show"
+                        data-lcv-chip="not-stated"
                       >
                         Not stated
                       </span>
                     ))}
                   </div>
                   {offer.heldByCompanyName ? (
-                    <p className="planner-meta">Held by {offer.heldByCompanyName}</p>
+                    <p className="planner-meta" data-lcv="preview">
+                      Held by {offer.heldByCompanyName}
+                    </p>
                   ) : null}
                 </div>
                 <div className="planner-detail-price-block">
@@ -146,6 +160,7 @@ export function OfferDetail({
                     layoutId={reduce ? undefined : `price-${offer.venueName}`}
                     transition={reduce ? { duration: 0.15 } : detailSpring}
                     className={expired ? "planner-detail-price planner-price-expired" : "planner-detail-price"}
+                    data-lcv="must-show"
                   >
                     {price}
                   </motion.p>
@@ -167,11 +182,11 @@ export function OfferDetail({
                   <h3>Overview</h3>
                   <div className="planner-detail-copy">
                     {offer.blocks.map((block) => (
-                      <p key={`${block.title}-${block.quantity}`}>
+                      <p key={`${block.title}-${block.quantity}`} data-lcv="preview">
                         {block.title} × {block.quantity}
                       </p>
                     ))}
-                    {offer.heldByCompanyName ? <p>Held by {offer.heldByCompanyName}</p> : null}
+                    {offer.heldByCompanyName ? <p data-lcv="preview">Held by {offer.heldByCompanyName}</p> : null}
                     <p>
                       {price} total, excl. VAT
                     </p>
@@ -180,7 +195,7 @@ export function OfferDetail({
                 {lines.map((line) => (
                   <section key={line.key}>
                     <h3>{sectionTitle[line.key] ?? line.label}</h3>
-                    <p>{line.text}</p>
+                    <p data-lcv="preview">{line.text}</p>
                   </section>
                 ))}
                 <section>
@@ -197,7 +212,7 @@ export function OfferDetail({
               </div>
             </div>
             <div className="planner-detail-bar">
-              <button type="button" className="planner-text-button" onClick={onClose}>
+              <button type="button" className="planner-text-button" {...closeDetailEdge()} onClick={onClose}>
                 Back to chat
               </button>
               <div className="planner-detail-file">
@@ -206,7 +221,7 @@ export function OfferDetail({
                     {confirmation}
                   </p>
                 ) : null}
-                <button type="button" className="planner-apply" disabled={busy} onClick={onFile}>
+                <button type="button" className="planner-apply" disabled={busy} {...lcvStay("file-brief", "detail:open")} onClick={onFile}>
                   File this brief
                 </button>
               </div>
@@ -216,6 +231,29 @@ export function OfferDetail({
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+function closeDetailEdge() {
+  return lcvInteract({
+    event: "close-detail",
+    from: "detail:open",
+    success: "detail:closed",
+    fail: "detail:open",
+    interrupted: "detail:open",
+  });
+}
+
+function detailChipMark(gap: string): { "data-lcv"?: "must-show"; "data-lcv-chip"?: string } {
+  if (gap === "expired") {
+    return { "data-lcv": "must-show", "data-lcv-chip": "expired" };
+  }
+  if (gap === "foodAndBeverage") {
+    return { "data-lcv": "must-show", "data-lcv-chip": "no-food" };
+  }
+  if (gap === "budget") {
+    return { "data-lcv": "must-show", "data-lcv-chip": "over-budget" };
+  }
+  return {};
 }
 
 function ContextIcon({ chip }: { chip: string }) {

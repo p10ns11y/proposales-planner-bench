@@ -4,6 +4,7 @@ import { Minus, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Sheet } from "../design/ui/sheet";
 import type { MoreFieldValues, PlannerViewEvent } from "../view-models/view-model";
+import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 
 type MoreDrawerProps = {
   more: MoreFieldValues;
@@ -89,12 +90,31 @@ function MoreForm({
       description="Optional details for the venue request."
       onSubmit={submit}
       onCloseAutoFocus={onCloseAutoFocus}
+      contentAttributes={lcvMachine("more", "more:open", "more:closed more:open")}
+      closeAttributes={lcvInteract({
+        event: "close-more",
+        from: "more:open",
+        success: "more:closed",
+        fail: "more:open",
+        interrupted: "more:open",
+      })}
       footer={
         <>
-          <button type="button" className="planner-text-button" onClick={() => setValues(more)}>
+          <button type="button" className="planner-text-button" {...lcvStay("reset-more", "more:open")} onClick={() => setValues(more)}>
             Reset
           </button>
-          <button type="submit" className="planner-apply" disabled={disabled}>
+          <button
+            type="submit"
+            className="planner-apply"
+            disabled={disabled}
+            {...lcvInteract({
+              event: "save-more",
+              from: "more:open",
+              success: "more:closed",
+              fail: "more:open",
+              interrupted: "more:open",
+            })}
+          >
             Apply
           </button>
         </>
@@ -127,6 +147,7 @@ function MoreForm({
             <button
               type="button"
               aria-pressed={values.language === "en"}
+              {...lcvStay("language-en", "more:open")}
               onClick={() => setValues({ ...values, language: "en" })}
             >
               English
@@ -134,6 +155,7 @@ function MoreForm({
             <button
               type="button"
               aria-pressed={values.language === "sv"}
+              {...lcvStay("language-sv", "more:open")}
               onClick={() => setValues({ ...values, language: "sv" })}
             >
               Svenska
@@ -160,6 +182,7 @@ function MoreForm({
             role="switch"
             aria-labelledby="more-food-label"
             aria-checked={values.foodRequired === "yes"}
+            {...lcvStay("food", "more:open")}
             onClick={() =>
               setValues({
                 ...values,
@@ -206,11 +229,21 @@ function CountStepper({
     <div className="planner-step-row" role="group" aria-label={label}>
       <span>{label}</span>
       <div className="planner-stepper">
-        <button type="button" aria-label={`Fewer ${label.toLowerCase()}`} onClick={() => onChange(stepCount(value, -1))}>
+        <button
+          type="button"
+          aria-label={`Fewer ${label.toLowerCase()}`}
+          {...lcvStay("step-down", "more:open")}
+          onClick={() => onChange(stepCount(value, -1))}
+        >
           <Minus aria-hidden="true" />
         </button>
         <span className="planner-step-value">{shown}</span>
-        <button type="button" aria-label={`More ${label.toLowerCase()}`} onClick={() => onChange(stepCount(value, 1))}>
+        <button
+          type="button"
+          aria-label={`More ${label.toLowerCase()}`}
+          {...lcvStay("step-up", "more:open")}
+          onClick={() => onChange(stepCount(value, 1))}
+        >
           <Plus aria-hidden="true" />
         </button>
       </div>

@@ -51,6 +51,10 @@ On Vercel, set the project root to `planner-bench`. Fixture mode needs no secret
 
 Speech uses the browser speech API when the browser has it. Typing always works.
 
+## Critical path
+
+`pnpm build`, then `pnpm e2e`, runs the scripted planner in fixture mode. Layout checks read the layout-content-view plugin from the pinned commit in References. CI uses Playwright Chromium for that probe.
+
 Keys stay in server environment variables. Do not commit `.env` files.
 
 ## References
@@ -63,6 +67,8 @@ Keys stay in server environment variables. Do not commit `.env` files.
 - Method notes live with the reference pack in `docs/design-refs/REFERENCE-PACK.md`.
 - Refero and Mobbin were connected but paywalled at the time of writing; no content from them is included.
 - No brand is copied wholesale. Coral and greys are adapted roles, and no Grok or xAI logo or wordmark is used in the app.
+- Playwright: https://playwright.dev/docs/intro
+- layout-content-view: https://github.com/p10ns11y/plugins/tree/31d93a0355838d8b24511966ae1ba0062c05f012/layout-content-view
 - tldraw: https://tldraw.com/
 - Mermaid: https://mermaid.js.org/
 - AG-UI: https://github.com/ag-ui-protocol/ag-ui
