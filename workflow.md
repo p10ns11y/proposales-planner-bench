@@ -8,7 +8,7 @@ Credit: playbooks and principles from [pstack](https://github.com/cursor/plugins
 
 The run ends when all of these hold, with no human input:
 
-1. `pnpm typecheck`, `pnpm test`, and `pnpm build` pass in `planner-bench/`.
+1. `pnpm typecheck`, `pnpm test`, and `pnpm build` pass at the repository root.
 2. In fixture mode, a browser run completes chat brief → filed → offers → Results grid → History entry.
 3. The `layout-content-view` probe reports no clipped must-show data on Chat, Results, or History.
 4. The fresh-context review returns pass, or only gaps that are logged.

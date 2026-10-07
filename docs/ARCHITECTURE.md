@@ -19,7 +19,7 @@ flowchart LR
 
 The same picture is the System context page of [diagrams/architecture.tldr](diagrams/architecture.tldr).
 
-The browser runs `PlannerSession` from `planner-bench`. On Vercel that directory is the project root. Each post sends the action, and the snapshot when the page has one.
+The browser runs `PlannerSession`. Each post sends the action, and the snapshot when the page has one. The Next.js app is at the repository root.
 
 ## Request
 

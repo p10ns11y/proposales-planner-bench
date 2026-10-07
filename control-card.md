@@ -12,7 +12,7 @@ The next session uses [control-card-productize.md](./control-card-productize.md)
 | Concern | Choice | Role in the app |
 |---|---|---|
 | Framework | Next.js App Router on Vercel | Hosting, route handlers for the agent |
-| API contract | `@adaptate/utils` (`openAPISchemaToZod`) | Zod schemas generated from the committed `planner-bench/src/contract/openapi.json` for contract tests. Runtime checks use the tolerant readers in `http-client.ts`. |
+| API contract | `@adaptate/utils` (`openAPISchemaToZod`) | Zod schemas generated from the committed `src/contract/openapi.json` for contract tests. Runtime checks use the tolerant readers in `http-client.ts`. |
 | Model fitness | `@adaptate/core` (`makeConditionalSchemaTransformer`) | One deep-partial `PlannerBrief` schema. Each consumer has a config of required fields. Whatever fails the config is the gap list, and the next question. Rooms are required when the end date is after the start date. |
 | Agent | Vercel AI SDK (`streamText` with tools) | The page posts to `/api/turn`. `/api/chat` streams with tools `updateBrief`, `fileBrief`, `addOffer`, and `compareOffers`. The page does not call `useChat`. |
 | Voice | Browser Web Speech API for input | No key needed. Speech goes into the same chat. |
@@ -36,7 +36,6 @@ The next session uses [control-card-productize.md](./control-card-productize.md)
 
 ## Verify commands
 ```bash
-cd planner-bench
 pnpm typecheck
 pnpm test        # vitest: contract, normaliser, gaps, client mode switch
 pnpm build
@@ -57,7 +56,7 @@ pnpm build
 
 | id | step | depends_on | done_when | role |
 |---|---|---|---|---|
-| S1 | Scaffold `planner-bench/`: Next.js App Router, TypeScript, Tailwind, Vitest, Zod, `ai` SDK. `git init`. | — | `pnpm build` passes on an empty page | coding |
+| S1 | Scaffold the app at the repository root: Next.js App Router, TypeScript, Tailwind, Vitest, Zod, `ai` SDK. `git init`. | — | `pnpm build` passes on an empty page | coding |
 | S2 | Generate Zod schemas from `openapi.json` with `@adaptate/utils`. First check that it accepts a JSON spec (its loader documents YAML). Fixtures: `companies` (token set and `null` variants), 3 venue proposals with different prices, extras, and expiry, 2 sample briefs. Contract test. | S1 | contract test passes | coding |
 | S3 | Domain: deep-partial `PlannerBrief` and `VenueOffer`. Fitness configs with `@adaptate/core` (`brief:fileable`, `brief:comparable`, and `offerGridRowConfig`). `normaliseProposal()` from `package_split`. `findGaps()` = fields that fail the fitness check. Unit tests. | S2 | tests pass | coding |
 | S4 | `ProposalesClient` port with `fixture` and `http` adapters, chosen by `PROPOSALES_MODE`. Live responses are parsed with the tolerant readers in `http-client.ts`. `fileBrief()` picks inbox or draft from `inbox_token`. | S2 | mode-switch and path tests pass | coding |
@@ -73,30 +72,30 @@ S3 and S4 can run in parallel after S2.
 - Adding `PROPOSALES_API_KEY` or `XAI_API_KEY` (secrets). The user does this in a separate session.
 
 ## last progress
-- S1 through S6 are committed on `main`. `pnpm typecheck`, `pnpm test`, and `pnpm build` pass in `planner-bench/`.
+- S1 through S6 are committed on `main`. `pnpm typecheck`, `pnpm test`, and `pnpm build` pass at the repository root.
 - Fixture mode was driven in Chromium on `localhost:3456`: typed brief → inbox filing → Harbour House, Ridge Hall, and Canal Loft on the grid → history entry. Quiet Court filed a draft.
 - S7 and the design session were left alone.
 - `typecheck` still needs `next typegen` first, because `LayoutProps` is a generated type.
 
 ## open decisions
-- 2026-10-06: `getDereferencedOpenAPIDocument` loads the committed `planner-bench/src/contract/openapi.json`. js-yaml accepts the JSON, so the component-schema fallback was not used. A company with `tax_mode: "nope"` fails, which shows `$ref` resolution is in effect. Generated schemas check fixtures in contract tests. Live responses are checked by the tolerant readers in `http-client.ts`.
+- 2026-10-06: `getDereferencedOpenAPIDocument` loads the committed `src/contract/openapi.json`. js-yaml accepts the JSON, so the component-schema fallback was not used. A company with `tax_mode: "nope"` fails, which shows `$ref` resolution is in effect. Generated schemas check fixtures in contract tests. Live responses are checked by the tolerant readers in `http-client.ts`.
 - `openAPISchemaToZod` drops `additionalProperties`. Known fields on fixtures are still checked with the generated schemas. The draft post sends `draftBody`: the inbox fields plus `planner_bench_brief`. It does not forward a stored `Proposal.data` object.
 - Offer totals use `value_without_tax` when present, otherwise `value_with_tax`, multiplied by block `quantity` (default 1). Minor units stay branded until the view model formats them.
 - No `XAI_API_KEY` keeps the scripted extractor. A set key calls xAI through `@ai-sdk/xai`. The model id is `grok-4.7` unless `PLANNER_MODEL` is set. There is no `AI_GATEWAY_API_KEY`.
-- The spec path is `planner-bench/src/contract/openapi.json`. Contract tests load it. API routes leave the file unread.
+- The spec path is `src/contract/openapi.json`. Contract tests load it. API routes leave the file unread.
 - `pnpm audit` reports one high advisory in `braces@3.0.3`. It is reached only through `eslint-config-next`, used for linting in development. No patched version exists. Do not override it; re-run audit before deploy.
 - Web Speech still depends on the browser. Typed input is always available.
 
 ## compact context for any new agent
-- Read only: this card, `workflow.md`, and `planner-bench/src/contract/openapi.json`.
+- Read only: this card, `workflow.md`, and `src/contract/openapi.json`.
 - Do not read: `proposales-report.md`, `review.md`, `journey.md`, or agent transcripts, unless a step needs a fact that is missing here.
-- Workspace: `.` (repository root). App: `planner-bench/`. Node 22, pnpm 9.
-- Git root is this workspace, not `planner-bench/`. Do not run `git init` inside the app. Small steps can commit to `main`. Larger features go on a branch and a pull request.
+- Workspace and app: repository root. Node 22, pnpm 9.
+- The Git root is this workspace. Do not run `git init`. Small steps can commit to `main`. Larger features go on a branch and a pull request.
 - No secrets exist yet. Fixture mode is the default. Never ask the human during EXECUTE; log open decisions on this card.
 
 ## pause reason
 - none
 
 ## handoff
-- artifacts: `control-card.md`, `proposales-report.md`, `review.md`, `planner-bench/src/contract/openapi.json`
+- artifacts: `control-card.md`, `proposales-report.md`, `review.md`, `src/contract/openapi.json`
 - open_risks: `additionalProperties` are not kept by the generated Zod schemas (the adapter sends the original metadata); Web Speech support varies by browser (text input is always available); `braces` audit advisory is dev-only and has no patch

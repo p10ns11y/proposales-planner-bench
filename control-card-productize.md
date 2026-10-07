@@ -4,7 +4,7 @@
 - **phase:** INTEGRATE. Review returned pass. The pull request is open. Do not merge unless asked. Do not reopen the product vote.
 - **model_role now:** deep for this card. Next session: coding for the inner steps, review on a fresh context.
 - **prior card:** [control-card.md](./control-card.md) owns S1–S6, fixtures, filing, and the contract tests. This card does not redo them.
-- **product:** [planner-bench/PRODUCT.md](./planner-bench/PRODUCT.md), [planner-bench/DESIGN.md](./planner-bench/DESIGN.md), [planner-bench/TASTE.md](./planner-bench/TASTE.md), [planner-product.md](./planner-product.md).
+- **product:** [PRODUCT.md](./PRODUCT.md), [DESIGN.md](./DESIGN.md), [TASTE.md](./TASTE.md), [planner-product.md](./planner-product.md).
 
 ## What this session builds
 
@@ -40,7 +40,7 @@ At most four loads in a phase. Load them. Do not copy them into the app.
 | Phase | Loads | What they own |
 |---|---|---|
 | EXECUTE, domain | `trust-stack`, pstack `tdd`, `typescript-best-practices` | Fitness configs change before the view. Tests first. |
-| EXECUTE, shell | `shadcn`, `modern-web-guidance`, `impeccable` (materials only) | Sticky composer, thread, collapsed More. Do not run `impeccable init`. The notes already live in `planner-bench/`. |
+| EXECUTE, shell | `shadcn`, `modern-web-guidance`, `impeccable` (materials only) | Sticky composer, thread, collapsed More. Do not run `impeccable init`. The notes already live in this repository. |
 | VERIFY | Vercel `verification`, `layout-content-view` | Chromium on `http://localhost:3000`. Desktop and a phone. Must-show: the three facts, the composer, the More control. |
 | REVIEW | pstack `interrogate`, cursor-agent in ask mode | Fresh context. Read-only. It does not rewrite. |
 
@@ -80,13 +80,12 @@ P1 before P2 before P3. No parallel writers.
 2. More is closed until opened. The fields inside it edit the structured brief.
 3. Filing waits until the fileable fields are set. An English brief stores language `en`. Yes asks for a missing email. A later file on the page returns the stored filing. Matching does not require the fileable fields.
 4. Off-topic text holds, and does not call fetch or rank.
-5. `pnpm test` and `pnpm typecheck` pass in `planner-bench/`.
+5. `pnpm test` and `pnpm typecheck` pass at the repository root.
 6. The fresh review returns pass, or only gaps written back on this card.
 
 ## Verify commands
 
 ```bash
-cd planner-bench
 pnpm typecheck
 pnpm test
 ```
@@ -124,5 +123,5 @@ Browser: `http://localhost:3000` only. `127.0.0.1` does not hydrate.
 
 ## handoff
 
-- artifacts: this card, `planner-bench/PRODUCT.md`, `planner-bench/DESIGN.md`, `planner-bench/TASTE.md`, `planner-product.md`
+- artifacts: this card, `PRODUCT.md`, `DESIGN.md`, `TASTE.md`, `planner-product.md`
 - open_risks: filing and matching use different field sets; the dev server must be opened as localhost
