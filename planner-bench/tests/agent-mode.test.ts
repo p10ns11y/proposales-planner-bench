@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { maxDuration } from "../src/app/api/turn/route";
 import {
+  briefExtractionProviderOptions,
   defaultPlannerModelId,
   modelAttemptMs,
   modelAttemptSignal,
@@ -8,6 +10,7 @@ import {
   resolveBriefPatch,
 } from "../src/flow/agent-mode";
 import { completeChatTurn, currentChatEnv } from "../src/flow/planner-chat";
+import { handlePlannerTurn } from "../src/flow/planner-turn";
 import { openingSnapshot } from "../src/flow/chat-request";
 import { createFixtureClient } from "../src/proposales/fixture-client";
 
@@ -45,7 +48,7 @@ describe("model and scripted switch", () => {
   });
 
   it("keeps the scripted patch when the model throws", async () => {
-    const patch = await resolveBriefPatch({
+    const resolved = await resolveBriefPatch({
       text: stockholm,
       brief: {},
       env: { XAI_API_KEY: presentKey },
@@ -53,14 +56,15 @@ describe("model and scripted switch", () => {
         throw new Error("model down");
       },
     });
-    expect(patch.city).toBe("Stockholm");
-    expect(patch.attendeeCount).toBe(40);
-    expect(patch.startDate).toBe("2026-11-12");
+    expect(resolved.planner).toBe("scripted");
+    expect(resolved.brief.city).toBe("Stockholm");
+    expect(resolved.brief.attendeeCount).toBe(40);
+    expect(resolved.brief.startDate).toBe("2026-11-12");
   });
 
   it("lets the model fill a fact the scripted pass missed, without replacing one it found", async () => {
     let calls = 0;
-    const patch = await resolveBriefPatch({
+    const resolved = await resolveBriefPatch({
       text: stockholm,
       brief: {},
       env: { XAI_API_KEY: presentKey },
@@ -70,13 +74,14 @@ describe("model and scripted switch", () => {
       },
     });
     expect(calls).toBe(1);
-    expect(patch.city).toBe("Stockholm");
-    expect(patch.organisationName).toBe("Northwind");
+    expect(resolved.planner).toBe("model");
+    expect(resolved.brief.city).toBe("Stockholm");
+    expect(resolved.brief.organisationName).toBe("Northwind");
   });
 
   it("does not call the model when no xAI key is set", async () => {
     let calls = 0;
-    await resolveBriefPatch({
+    const resolved = await resolveBriefPatch({
       text: stockholm,
       brief: {},
       env: {},
@@ -86,6 +91,19 @@ describe("model and scripted switch", () => {
       },
     });
     expect(calls).toBe(0);
+    expect(resolved.planner).toBe("scripted");
+    expect(resolved.brief.city).toBe("Stockholm");
+  });
+
+  it("keeps the scripted patch when the model brief fails the schema", async () => {
+    const resolved = await resolveBriefPatch({
+      text: stockholm,
+      brief: {},
+      env: { XAI_API_KEY: presentKey },
+      extractWithModel: async () => ({ attendeeCount: 1.5 }),
+    });
+    expect(resolved.planner).toBe("scripted");
+    expect(resolved.brief.attendeeCount).toBe(40);
   });
 
   it("falls back to the scripted reply when the live model throws", async () => {
@@ -106,23 +124,89 @@ describe("model and scripted switch", () => {
     expect(turn.reply.length).toBeGreaterThan(0);
   });
 
+  it("asks the extraction call for low reasoning effort", () => {
+    expect(briefExtractionProviderOptions.xai.reasoningEffort).toBe("low");
+  });
+
+  it("gives the turn route enough time for the model window", () => {
+    expect(modelAttemptMs).toBe(20_000);
+    expect(maxDuration).toBe(60);
+    expect(maxDuration * 1_000).toBeGreaterThan(modelAttemptMs);
+  });
+
+  it("names the planner path on the turn response", async () => {
+    const modelResponse = await handlePlannerTurn(turnRequest(stockholm), {
+      env: { XAI_API_KEY: presentKey },
+      extractWithModel: async () => ({ organisationName: "Northwind" }),
+    });
+    expect(modelResponse.status).toBe(200);
+    expect(await modelResponse.json()).toMatchObject({
+      planner: "model",
+      snapshot: { brief: { city: "Stockholm", organisationName: "Northwind" } },
+    });
+
+    const scriptedResponse = await handlePlannerTurn(turnRequest(stockholm), {
+      env: { XAI_API_KEY: presentKey },
+      extractWithModel: async () => {
+        throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+      },
+    });
+    expect(scriptedResponse.status).toBe(200);
+    expect(await scriptedResponse.json()).toMatchObject({
+      planner: "scripted",
+      snapshot: { brief: { city: "Stockholm" } },
+    });
+
+    const missingKey = await handlePlannerTurn(turnRequest(stockholm), { env: {} });
+    expect(missingKey.status).toBe(200);
+    expect(await missingKey.json()).toMatchObject({
+      planner: "scripted",
+      snapshot: { brief: { city: "Stockholm" } },
+    });
+  });
+
   it(
-    "aborts a model attempt within about eight seconds",
+    "falls back to the scripted patch after the model window",
     async () => {
-      expect(modelAttemptMs).toBe(8_000);
+      expect(modelAttemptMs).toBe(20_000);
       const started = Date.now();
-      const signal = modelAttemptSignal();
-      await new Promise<void>((resolve, reject) => {
-        signal.addEventListener("abort", () => resolve(), { once: true });
-        setTimeout(() => reject(new Error("model attempt ran long")), 9_000);
+      const resolved = await resolveBriefPatch({
+        text: stockholm,
+        brief: {},
+        env: { XAI_API_KEY: presentKey },
+        extractWithModel: () =>
+          new Promise((_, reject) => {
+            const signal = modelAttemptSignal();
+            signal.addEventListener(
+              "abort",
+              () => {
+                reject(signal.reason);
+              },
+              { once: true },
+            );
+          }),
       });
       const elapsed = Date.now() - started;
-      expect(elapsed).toBeGreaterThanOrEqual(7_500);
-      expect(elapsed).toBeLessThanOrEqual(8_500);
+      expect(elapsed).toBeGreaterThanOrEqual(19_000);
+      expect(elapsed).toBeLessThanOrEqual(23_000);
+      expect(resolved.planner).toBe("scripted");
+      expect(resolved.brief.city).toBe("Stockholm");
+      expect(resolved.brief.attendeeCount).toBe(40);
+      expect(resolved.brief.startDate).toBe("2026-11-12");
     },
-    12_000,
+    30_000,
   );
 });
+
+function turnRequest(text: string): Request {
+  return new Request("http://planner-bench.test/api/turn", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      action: { type: "captureSubmitted", text },
+    }),
+  });
+}
 
 function withEnv(values: Record<string, string | undefined>, run: () => void): void {
   const previous = new Map<string, string | undefined>();
