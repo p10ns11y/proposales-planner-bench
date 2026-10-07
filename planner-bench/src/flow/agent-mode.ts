@@ -5,6 +5,12 @@ import type { PlannerChatEnv } from "./planner-chat";
 
 const plannerModelId = "openai/gpt-4.1-mini";
 
+export const gatewayAttemptMs = 4_000;
+
+export function gatewayAttemptSignal(): AbortSignal {
+  return AbortSignal.timeout(gatewayAttemptMs);
+}
+
 export function gatewayIsUsable(env: PlannerChatEnv): boolean {
   return nonEmpty(env.AI_GATEWAY_API_KEY) || nonEmpty(env.VERCEL_OIDC_TOKEN) || env.VERCEL === "1";
 }
@@ -40,7 +46,7 @@ async function extractBriefWithGateway(
   const result = await generateObject({
     model: gateway(env.PLANNER_MODEL ?? plannerModelId),
     schema: plannerBriefSchema,
-    abortSignal: AbortSignal.timeout(12_000),
+    abortSignal: gatewayAttemptSignal(),
     prompt: [
       "Extract fields for an event brief.",
       "Location must be a city.",

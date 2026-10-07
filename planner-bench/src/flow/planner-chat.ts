@@ -11,7 +11,7 @@ import {
 import { z } from "zod";
 import { createClient } from "../proposales/client";
 import type { ProposalesClient } from "../proposales/types";
-import { gatewayIsUsable } from "./agent-mode";
+import { gatewayAttemptSignal, gatewayIsUsable } from "./agent-mode";
 import { latestUserText, openingSnapshot, readChatRequest, type ChatTurnMessage } from "./chat-request";
 import type { PlannerSnapshot } from "./planner-snapshot";
 import { runFixtureTurn } from "./scripted-turn";
@@ -127,7 +127,7 @@ async function runLiveChat(
   }));
   const result = streamText({
     model: gateway(env.PLANNER_MODEL ?? plannerModelId),
-    abortSignal: AbortSignal.timeout(12_000),
+    abortSignal: gatewayAttemptSignal(),
     system: [
       "You are the planner bench agent.",
       "Call updateBrief, fileBrief, addOffer, and compareOffers.",

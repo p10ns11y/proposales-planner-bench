@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gatewayIsUsable, resolveBriefPatch } from "../src/flow/agent-mode";
+import { gatewayAttemptMs, gatewayAttemptSignal, gatewayIsUsable, resolveBriefPatch } from "../src/flow/agent-mode";
 import { completeChatTurn } from "../src/flow/planner-chat";
 import { openingSnapshot } from "../src/flow/chat-request";
 import { createFixtureClient } from "../src/proposales/fixture-client";
@@ -80,4 +80,21 @@ describe("model and scripted switch", () => {
     expect(turn.snapshot.brief.city).toBe("Stockholm");
     expect(turn.reply.length).toBeGreaterThan(0);
   });
+
+  it(
+    "aborts a gateway attempt within about four seconds",
+    async () => {
+      expect(gatewayAttemptMs).toBe(4_000);
+      const started = Date.now();
+      const signal = gatewayAttemptSignal();
+      await new Promise<void>((resolve, reject) => {
+        signal.addEventListener("abort", () => resolve(), { once: true });
+        setTimeout(() => reject(new Error("gateway attempt ran long")), 4_500);
+      });
+      const elapsed = Date.now() - started;
+      expect(elapsed).toBeGreaterThanOrEqual(3_500);
+      expect(elapsed).toBeLessThanOrEqual(4_500);
+    },
+    8_000,
+  );
 });
