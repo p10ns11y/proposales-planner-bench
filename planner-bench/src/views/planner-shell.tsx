@@ -508,6 +508,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
         <MoreDrawer
           more={viewModel.more}
           moreStamp={viewModel.moreStamp}
+          currency={viewModel.budgetCurrency}
           open={moreOpen}
           focusEmail={focusEmail}
           disabled={viewModel.busy || !viewModel.ready}

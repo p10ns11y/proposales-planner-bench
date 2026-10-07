@@ -10,6 +10,7 @@ import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 type MoreDrawerProps = {
   more: MoreFieldValues;
   moreStamp: string;
+  currency: string;
   open: boolean;
   focusEmail: boolean;
   disabled: boolean;
@@ -34,6 +35,7 @@ const fieldKeys: (keyof MoreFieldValues)[] = [
 export function MoreDrawer({
   more,
   moreStamp,
+  currency,
   open,
   focusEmail,
   disabled,
@@ -46,6 +48,7 @@ export function MoreDrawer({
     <MoreForm
       key={moreStamp}
       more={more}
+      currency={currency}
       open={open}
       focusEmail={focusEmail}
       disabled={disabled}
@@ -62,6 +65,7 @@ export function MoreDrawer({
 
 function MoreForm({
   more,
+  currency,
   open,
   focusEmail,
   disabled,
@@ -70,6 +74,7 @@ function MoreForm({
   onApply,
 }: {
   more: MoreFieldValues;
+  currency: string;
   open: boolean;
   focusEmail: boolean;
   disabled: boolean;
@@ -212,7 +217,7 @@ function MoreForm({
           </button>
         </div>
         <TextField
-          label="Budget (EUR)"
+          label={`Budget (${currency})`}
           name="budget"
           inputMode="decimal"
           value={values.budget}

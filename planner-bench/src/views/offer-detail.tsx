@@ -9,7 +9,7 @@ import {
   offerBreakdown,
   type OfferPart,
 } from "../contract/offer-group";
-import { gapLabel, neutralChipName } from "./offer-copy";
+import { gapLabel, neutralChipAttrs, neutralChipName, neutralChipText } from "./offer-copy";
 import { GapIcon } from "./offer-group";
 import { detailStatusLine, fileBriefLabel } from "./file-brief-state";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
@@ -165,13 +165,12 @@ export function OfferDetail({
                     {(offer.neutral ?? []).map((mark) => (
                       <span
                         key={mark}
-                        className="planner-chip planner-chip-not-stated"
+                        className={mark === "not-compared" ? "planner-chip planner-chip-status" : "planner-chip planner-chip-not-stated"}
                         data-facet={mark}
                         aria-label={neutralChipName(mark)}
-                        data-lcv="must-show"
-                        data-lcv-chip="not-stated"
+                        {...neutralChipAttrs(mark)}
                       >
-                        Not stated
+                        {neutralChipText(mark)}
                       </span>
                     ))}
                   </div>

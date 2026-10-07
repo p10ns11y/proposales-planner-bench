@@ -1,6 +1,6 @@
 import { questionForGap } from "../domain/fitness";
 import { formatBudgetMajor, type MinorUnits } from "../domain/minor-units";
-import type { PlannerBrief } from "../domain/planner-brief";
+import { briefCurrency, type PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import { placesSentence } from "../contract/offer-group";
@@ -81,6 +81,7 @@ export function shellViewModel(input: {
     openRow,
     more,
     moreStamp: moreStamp(more),
+    budgetCurrency: briefCurrency(brief),
     composerPlaceholder,
     offerSummary: offerSummary(brief, offerCount, phase),
     contextChips: phase === "results" ? briefContextChips(brief) : [],
