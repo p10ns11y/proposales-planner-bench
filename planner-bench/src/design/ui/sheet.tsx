@@ -16,6 +16,18 @@ type SheetProps = {
   side?: "left" | "right";
   onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  contentAttributes?: {
+    "data-lcv-machine": string;
+    "data-lcv-ui-state": string;
+    "data-lcv-states": string;
+  };
+  closeAttributes?: {
+    "data-lcv-event": string;
+    "data-lcv-from": string;
+    "data-lcv-to-success": string;
+    "data-lcv-to-fail": string;
+    "data-lcv-to-interrupted": string;
+  };
 };
 
 export function Sheet({
@@ -29,6 +41,8 @@ export function Sheet({
   side = "right",
   onSubmit,
   onCloseAutoFocus,
+  contentAttributes,
+  closeAttributes,
 }: SheetProps) {
   const body = (
     <>
@@ -37,7 +51,12 @@ export function Sheet({
           <Dialog.Title className="planner-drawer-title">{title}</Dialog.Title>
           <Dialog.Description className="planner-drawer-desc">{description}</Dialog.Description>
         </div>
-        <Dialog.Close type="button" className="planner-icon-button planner-round" aria-label="Close">
+        <Dialog.Close
+          type="button"
+          className="planner-icon-button planner-round"
+          aria-label="Close"
+          {...closeAttributes}
+        >
           <X />
         </Dialog.Close>
       </div>
@@ -53,6 +72,7 @@ export function Sheet({
         <Dialog.Content
           className={cn("planner-drawer", side === "left" && "planner-drawer-left")}
           onCloseAutoFocus={onCloseAutoFocus}
+          {...contentAttributes}
         >
           {onSubmit ? (
             <form className="planner-drawer-form" onSubmit={onSubmit}>

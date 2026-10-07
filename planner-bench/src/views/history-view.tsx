@@ -3,13 +3,15 @@
 import { History } from "lucide-react";
 import { Sheet } from "../design/ui/sheet";
 import type { HistoryViewModel, PlannerViewEvent } from "../view-models/view-model";
+import { lcvInteract } from "./lcv";
 
 type HistoryViewProps = {
   viewModel: HistoryViewModel;
+  chatState: string;
   onEvent: (event: PlannerViewEvent) => void;
 };
 
-export function HistoryView({ viewModel, onEvent }: HistoryViewProps) {
+export function HistoryView({ viewModel, chatState, onEvent }: HistoryViewProps) {
   return (
     <Sheet
       open={viewModel.open}
@@ -18,7 +20,18 @@ export function HistoryView({ viewModel, onEvent }: HistoryViewProps) {
       description="Past briefs on this browser."
       side="left"
       trigger={
-        <button type="button" className="planner-pill" aria-label="History">
+        <button
+          type="button"
+          className="planner-pill"
+          aria-label="History"
+          {...lcvInteract({
+            event: "open-history",
+            from: chatState,
+            success: "history:open",
+            fail: chatState,
+            interrupted: chatState,
+          })}
+        >
           <History aria-hidden="true" />
           <span className="planner-pill-label">History</span>
         </button>
@@ -35,8 +48,10 @@ export function HistoryView({ viewModel, onEvent }: HistoryViewProps) {
                 className="planner-history-item"
                 onClick={() => onEvent({ type: "historyEntryChosen", entryId: entry.id })}
               >
-                <span className="planner-offer-name">{entry.title}</span>
-                <span className="planner-meta">
+                <span className="planner-offer-name" data-lcv="preview">
+                  {entry.title}
+                </span>
+                <span className="planner-meta" data-lcv="preview">
                   {entry.venueCount} venues · {entry.savedAt}
                 </span>
               </button>

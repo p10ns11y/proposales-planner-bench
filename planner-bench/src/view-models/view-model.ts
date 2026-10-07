@@ -48,6 +48,12 @@ export type ShellRow = {
   blocks: ShellBlock[];
 };
 
+export type ConfirmFactName = "city" | "date" | "time" | "attendees" | "budget" | "budget-basis";
+
+export type ConfirmRun =
+  | { kind: "text"; text: string; inSentence: boolean }
+  | { kind: "fact"; name: ConfirmFactName; text: string; inSentence: boolean };
+
 export type ShellViewModel = {
   phase: "capture" | "confirm" | "favorites" | "results";
   busy: boolean;
@@ -60,6 +66,7 @@ export type ShellViewModel = {
   draftConfirmation: string | null;
   offerLabel: string | null;
   factsSentence: string;
+  confirmRuns: ConfirmRun[];
   showFacts: boolean;
   showConfirm: boolean;
   showFavorites: boolean;

@@ -3,7 +3,7 @@ import type { PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
 import { draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import { placesSentence } from "../contract/offer-group";
-import type { MoreFieldValues, ResultsViewModel, ShellViewModel } from "./view-model";
+import type { ConfirmFactName, ConfirmRun, MoreFieldValues, ResultsViewModel, ShellViewModel } from "./view-model";
 
 const monthNames = [
   "January",
@@ -44,7 +44,7 @@ export function shellViewModel(input: {
   const snapshot = input.snapshot;
   const phase = snapshot?.phase ?? "capture";
   const brief = snapshot?.brief ?? {};
-  const facts = factsSentence(brief);
+  const presented = briefPresentation(brief);
   const gaps = snapshot?.gaps ?? [];
   const readyToConfirm = phase === "confirm" && gaps.length === 0;
   const askingGap = phase === "confirm" && !readyToConfirm;
@@ -67,8 +67,9 @@ export function shellViewModel(input: {
     notice: visibleNotice(snapshot),
     draftConfirmation: snapshot?.filing?.path === "draft" ? draftCreatedNotice : null,
     offerLabel: offerLabel(snapshot, phase),
-    factsSentence: facts,
-    showFacts: facts !== "" && (askingGap || readyToConfirm || phase === "favorites"),
+    factsSentence: presented.sentence,
+    confirmRuns: presented.runs,
+    showFacts: presented.sentence !== "" && (askingGap || readyToConfirm || phase === "favorites"),
     showConfirm: readyToConfirm,
     showFavorites: phase === "favorites",
     rows: visibleRows,
@@ -242,44 +243,72 @@ function shortWeekday(value: string): string {
   return `${weekday} ${day} ${monthLabel}`;
 }
 
-function factsSentence(brief: PlannerBrief): string {
-  const parts: string[] = [];
+function briefPresentation(brief: PlannerBrief): { runs: ConfirmRun[]; sentence: string } {
+  const parts: { name: ConfirmFactName; text: string }[] = [];
   if (brief.city !== undefined && brief.city !== "") {
-    parts.push(brief.city);
+    parts.push({ name: "city", text: brief.city });
   }
-  const when = schedulePhrase(brief);
-  if (when !== "") {
-    parts.push(when);
+  const dated = datePhrase(brief);
+  if (dated !== "") {
+    parts.push({ name: "date", text: dated });
+  }
+  const clocks = clockPhrase(brief);
+  if (clocks !== "") {
+    parts.push({ name: "time", text: clocks });
   }
   if (brief.attendeeCount !== undefined) {
-    parts.push(`${brief.attendeeCount} people`);
+    parts.push({ name: "attendees", text: `${brief.attendeeCount} people` });
   }
-  const sentence = parts.join(", ");
+  const runs: ConfirmRun[] = [];
+  parts.forEach((part, index) => {
+    if (index > 0) {
+      runs.push({ kind: "text", text: ", ", inSentence: true });
+    }
+    runs.push({ kind: "fact", name: part.name, text: part.text, inSentence: true });
+  });
   const assumption = brief.timeAssumption?.statement;
-  if (assumption === undefined || assumption === "") {
-    return sentence;
+  if (assumption !== undefined && assumption !== "") {
+    if (parts.length > 0) {
+      runs.push({ kind: "text", text: ". ", inSentence: true });
+    }
+    runs.push({ kind: "text", text: assumption, inSentence: true });
   }
-  if (sentence === "") {
-    return assumption;
-  }
-  return `${sentence}. ${assumption}`;
+  appendBudget(runs, brief);
+  return {
+    runs,
+    sentence: runs
+      .filter((run) => run.inSentence)
+      .map((run) => run.text)
+      .join(""),
+  };
 }
 
-function schedulePhrase(brief: PlannerBrief): string {
+function datePhrase(brief: PlannerBrief): string {
   const start = brief.startDate === undefined ? "" : formatIsoDate(brief.startDate);
   const end =
     brief.endDate !== undefined && brief.endDate !== brief.startDate ? formatIsoDate(brief.endDate) : "";
-  const clocks = clockPhrase(brief);
   if (start !== "" && end !== "") {
-    return clocks === "" ? `${start} to ${end}` : `${start} to ${end}, ${clocks}`;
+    return `${start} to ${end}`;
   }
-  if (start !== "" && clocks !== "") {
-    return `${start}, ${clocks}`;
+  return start;
+}
+
+function appendBudget(runs: ConfirmRun[], brief: PlannerBrief) {
+  const budget = brief.budget;
+  if (budget === undefined) {
+    return;
   }
-  if (start !== "") {
-    return start;
+  const amount = Number.isInteger(budget.amount) ? String(budget.amount) : String(budget.amount);
+  if (runs.some((run) => run.inSentence && run.text !== "")) {
+    runs.push({ kind: "text", text: " ", inSentence: false });
   }
-  return clocks;
+  runs.push({ kind: "fact", name: "budget", text: `${budget.currency} ${amount}`, inSentence: false });
+  const basis = budget.scope === "per-person" ? "per person" : budget.scope === "total" ? "total" : "";
+  if (basis === "") {
+    return;
+  }
+  runs.push({ kind: "text", text: " ", inSentence: false });
+  runs.push({ kind: "fact", name: "budget-basis", text: basis, inSentence: false });
 }
 
 function clockPhrase(brief: PlannerBrief): string {

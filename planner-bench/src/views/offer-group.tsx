@@ -14,7 +14,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   dayPriceNote,
   formatOfferPrice,
@@ -25,6 +25,7 @@ import {
   type OfferPart,
 } from "../contract/offer-group";
 import { gapLabel } from "./offer-copy";
+import { lcvInteract } from "./lcv";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
 
@@ -73,7 +74,7 @@ export function OfferGroupCard({ group, hiddenCount, openName, onOpen, onShowMor
       <div className="planner-group-head">
         <p className="planner-group-summary" data-must-show="facts">
           <MapPin aria-hidden="true" />
-          <span>{group.summary.line}</span>
+          <span data-lcv-count="header">{group.summary.line}</span>
         </p>
         <div className="planner-group-tools">
           {group.sourceLabel ? (
@@ -91,6 +92,13 @@ export function OfferGroupCard({ group, hiddenCount, openName, onOpen, onShowMor
               type="button"
               className={comparing ? "planner-compare-toggle planner-compare-on" : "planner-compare-toggle"}
               aria-pressed={comparing}
+              {...lcvInteract({
+                event: "compare",
+                from: comparing ? "compare:on" : "compare:off",
+                success: comparing ? "compare:off" : "compare:on",
+                fail: comparing ? "compare:on" : "compare:off",
+                interrupted: comparing ? "compare:on" : "compare:off",
+              })}
               onClick={() => setCompareOn((current) => !current)}
             >
               <Columns2 aria-hidden="true" />
@@ -101,6 +109,13 @@ export function OfferGroupCard({ group, hiddenCount, openName, onOpen, onShowMor
             type="button"
             className="planner-open-all"
             disabled={!comparing && hiddenCount === 0}
+            {...lcvInteract({
+              event: "open-all",
+              from: comparing ? "compare:on" : "chat:results",
+              success: comparing ? "compare:off" : "chat:results",
+              fail: comparing ? "compare:on" : "chat:results",
+              interrupted: comparing ? "compare:on" : "chat:results",
+            })}
             onClick={openAll}
           >
             <ExternalLink aria-hidden="true" />
@@ -137,7 +152,18 @@ export function OfferGroupCard({ group, hiddenCount, openName, onOpen, onShowMor
             />
           ))}
           {hiddenCount > 0 ? (
-            <button type="button" className="planner-further" onClick={onShowMore}>
+            <button
+              type="button"
+              className="planner-further"
+              {...lcvInteract({
+                event: "show-more",
+                from: "chat:results",
+                success: "chat:results",
+                fail: "chat:results",
+                interrupted: "chat:results",
+              })}
+              onClick={onShowMore}
+            >
               Further matches
             </button>
           ) : null}
@@ -163,11 +189,27 @@ function OfferRow({
 }) {
   const expired = offer.gaps.includes("expired");
   const price = formatOfferPrice(offer.total, offer.currency);
+  const [heldHeight, setHeldHeight] = useState(0);
+  const rowRef = useRef<HTMLButtonElement | null>(null);
+  useLayoutEffect(() => {
+    const node = rowRef.current;
+    if (node === null) {
+      return;
+    }
+    setHeldHeight(node.offsetHeight);
+  }, [open]);
   if (open) {
-    return <div className="planner-offer planner-offer-ghost" aria-hidden="true" />;
+    return (
+      <div
+        className="planner-offer planner-offer-ghost"
+        style={heldHeight > 0 ? { height: heldHeight } : undefined}
+        aria-hidden="true"
+      />
+    );
   }
   return (
     <motion.button
+      ref={rowRef}
       type="button"
       layoutId={reduce ? undefined : `offer-${offer.venueName}`}
       transition={reduce ? { duration: 0.15 } : detailSpring}
@@ -177,6 +219,7 @@ function OfferRow({
       data-gap={offer.gaps.length > 0 ? "missing" : "clear"}
       data-best={offer.bestMatch ? "yes" : "no"}
       aria-label={accessibleOffer(offer, price)}
+      {...openOfferEdge()}
       onClick={() => onOpen(offer.venueName)}
       onKeyDown={(event) => moveCardFocus(event, index)}
     >
@@ -185,16 +228,25 @@ function OfferRow({
       </span>
       <span className="planner-offer-copy">
         <span className="planner-offer-line">
-          <motion.span layoutId={reduce ? undefined : `title-${offer.venueName}`} className="planner-offer-name">
+          <motion.span
+            layoutId={reduce ? undefined : `title-${offer.venueName}`}
+            className="planner-offer-name"
+            data-lcv="must-show"
+          >
             {offer.venueName}
           </motion.span>
           <OfferChips offer={offer} />
         </span>
-        {offer.heldByCompanyName ? <span className="planner-meta">Held by {offer.heldByCompanyName}</span> : null}
+        {offer.heldByCompanyName ? (
+          <span className="planner-meta" data-lcv="preview">
+            Held by {offer.heldByCompanyName}
+          </span>
+        ) : null}
       </span>
       <motion.span
         layoutId={reduce ? undefined : `price-${offer.venueName}`}
         className={expired ? "planner-price planner-price-expired" : "planner-price"}
+        data-lcv="must-show"
       >
         {price}
       </motion.span>
@@ -224,21 +276,30 @@ function CompareCard({
       <motion.p
         layoutId={reduce ? undefined : `price-${offer.venueName}`}
         className={expired ? "planner-compare-price planner-price-expired" : "planner-compare-price"}
+        data-lcv="must-show"
       >
         {price}
       </motion.p>
       <div className="planner-compare-name">
-        <motion.h3 layoutId={reduce ? undefined : `title-${offer.venueName}`} className="planner-offer-name">
+        <motion.h3
+          layoutId={reduce ? undefined : `title-${offer.venueName}`}
+          className="planner-offer-name"
+          data-lcv="must-show"
+        >
           {offer.venueName}
         </motion.h3>
         <OfferChips offer={offer} />
       </div>
-      {offer.heldByCompanyName ? <p className="planner-meta">Held by {offer.heldByCompanyName}</p> : null}
+      {offer.heldByCompanyName ? (
+        <p className="planner-meta" data-lcv="preview">
+          Held by {offer.heldByCompanyName}
+        </p>
+      ) : null}
       <ul className="planner-breakdown">
         {lines.map((line) => (
           <li key={line.key}>
             <BreakdownIcon line={line.key} />
-            <span>
+            <span data-lcv="preview">
               {line.label}: {line.text}
             </span>
           </li>
@@ -250,6 +311,7 @@ function CompareCard({
         data-offer-card="true"
         data-venue={offer.venueName}
         disabled={open}
+        {...openOfferEdge()}
         onClick={() => onOpen(offer.venueName)}
       >
         Open
@@ -262,14 +324,14 @@ function OfferChips({ offer }: { offer: OfferPart }) {
   return (
     <span className="planner-chips">
       {offer.bestMatch ? (
-        <span className="planner-chip planner-chip-best">
+        <span className="planner-chip planner-chip-best" data-lcv="must-show" data-lcv-chip="best-match">
           <span className="planner-best-dot" aria-hidden="true" />
           Best match
         </span>
       ) : null}
       {offer.favorite ? <span className="planner-chip planner-chip-status">Favorite</span> : null}
       {offer.gaps.map((gap) => (
-        <span key={gap} className="planner-chip planner-chip-status">
+        <span key={gap} className="planner-chip planner-chip-status" {...chipMark(gap)}>
           <GapIcon gap={gap} />
           {gapLabel(gap)}
         </span>
@@ -338,6 +400,26 @@ function accessibleOffer(offer: OfferPart, price: string): string {
     parts.push(gapLabel(gap));
   }
   return parts.join(", ");
+}
+
+function openOfferEdge() {
+  return lcvInteract({
+    event: "open-offer",
+    from: "detail:closed",
+    success: "detail:open",
+    fail: "detail:closed",
+    interrupted: "detail:closed",
+  });
+}
+
+function chipMark(gap: string): { "data-lcv"?: "must-show"; "data-lcv-chip"?: string } {
+  if (gap === "expired") {
+    return { "data-lcv": "must-show", "data-lcv-chip": "expired" };
+  }
+  if (gap === "foodAndBeverage") {
+    return { "data-lcv": "must-show", "data-lcv-chip": "no-food" };
+  }
+  return {};
 }
 
 function monogram(name: string): string {

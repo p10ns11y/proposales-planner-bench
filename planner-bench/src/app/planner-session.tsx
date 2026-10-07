@@ -146,6 +146,7 @@ export function PlannerSession() {
         pendingKind={pendingKind}
         historyControl={
           <HistoryView
+            chatState={`chat:${snapshot?.phase ?? "capture"}`}
             viewModel={{
               open: historyOpen,
               entries: history.map((entry) => ({

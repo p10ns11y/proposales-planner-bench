@@ -286,6 +286,7 @@ function resultsModel(rows: ShellRow[]): ShellViewModel {
     draftConfirmation: null,
     offerLabel: null,
     factsSentence: "",
+    confirmRuns: [],
     showFacts: false,
     showConfirm: false,
     showFavorites: false,

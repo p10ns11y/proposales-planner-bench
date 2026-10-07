@@ -16,6 +16,7 @@ import { renderPart } from "../transport/render-part";
 import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
 import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
+import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
 import { OfferDetail } from "./offer-detail";
 import { startSpeechCapture } from "./speech-input";
@@ -255,25 +256,41 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   return (
     <LayoutGroup>
       <div className="planner-frame" data-phase={viewModel.phase}>
-        <a className="planner-skip" href="#composer">
+        <a
+          className="planner-skip"
+          href="#composer"
+          {...lcvInteract({
+            event: "navigate",
+            from: chatState(viewModel.phase),
+            success: "#composer",
+            fail: chatState(viewModel.phase),
+            interrupted: chatState(viewModel.phase),
+          })}
+        >
           Skip to the composer
         </a>
-        <aside className="planner-rail">
+        <nav className="planner-rail" aria-label="Planner">
           <span className="planner-brand" title="Planner bench">
             <Briefcase aria-hidden="true" />
           </span>
           <button type="button" className="planner-rail-button" aria-label="New chat" onClick={newChat}>
             <Plus aria-hidden="true" />
           </button>
-        </aside>
-        <div className="planner-main">
+        </nav>
+        <div className="planner-main" {...lcvMachine("chat", chatState(viewModel.phase), chatStates)}>
           <header className="planner-header">
             <span className="planner-mobile-mark" aria-hidden="true">
               <Briefcase />
             </span>
             <div className="planner-header-actions">
               {historyControl}
-              <button type="button" className="planner-pill planner-pill-strong" data-must-show="more" onClick={openMore}>
+              <button
+                type="button"
+                className="planner-pill planner-pill-strong"
+                data-must-show="more"
+                {...openMoreEdge()}
+                onClick={openMore}
+              >
                 <SlidersHorizontal aria-hidden="true" />
                 <span className="planner-pill-label">More</span>
               </button>
@@ -293,6 +310,13 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                         type="button"
                         className="planner-suggestion"
                         disabled={viewModel.busy || !viewModel.ready}
+                        {...lcvInteract({
+                          event: "suggest",
+                          from: chatState(viewModel.phase),
+                          success: "chat:submit",
+                          fail: chatState(viewModel.phase),
+                          interrupted: chatState(viewModel.phase),
+                        })}
                         onClick={() => submitText(suggestion.text, "read")}
                       >
                         {suggestion.label}
@@ -365,6 +389,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
               type="button"
               className="planner-jump"
               aria-label="Latest messages"
+              {...lcvStay("jump-latest", chatState(viewModel.phase))}
               onClick={() => {
                 const element = threadRef.current;
                 if (element === null) {
@@ -386,7 +411,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 submitDraft();
               }}
             >
-              <button type="button" className="planner-icon-button" aria-label="Add details" onClick={openMore}>
+              <button type="button" className="planner-icon-button" aria-label="Add details" {...openMoreEdge()} onClick={openMore}>
                 <Plus aria-hidden="true" />
               </button>
               <textarea
@@ -409,6 +434,13 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 className="planner-icon-button"
                 aria-label="Speak"
                 disabled={!viewModel.speechAvailable || viewModel.busy || !viewModel.ready}
+                {...lcvInteract({
+                  event: "dictate",
+                  from: chatState(viewModel.phase),
+                  success: "composer:dictate",
+                  fail: chatState(viewModel.phase),
+                  interrupted: chatState(viewModel.phase),
+                })}
                 onClick={() => startSpeechCapture((transcript) => setDraft(transcript))}
               >
                 <Mic aria-hidden="true" />
@@ -418,6 +450,13 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 className="planner-send"
                 aria-label="Send"
                 disabled={viewModel.busy || !viewModel.ready || draft.trim() === ""}
+                {...lcvInteract({
+                  event: "send",
+                  from: chatState(viewModel.phase),
+                  success: sendSuccess(viewModel.phase),
+                  fail: chatState(viewModel.phase),
+                  interrupted: chatState(viewModel.phase),
+                })}
               >
                 <span className="planner-send-face">
                   <ArrowUp aria-hidden="true" />
@@ -453,6 +492,16 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             onEvent({ type: "composerSubmitted", text: "file" });
           }}
         />
+        <div
+          hidden
+          data-lcv-marker="detail"
+          {...lcvMachine("detail", openOffer ? "detail:open" : "detail:closed", "detail:closed detail:open")}
+        />
+        <div
+          hidden
+          data-lcv-marker="more"
+          {...lcvMachine("more", moreOpen ? "more:open" : "more:closed", "more:closed more:open")}
+        />
       </div>
     </LayoutGroup>
   );
@@ -484,40 +533,70 @@ function LiveCopy({
           {viewModel.draftConfirmation}
         </p>
       ) : null}
-      {viewModel.askLabelsComposer ? (
-        <p className="planner-text" data-must-show={factsMarked ? "facts" : undefined}>
-          <label htmlFor="composer">{viewModel.ask}</label>
-        </p>
-      ) : (
-        <p className="planner-text" data-must-show={factsMarked ? "facts" : undefined}>
-          {viewModel.ask}
-        </p>
-      )}
+      <h2
+        className="planner-text"
+        data-must-show={factsMarked ? "facts" : undefined}
+        {...replyMarks(viewModel.phase)}
+      >
+        {viewModel.askLabelsComposer ? <label htmlFor="composer">{viewModel.ask}</label> : viewModel.ask}
+      </h2>
       {viewModel.showFacts && viewModel.factsSentence !== viewModel.ask ? (
         <p className="planner-text" data-must-show="facts">
-          {viewModel.factsSentence}
+          {viewModel.confirmRuns.map((run, index) =>
+            run.kind === "fact" ? (
+              <span key={`${run.name}-${index}`} data-lcv="must-show" data-lcv-fact={run.name}>
+                {run.text}
+              </span>
+            ) : (
+              <span key={`join-${index}`}>{run.text}</span>
+            ),
+          )}
         </p>
       ) : null}
       {viewModel.showConfirm ? (
         <div className="planner-actions">
-          <button type="button" className="planner-primary" disabled={viewModel.busy || !viewModel.ready} onClick={onConfirm}>
+          <button
+            type="button"
+            className="planner-primary"
+            disabled={viewModel.busy || !viewModel.ready}
+            {...lcvInteract({
+              event: "confirm-brief",
+              from: "chat:confirm",
+              success: "chat:favorites",
+              fail: "chat:confirm",
+              interrupted: "chat:confirm",
+            })}
+            onClick={onConfirm}
+          >
             Yes
           </button>
         </div>
       ) : null}
       {viewModel.showFavorites ? (
         <div className="planner-actions">
-          <button type="button" className="planner-secondary" disabled={viewModel.busy || !viewModel.ready} onClick={onSkip}>
+          <button
+            type="button"
+            className="planner-secondary"
+            disabled={viewModel.busy || !viewModel.ready}
+            {...lcvInteract({
+              event: "skip",
+              from: "chat:favorites",
+              success: "chat:results",
+              fail: "chat:favorites",
+              interrupted: "chat:favorites",
+            })}
+            onClick={onSkip}
+          >
             Skip
           </button>
         </div>
       ) : null}
       {viewModel.phase === "results" && viewModel.rows.length === 0 ? (
         <div className="planner-suggestions">
-          <button type="button" className="planner-suggestion" onClick={() => onRefine("Widen the date")}>
+          <button type="button" className="planner-suggestion" {...lcvStay("refine", "chat:results")} onClick={() => onRefine("Widen the date")}>
             Widen the date
           </button>
-          <button type="button" className="planner-suggestion" onClick={() => onRefine("Fewer people")}>
+          <button type="button" className="planner-suggestion" {...lcvStay("refine", "chat:results")} onClick={() => onRefine("Fewer people")}>
             Fewer people
           </button>
         </div>
@@ -529,7 +608,7 @@ function LiveCopy({
             <span>{viewModel.errorText}</span>
           </p>
           <div className="planner-actions">
-            <button type="button" className="planner-secondary" onClick={onRetry}>
+            <button type="button" className="planner-secondary" {...lcvStay("retry", chatState(viewModel.phase))} onClick={onRetry}>
               Try again
             </button>
           </div>
@@ -575,6 +654,43 @@ function liveIsNew(lines: Line[], live: string, viewModel: ShellViewModel): bool
   }
   const lastAssistant = [...lines].reverse().find((line) => line.role === "assistant");
   return lastAssistant?.text !== live;
+}
+
+const chatStates = "chat:capture chat:confirm chat:favorites chat:results";
+
+function chatState(phase: ShellViewModel["phase"]): string {
+  return `chat:${phase}`;
+}
+
+function sendSuccess(phase: ShellViewModel["phase"]): string {
+  if (phase === "capture") {
+    return "chat:confirm";
+  }
+  if (phase === "favorites") {
+    return "chat:results";
+  }
+  return chatState(phase);
+}
+
+function openMoreEdge() {
+  return lcvInteract({
+    event: "open-more",
+    from: "more:closed",
+    success: "more:open",
+    fail: "more:closed",
+    interrupted: "more:closed",
+  });
+}
+
+function replyMarks(phase: ShellViewModel["phase"]): {
+  "data-lcv"?: "must-show";
+  "data-lcv-reply"?: "sentence";
+  "data-lcv-count"?: "reply";
+} {
+  if (phase !== "results") {
+    return {};
+  }
+  return { "data-lcv": "must-show", "data-lcv-reply": "sentence", "data-lcv-count": "reply" };
 }
 
 function cssEscape(value: string): string {

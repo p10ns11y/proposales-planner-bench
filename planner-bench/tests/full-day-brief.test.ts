@@ -417,6 +417,14 @@ function assertConfirming(snapshot: PlannerSnapshot) {
   expect(view.factsSentence).toBe(
     `Stockholm, 3 December 2026, 09:00\u201317:00, 25 people. ${fullDayStatement}`,
   );
+  const sentence = view.confirmRuns
+    .filter((run) => run.inSentence)
+    .map((run) => run.text)
+    .join("");
+  expect(sentence).toBe(view.factsSentence);
+  expect(view.confirmRuns.find((run) => run.kind === "fact" && run.name === "time")?.text).toBe("09:00\u201317:00");
+  expect(view.confirmRuns.find((run) => run.kind === "fact" && run.name === "budget")?.text).toBe("EUR 300");
+  expect(view.confirmRuns.some((run) => run.kind === "fact" && run.name === "budget-basis")).toBe(false);
 }
 
 function stayingActions(): ViewportAction[] {
