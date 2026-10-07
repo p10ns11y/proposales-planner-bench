@@ -1,4 +1,4 @@
-import { createXai } from "@ai-sdk/xai";
+import { createXai, type XaiLanguageModelResponsesOptions } from "@ai-sdk/xai";
 import { generateObject, type LanguageModel } from "ai";
 import { mergeBrief, plannerBriefSchema, type PlannerBrief } from "../domain/planner-brief";
 import { extractBriefPatch } from "./fixture-extractor";
@@ -6,7 +6,15 @@ import type { PlannerChatEnv } from "./planner-chat";
 
 export const defaultPlannerModelId = "grok-4.7";
 
-export const modelAttemptMs = 8_000;
+export const modelAttemptMs = 20_000;
+
+export const briefExtractionProviderOptions = {
+  xai: {
+    reasoningEffort: "low",
+  } satisfies XaiLanguageModelResponsesOptions,
+};
+
+export type PlannerPath = "model" | "scripted";
 
 export function modelAttemptSignal(): AbortSignal {
   return AbortSignal.timeout(modelAttemptMs);
@@ -33,21 +41,21 @@ export async function resolveBriefPatch(input: {
   brief: PlannerBrief;
   env: PlannerChatEnv;
   extractWithModel?: (text: string, brief: PlannerBrief) => Promise<PlannerBrief>;
-}): Promise<PlannerBrief> {
+}): Promise<{ brief: PlannerBrief; planner: PlannerPath }> {
   const scripted = extractBriefPatch(input.text);
   if (!modelIsUsable(input.env)) {
-    return scripted;
+    return { brief: scripted, planner: "scripted" };
   }
   const extract = input.extractWithModel ?? ((text, brief) => extractBriefWithModel(text, brief, input.env));
   try {
     const modelPatch = await extract(input.text, input.brief);
     const parsed = plannerBriefSchema.safeParse(modelPatch);
     if (!parsed.success) {
-      return scripted;
+      return { brief: scripted, planner: "scripted" };
     }
-    return mergeBrief(parsed.data, scripted);
+    return { brief: mergeBrief(parsed.data, scripted), planner: "model" };
   } catch {
-    return scripted;
+    return { brief: scripted, planner: "scripted" };
   }
 }
 
@@ -60,6 +68,7 @@ async function extractBriefWithModel(
     model: plannerLanguageModel(env),
     schema: plannerBriefSchema,
     abortSignal: modelAttemptSignal(),
+    providerOptions: briefExtractionProviderOptions,
     prompt: [
       "Extract fields for an event brief.",
       "Location must be a city.",

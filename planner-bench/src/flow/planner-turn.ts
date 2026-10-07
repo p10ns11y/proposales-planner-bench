@@ -1,6 +1,6 @@
 import { plannerBriefSchema, type PlannerBrief } from "../domain/planner-brief";
 import { createClient } from "../proposales/client";
-import { resolveBriefPatch } from "./agent-mode";
+import { resolveBriefPatch, type PlannerPath } from "./agent-mode";
 import { readSessionSnapshot } from "./chat-request";
 import { moreDetailsSchema } from "./more-details";
 import { currentChatEnv, type PlannerChatEnv } from "./planner-chat";
@@ -30,20 +30,24 @@ export async function handlePlannerTurn(
     snapshotValue === undefined || snapshotValue === null
       ? await readSessionSnapshot(client)
       : plannerSnapshotSchema.parse(snapshotValue);
+  let planner: PlannerPath = "scripted";
   const result = await runViewportAction({
     action,
     snapshot,
     client,
     today,
-    readPatch: (text, brief) =>
-      resolveBriefPatch({
+    readPatch: async (text, brief) => {
+      const resolved = await resolveBriefPatch({
         text,
         brief,
         env,
         extractWithModel: options?.extractWithModel,
-      }),
+      });
+      planner = resolved.planner;
+      return resolved.brief;
+    },
   });
-  return Response.json({ snapshot: result.snapshot });
+  return Response.json({ snapshot: result.snapshot, planner });
 }
 
 function readAction(value: unknown): ViewportAction | null {
