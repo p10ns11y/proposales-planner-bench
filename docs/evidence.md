@@ -38,7 +38,7 @@ A file is inside the band when the later count is between 40% and 60% of the ear
 
 The README is a new front page, so the 40–60% band does not apply. It has 139 words in all, and 104 words outside fenced blocks.
 
-## Demo
+## Walkthrough
 
 Recorded on production at https://proposales-planner-bench.vercel.app. The brief is made up: a team offsite for 25 people in Stockholm on 3 December, half day, meeting room and lunch. The clip shows the empty composer, the brief, Yes, Skip, three result cards, the More drawer, the Canal Loft detail, and File with no email, which opens More with Email focused and empty. No draft is filed.
 
@@ -46,8 +46,8 @@ The computer-use tool was blocked by a model quota, so the capture is headed Chr
 
 | File | What |
 | --- | --- |
-| docs/media/demo.mp4 | 31.8 s, 416968 bytes, 1244×772, H.264, 30 fps, no audio |
-| docs/media/demo.gif | 31.76 s, 1000504 bytes, 720×447, 254 frames |
+| docs/media/walkthrough.mp4 | 31.8 s, 416968 bytes, 1244×772, H.264, 30 fps, no audio |
+| docs/media/walkthrough.gif | 31.76 s, 1000504 bytes, 720×447, 254 frames |
 | docs/media/hero-desktop.png | 1280×800, 66343 bytes |
 | docs/media/hero-phone.png | 390×844, 44873 bytes |
 | docs/media/poster.png | 1244×772, 122443 bytes, still of the results |
@@ -55,7 +55,7 @@ The computer-use tool was blocked by a model quota, so the capture is headed Chr
 The README embed is the GIF, linked to the mp4:
 
 ```markdown
-[![Stockholm offsite on the live bench: three venues, then File asks for an email](docs/media/demo.gif)](docs/media/demo.mp4)
+[![Walkthrough of the live bench: a Stockholm offsite, three venues, then File asks for an email](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
 ```
 
 ## Privacy
@@ -64,7 +64,7 @@ Docs and the new media were checked before and after the cut.
 
 - Markdown has no email address, no home path, no loopback address, no machine name, and no secret.
 - `AI` remains only inside proper names: Vercel AI SDK, xAI, `@ai-sdk/xai`, and `AI_GATEWAY_API_KEY`.
-- Frames of the demo and both hero shots show the made-up Stockholm offsite, an empty Email field, and no address bar, account name, or key.
+- Frames of the walkthrough and both hero shots show the made-up Stockholm offsite, an empty Email field, and no address bar, account name, or key.
 - Tests and the verify script still contain fictional example addresses and a loopback bind. This pass did not edit application code.
 
 ## Links

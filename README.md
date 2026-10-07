@@ -2,7 +2,7 @@
 
 One sentence in. Ranked venues back.
 
-[![Stockholm offsite on the live bench: three venues, then File asks for an email](docs/media/demo.gif)](docs/media/demo.mp4)
+[![Walkthrough of the live bench: a Stockholm offsite, three venues, then File asks for an email](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
 
 Live: [proposales-planner-bench.vercel.app](https://proposales-planner-bench.vercel.app)
 
