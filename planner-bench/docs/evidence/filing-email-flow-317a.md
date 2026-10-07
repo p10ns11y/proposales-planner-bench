@@ -23,6 +23,14 @@ From `planner-bench`:
 
 CRAP max is 6.00 (`briefWrittenInEnglish`). Touched functions are at or below that: `attemptFiling` 4.00, `noticeForFileableGap` 3.00, `isFileableGap` 2.00, `emailApplyDecision` 3.00, `fileBriefPressable` 4.00, `detailStatusLine` 3.00.
 
+Mutation, threshold 0.95:
+
+- `src/domain/fitness.ts` 0.98 (60/61)
+- `src/flow/filing-guard.ts` 1.00 (71/71)
+- `src/views/file-brief-state.ts` 1.00 (75/75)
+
+The fitness survivor replaces the empty fallback in `isFileableGap` with another token that is not a fileable field. An unset field still does not match.
+
 ## Screenshots
 
 The shots are the hint, the one question, the transport error, and the filed status. They do not include an address.
