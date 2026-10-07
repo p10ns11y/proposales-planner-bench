@@ -491,6 +491,10 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           onOpenChange={setMore}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
+            if (viewModel.openRow !== null) {
+              document.querySelector<HTMLElement>("[data-lcv-event=file-brief]")?.focus();
+              return;
+            }
             moreOpener.current?.focus();
           }}
           onEvent={onEvent}

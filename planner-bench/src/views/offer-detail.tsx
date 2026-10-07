@@ -72,6 +72,21 @@ export function OfferDetail({
             onCloseAutoFocus={(event) => {
               event.preventDefault();
             }}
+            onInteractOutside={(event) => {
+              if (!active) {
+                event.preventDefault();
+              }
+            }}
+            onFocusOutside={(event) => {
+              if (!active) {
+                event.preventDefault();
+              }
+            }}
+            onPointerDownOutside={(event) => {
+              if (!active) {
+                event.preventDefault();
+              }
+            }}
           >
             <div className="planner-detail-top">
               <Dialog.Close
