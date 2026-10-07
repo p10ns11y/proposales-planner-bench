@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { questionForGap } from "../src/domain/fitness";
-import { addEnglishLanguage, briefWrittenInEnglish } from "../src/flow/brief-language";
+import { addEnglishLanguage, briefWrittenInEnglish, statesOtherLanguage } from "../src/flow/brief-language";
 import {
   noticeForFiling,
   noticeForMissingEmail,
@@ -95,9 +95,20 @@ describe("English brief language", () => {
     expect(addEnglishLanguage("people for a day", {}, { language: "" }).language).toBe("en");
     expect(addEnglishLanguage("people for a day", {}, { language: " en " }).language).toBe(" en ");
     expect(addEnglishLanguage("people for a day in swedish", {}, { city: "Stockholm" }).language).toBeUndefined();
+    expect(addEnglishLanguage("people for a day in  swedish", {}, { city: "Stockholm" }).language).toBeUndefined();
     expect(addEnglishLanguage("people for a day IN SWEDISH", {}, { city: "Stockholm" }).language).toBeUndefined();
     expect(addEnglishLanguage("people for a day på svenska", {}, { city: "Stockholm" }).language).toBeUndefined();
     expect(addEnglishLanguage("people for a day language sv", {}, { city: "Stockholm" }).language).toBeUndefined();
+    expect(addEnglishLanguage("people for a day language  sv", {}, { city: "Stockholm" }).language).toBeUndefined();
+    expect(statesOtherLanguage("in swedish")).toBe(true);
+    expect(statesOtherLanguage("in  swedish")).toBe(true);
+    expect(statesOtherLanguage("på svenska")).toBe(true);
+    expect(statesOtherLanguage("på  svenska")).toBe(true);
+    expect(statesOtherLanguage("language sv")).toBe(true);
+    expect(statesOtherLanguage("language  sv")).toBe(true);
+    expect(statesOtherLanguage("language EN")).toBe(false);
+    expect(statesOtherLanguage("language  EN")).toBe(false);
+    expect(statesOtherLanguage("people for a day")).toBe(false);
     expect(addEnglishLanguage("people for a day language EN", {}, { city: "Stockholm" }).language).toBe("en");
     expect(addEnglishLanguage("people for a day language en", {}, {}).language).toBe("en");
     expect(addEnglishLanguage("xyz", {}, { city: "Stockholm" }).language).toBeUndefined();

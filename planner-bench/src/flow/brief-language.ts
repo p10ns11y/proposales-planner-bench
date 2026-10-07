@@ -59,7 +59,15 @@ const otherLanguageWords = new Set([
 ]);
 
 function textWords(text: string): Set<string> {
-  return new Set(text.toLowerCase().match(/[a-z]+/g) ?? []);
+  const matched = text.toLowerCase().match(/[a-z]+/g);
+  const words = new Set<string>();
+  if (matched === null) {
+    return words;
+  }
+  for (const word of matched) {
+    words.add(word);
+  }
+  return words;
 }
 
 export function briefWrittenInEnglish(text: string): boolean {
@@ -92,7 +100,7 @@ function hasLanguage(brief: PlannerBrief): boolean {
   return brief.language !== undefined && brief.language.trim() !== "";
 }
 
-function statesOtherLanguage(text: string): boolean {
+export function statesOtherLanguage(text: string): boolean {
   if (/\b(?:in\s+swedish|på\s+svenska)\b/i.test(text)) {
     return true;
   }
