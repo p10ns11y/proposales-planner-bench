@@ -15,7 +15,7 @@ Session span: [table](worklog.md#session-span).
 
 ## 5–6 Oct
 
-My framing: research to a product, with Grok Build and cursor-agent as collaborators.
+Research to a product, with Grok Build and cursor-agent as collaborators.
 
 | In this repo | |
 | --- | --- |
@@ -27,7 +27,7 @@ laptop-1 sessions with Grok Build and cursor-agent show only through commits, so
 
 ## Plugins
 
-My framing: [p10ns11y/plugins](https://github.com/p10ns11y/plugins) removed the need to set up agent files for this project, because the harness workflow took care of it.
+[p10ns11y/plugins](https://github.com/p10ns11y/plugins) removed the need to set up agent files for this project, because the harness workflow took care of it.
 
 One plugin repo, synced to every harness I use:
 
@@ -45,15 +45,22 @@ One plugin repo, synced to every harness I use:
 
 ## Superdesign
 
-My framing: [Superdesign](https://superdesign.dev) is the design agent behind the UI. It reads the codebase, drafts UI directions on an infinite canvas, and hands the chosen design back to the coding agent to implement. That is why the chat column looks considered instead of like a form.
+[Superdesign](https://superdesign.dev) is the design agent behind the UI. It reads the codebase, drafts UI directions on an infinite canvas, and hands the chosen design back to the coding agent to implement.
 
 ## Steering
 
-My framing: the quality of this app comes from my steering, not only from the agents. Short prompts set the standard and the agents built to it. Examples: pixel-level polish, chat-native result cards with a full-screen detail view, docs that lead with pictures, and filing only when I press File.
+Calls I made in the chats, 7–8 Oct:
+
+- Write the docs as me. "My published npm packages", not "the owner's".
+- Keep the docs short. A diagram or a picture carries the page.
+- Result cards live in the chat and open to a full-screen detail. Add details is a drawer on the right.
+- File a brief only when I press File.
+- Show a price in its own currency. Do not convert it.
+- Skip the test run when a change is only markdown.
 
 ## Cloud
 
-My framing: Grok Bot plus Cursor cloud agents, until steering from a phone was easy.
+Grok Bot plus Cursor cloud agents, until steering from a phone was easy.
 
 | In this repo | |
 | --- | --- |
