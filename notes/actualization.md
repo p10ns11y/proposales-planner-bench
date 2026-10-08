@@ -29,13 +29,13 @@ Ranking rule: simple arithmetic goes to the plain sort, trade-offs to a decision
 ```mermaid
 flowchart LR
   planner([Planner]) -->|writes| brief[Brief]
-  core["@adaptate/core, owner's package"] -.-> brief
+  core["@adaptate/core, my package"] -.-> brief
   brief -->|for| org["Organisation: the planner's client"]
   brief -->|filed to| inbox["Inbox, via inbox_token"]
   brief -->|or filed as| draft["Draft, via API key"]
   inbox --> company["Company: hotel account, company_id"]
   draft --> company
-  utils["@adaptate/utils, owner's package"] -.-> company
+  utils["@adaptate/utils, my package"] -.-> company
   company -->|owns| proposal["Proposal: status, version, series"]
   utils -.-> proposal
   proposal -->|holds| blocks["Blocks: accommodation, meetingRoom, food, quantity, price, currency"]

@@ -15,7 +15,7 @@ Session span: [table](worklog.md#session-span).
 
 ## 5–6 Oct
 
-Owner's framing: research to a product, with Grok Build and cursor-agent as collaborators.
+My framing: research to a product, with Grok Build and cursor-agent as collaborators.
 
 | In this repo | |
 | --- | --- |
@@ -27,17 +27,25 @@ laptop-1 sessions with Grok Build and cursor-agent show only through commits, so
 
 ## Plugins
 
-Owner's framing: plugins removed the need to set up agent files, because the harness workflow took care of it.
+My framing: [p10ns11y/plugins](https://github.com/p10ns11y/plugins) removed the need to set up agent files for this project, because the harness workflow took care of it.
+
+One plugin repo, synced to every harness I use:
+
+| Harness | How it loads |
+| --- | --- |
+| Grok Build | `.grok-plugin` |
+| cursor-agent, local Cursor, cloud Cursor | `.cursor-plugin` |
+| Claude Code | marketplace in `.claude-plugin/marketplace.json` |
 
 | In this repo | |
 | --- | --- |
 | Loaded, not copied | [Workflow](workflow.md) says plugins are loaded, not copied. |
-| Checkout | Verify pins layout-content-view from p10ns11y/plugins at `31d93a0`. The link is on the front page. |
+| Checkout | Verify pins layout-content-view from [p10ns11y/plugins](https://github.com/p10ns11y/plugins) at `31d93a0`. |
 | Agent file | The file says `next dev` writes it again. No commit here removes a hand-written agent file. |
 
 ## Cloud
 
-Owner's framing: Grok Bot plus Cursor cloud agents, until steering from a phone was easy.
+My framing: Grok Bot plus Cursor cloud agents, until steering from a phone was easy.
 
 | In this repo | |
 | --- | --- |
