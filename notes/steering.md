@@ -6,7 +6,7 @@ I chose the tools and the plugins around them. One plugin repo loads into each h
 
 [Superdesign](https://superdesign.dev) is the design agent behind the UI. Cursor cloud agents do the build.
 
-Everything around it went slowly at the start. Once the harness and plugins were in place, things got easier and faster. After I started steering from Grok Bot, the product moved quickly. 7–8 Oct was mostly agent build time with short human input. A few short sessions of input. Agents built the rest. Grok Bot plus Cursor cloud agents carried it. The [reference pack](design-refs/REFERENCE-PACK.md) uses Grok Bot as the look of the chat column. It does not record steering.
+Everything around it went slowly at the start. Once the harness and plugins were in place, things got easier and faster. After I started steering from Grok Bot, the product moved quickly. 7–8 Oct was mostly agent build time with short human input. A few short sessions of input. Agents built the rest. Grok Bot plus Cursor cloud agents carried it.
 
 Click through the app and you can see:
 
