@@ -106,3 +106,7 @@ Direction, not shipped: AG-UI is not connected today. Each brief keeps its own s
 ## References
 
 - [AG-UI](https://github.com/ag-ui-protocol/ag-ui), protocol 1.0
+
+Back: [Front page](../README.md)
+
+Read next: [Product](planner-product.md)

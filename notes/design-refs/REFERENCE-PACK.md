@@ -196,4 +196,4 @@ The first six shots are the shell this plan replaced. The after shots are produc
 
 ## References and credits
 
-The reference list lives in the [README](../../README.md) under References. These notes are indexed in [Notes](../README.md).
+The reference list lives in the [README](../../README.md) under References. The reading path starts at the [map](../../README.md#map).

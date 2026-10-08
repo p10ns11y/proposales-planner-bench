@@ -38,7 +38,7 @@ The search sends no city filter. Rank does not call the model. The model, when `
 
 ## Page
 
-One sticky input at the bottom. The thread shows a step only when they must see it. The page draws that part in React. `/api/chat` can stream the same `data-offer-group` part. AG-UI is not connected. Detail opens in an overlay. Company is not the first control.
+One route holds the chat, the detail, and Add details. One sticky input at the bottom. The thread shows a step only when they must see it. The page draws that part in React. `/api/chat` can stream the same `data-offer-group` part. AG-UI is not connected. Detail opens in an overlay. Company is not the first control.
 
 Tailwind and shadcn stay the materials ([DESIGN.md](../DESIGN.md)). Off-topic asks stop at the hold in [TASTE.md](../TASTE.md).
 
@@ -47,3 +47,7 @@ Tailwind and shadcn stay the materials ([DESIGN.md](../DESIGN.md)). Off-topic as
 Images, whether a row opens its own page, and the collab-finder model in place of the fetch stand-in. Rank stays the sort above. From the same input: a faster path, the inner working when they ask, and other jobs.
 
 Fetch is the search plus the city and capacity checks. Show the top five. Further matches wait behind one control.
+
+Back: [Actualization](actualization.md)
+
+Read next: [Architecture](../docs/ARCHITECTURE.md)

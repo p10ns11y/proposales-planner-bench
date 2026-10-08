@@ -10,19 +10,18 @@ Live: [proposales-planner-bench.vercel.app](https://proposales-planner-bench.ver
 
 ![Phone, 390 by 844](docs/media/hero-phone.png)
 
+## Map
+
 ```mermaid
 flowchart LR
-  browser[Browser]
-  app[Next.js]
-  api[Proposales]
-  model["xAI via the Vercel AI SDK"]
-  browser --> app
-  app --> api
-  app --> model
+  A[Front page] --> B[Actualization] --> C[Product] --> D[Architecture] --> E[Work log] --> F[Steering]
+  click A "./README.md" "Front page"
+  click B "./notes/actualization.md" "Actualization"
+  click C "./notes/planner-product.md" "Product"
+  click D "./docs/ARCHITECTURE.md" "Architecture"
+  click E "./notes/worklog.md" "Work log"
+  click F "./notes/steering.md" "Steering"
 ```
-
-Map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Notes: [notes/](notes/README.md).
-
 ## Run
 
 ```bash
@@ -33,7 +32,6 @@ pnpm build && pnpm e2e
 ```
 
 Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the address the dev server prints.
-
 ## References
 
 - [@adaptate/core](https://www.npmjs.com/package/@adaptate/core) and [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils)
@@ -44,3 +42,5 @@ Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the addre
 - [layout-content-view](https://github.com/p10ns11y/plugins/tree/31d93a0355838d8b24511966ae1ba0062c05f012/layout-content-view) at `31d93a0`
 - [Mermaid](https://mermaid.js.org)
 - [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans)
+Back: start
+Read next: [Actualization](notes/actualization.md)

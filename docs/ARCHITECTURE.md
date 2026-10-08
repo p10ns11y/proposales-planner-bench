@@ -120,3 +120,18 @@ Company rejects a null timezone and a loose website. Proposal rejects a loose em
 ## Checks
 
 `verify` runs typecheck, lint, and `pnpm verify --skip-mutation`. Node 22, pnpm 9, `next typegen` (`LayoutProps`), and `braces@3.0.3` are on the [control card](../notes/control-card.md). On Vercel the Root Directory is still `planner-bench` until that setting is cleared.
+
+| Script | Does |
+| --- | --- |
+| `qa-critical-path.mjs` | Pair titles, build, run critical-path Playwright. `pnpm qa` |
+| `crap-score.mjs` | CRAP. Threshold 6. `pnpm crap` |
+| `mutation-score.mjs` | StrykerJS. Threshold 0.95. `pnpm mutation` |
+| `verify.mjs` | Unit, contract, build, e2e, probe, CRAP, mutation. `pnpm verify` |
+
+`--skip-mutation` defers mutation. No model calls.
+
+Findings: [FINDINGS.md](FINDINGS.md). Browser notes: [critical path](../qa/critical-path.md), [composer microphone](../qa/composer-mic.md), [filing and email](../qa/filing-email.md).
+
+Back: [Product](../notes/planner-product.md)
+
+Read next: [Work log](../notes/worklog.md)

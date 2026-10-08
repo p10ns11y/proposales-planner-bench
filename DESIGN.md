@@ -184,3 +184,5 @@ Scrim `rgba(10,10,10,.32)`. Motion is transform and opacity: drawer 320ms in and
 | Detail | Desktop inset 12px, radius 20, e4. Phone is full screen. Overview shows the block, who holds it, and the total |
 
 Keep the composer on screen. Best match sits on the best non-expired offer. Lines come from the offer. Leave cream, a serif, photos, and ratings off the page. Coral is not a fill.
+
+Shots and the ledger: [reference pack](notes/design-refs/REFERENCE-PACK.md).
