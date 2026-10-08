@@ -2,7 +2,7 @@
 
 One sentence in. Ranked venues back.
 
-Proposales API readers are validated with [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils), and brief gaps use [@adaptate/core](https://www.npmjs.com/package/@adaptate/core). Both are the owner's published npm packages (Zod plus OpenAPI), so the app is built on his open-source tooling. Source: [adaptate](https://github.com/p10ns11y/adaptate).
+Proposales API readers are validated with [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils), and brief gaps use [@adaptate/core](https://www.npmjs.com/package/@adaptate/core). Both are my published npm packages (Zod plus OpenAPI), so the app is built on my own open-source tooling. Source: [adaptate](https://github.com/p10ns11y/adaptate).
 
 [![Walkthrough: ranked venues for a Stockholm offsite](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
 
