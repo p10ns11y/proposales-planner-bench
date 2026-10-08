@@ -89,3 +89,20 @@ flowchart TD
 ```
 
 No webhook, so (a) polls. The web link is `url` in proposal-search results. An inbox filing returns only an id. Today history lives in one browser.
+
+## 6. AG-UI, the direction
+
+```mermaid
+flowchart LR
+  host["Planner page, Proposales embed or another agent"] -->|"AG-UI run"| agent[Planner agent]
+  agent -->|"STATE_SNAPSHOT, STATE_DELTA"| state["Per-brief state: brief, filed"]
+  agent -->|"TOOL_CALL events"| cards[Result cards]
+  agent -->|interrupt| ask[Question answered in the card]
+  ask -.->|resume| agent
+```
+
+Direction, not shipped: AG-UI is not connected today. Each brief keeps its own state through snapshot and delta events, so filed status stays on the brief, not the chat. The server's question pauses the run and is answered inside the card. Result cards come from standard tool-call events, and the same stream lets Proposales embed the planner or connect other agents.
+
+## References
+
+- [AG-UI](https://github.com/ag-ui-protocol/ag-ui), protocol 1.0

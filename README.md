@@ -38,6 +38,7 @@ Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the addre
 
 - [@adaptate/core](https://www.npmjs.com/package/@adaptate/core) and [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils)
 - [Vercel AI SDK](https://ai-sdk.dev) and [@ai-sdk/xai](https://www.npmjs.com/package/@ai-sdk/xai)
+- [AG-UI](https://github.com/ag-ui-protocol/ag-ui)
 - [shadcn/ui](https://ui.shadcn.com)
 - [Playwright](https://playwright.dev)
 - [layout-content-view](https://github.com/p10ns11y/plugins/tree/31d93a0355838d8b24511966ae1ba0062c05f012/layout-content-view) at `31d93a0`
