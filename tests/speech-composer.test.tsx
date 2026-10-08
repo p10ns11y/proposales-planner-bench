@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MoreFieldValues, ShellViewModel } from "../src/view-models/view-model";
 import { PlannerShell } from "../src/views/planner-shell";
-import { speechErrorCopy, speechStartFailedCopy, speechUnavailableCopy } from "../src/views/speech-input";
+import { speechStartFailedCopy, speechUnavailableCopy } from "../src/views/speech-input";
 
 afterEach(() => {
   cleanup();
@@ -25,6 +25,15 @@ const emptyMore: MoreFieldValues = {
   notes: "",
   budget: "",
 };
+
+const recognitionErrors = [
+  ["no-speech", "No speech was heard. Press Speak to try again."],
+  ["network", "Speech lost the network. Press Speak to try again."],
+  ["aborted", "Speech was cancelled. Press Speak to try again."],
+  ["not-allowed", "Microphone permission was denied in this browser. Press Speak to try again."],
+  ["audio-capture", "The microphone could not be opened. Press Speak to try again."],
+  ["service-not-allowed", "Speech stopped. Press Speak to try again."],
+] as const;
 
 describe("composer microphone", () => {
   it("hides Speak when the browser has no speech constructor", () => {
@@ -73,17 +82,46 @@ describe("composer microphone", () => {
     expect(screen.getByRole("status").textContent).toBe(speechStartFailedCopy);
   });
 
-  it("explains a speech error and removes Speak", async () => {
+  it.each(recognitionErrors)("returns Speak after %s", async (code, status) => {
     installDomShims();
     const user = userEvent.setup();
     const active = installRecognition(false);
     render(<PlannerShell viewModel={model()} onEvent={() => undefined} historyControl={null} />);
     await user.click(screen.getByRole("button", { name: "Speak" }));
     act(() => {
-      active.current?.onerror?.(null);
+      active.current?.onerror?.({ error: code });
+      active.current?.onend?.();
     });
+    const speak = screen.getByRole("button", { name: "Speak" });
+    expect(speak.getAttribute("disabled")).toBeNull();
+    expect(speak.getAttribute("aria-pressed")).toBe("false");
+    expect(speak.getAttribute("data-speech-state")).toBe("ready");
     expect(screen.queryByRole("button", { name: "Listening" })).toBeNull();
-    expect(screen.getByRole("status").textContent).toBe(speechErrorCopy);
+    const note = screen.getByRole("status");
+    expect(note.textContent).toBe(status);
+    expect(note.getAttribute("data-speech-state")).toBe("idle");
+  });
+
+  it("keeps Speak after permission is denied and tries again on press", async () => {
+    installDomShims();
+    const user = userEvent.setup();
+    const active = installRecognition(false);
+    render(<PlannerShell viewModel={model()} onEvent={() => undefined} historyControl={null} />);
+    await user.click(screen.getByRole("button", { name: "Speak" }));
+    act(() => {
+      active.current?.onerror?.({ error: "not-allowed" });
+      active.current?.onend?.();
+    });
+    const speak = screen.getByRole("button", { name: "Speak" });
+    expect(speak.getAttribute("disabled")).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe(
+      "Microphone permission was denied in this browser. Press Speak to try again.",
+    );
+    await user.click(speak);
+    const listening = screen.getByRole("button", { name: "Listening" });
+    expect(listening.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(active.starts).toBe(2);
   });
 });
 
@@ -129,8 +167,8 @@ type ActiveRecognition = {
   onend: (() => void) | null;
 };
 
-function installRecognition(failStart: boolean): { current: ActiveRecognition | null } {
-  const handle: { current: ActiveRecognition | null } = { current: null };
+function installRecognition(failStart: boolean): { current: ActiveRecognition | null; starts: number } {
+  const handle: { current: ActiveRecognition | null; starts: number } = { current: null, starts: 0 };
   class Recognition {
     lang = "";
     onresult: ((event: unknown) => void) | null = null;
@@ -139,6 +177,7 @@ function installRecognition(failStart: boolean): { current: ActiveRecognition | 
 
     start(): void {
       handle.current = this;
+      handle.starts += 1;
       if (failStart) {
         throw new Error("blocked");
       }
