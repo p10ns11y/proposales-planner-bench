@@ -33,9 +33,14 @@ const monthIndexByName: Record<string, string> = {
 
 const fixtureVenueNames = ["Harbour House", "Ridge Hall", "Canal Loft"] as const;
 
+export function isFileUtterance(text: string): boolean {
+  const trimmed = text.trim().toLowerCase();
+  return trimmed === "file" || trimmed === "file it" || trimmed === "file this" || trimmed === "file this brief";
+}
+
 export function turnIntent(text: string): TurnIntent {
   const normalised = text.toLowerCase();
-  if (normalised.includes("file the brief") || normalised.trim() === "file") {
+  if (normalised.includes("file the brief") || isFileUtterance(normalised)) {
     return "file";
   }
   if (normalised.includes("add the venue proposals") || normalised.includes("add offers")) {
