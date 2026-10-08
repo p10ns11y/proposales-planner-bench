@@ -422,11 +422,6 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                         ) : (
                           <LiveCopy
                             viewModel={viewModel}
-                            showFile={showResultsFile}
-                            concealFile={viewModel.openRow !== null}
-                            fileLabel={fileBriefLabel(viewModel.filed)}
-                            filePressable={filePressable}
-                            onFile={fileBrief}
                             onConfirm={() => {
                               pushTurn("Yes");
                               lastKind.current = "search";
@@ -460,6 +455,14 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                           onOpen: (venueName) => onEvent({ type: "rowOpened", venueName }),
                           onShowMore: () => onEvent({ type: "showMore" }),
                         })
+                      ) : null}
+                      {!pending && showResultsFile ? (
+                        <ResultsFile
+                          conceal={viewModel.openRow !== null}
+                          label={fileBriefLabel(viewModel.filed)}
+                          pressable={filePressable}
+                          onFile={fileBrief}
+                        />
                       ) : null}
                     </div>
                   ) : null}
@@ -620,24 +623,45 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   );
 }
 
+function ResultsFile({
+  conceal,
+  label,
+  pressable,
+  onFile,
+}: {
+  conceal: boolean;
+  label: string;
+  pressable: boolean;
+  onFile: () => void;
+}) {
+  return (
+    <div
+      className="planner-actions"
+      aria-hidden={conceal ? true : undefined}
+      style={conceal ? { visibility: "hidden" } : undefined}
+    >
+      <button
+        type="button"
+        className="planner-secondary"
+        disabled={!pressable || conceal}
+        tabIndex={conceal ? -1 : undefined}
+        {...lcvStay("file-brief", "chat:results")}
+        onClick={onFile}
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
 function LiveCopy({
   viewModel,
-  showFile,
-  concealFile,
-  fileLabel,
-  filePressable,
-  onFile,
   onConfirm,
   onSkip,
   onRefine,
   onRetry,
 }: {
   viewModel: ShellViewModel;
-  showFile: boolean;
-  concealFile: boolean;
-  fileLabel: string;
-  filePressable: boolean;
-  onFile: () => void;
   onConfirm: () => void;
   onSkip: () => void;
   onRefine: (text: string) => void;
@@ -712,24 +736,6 @@ function LiveCopy({
             onClick={onSkip}
           >
             Skip
-          </button>
-        </div>
-      ) : null}
-      {showFile ? (
-        <div
-          className="planner-actions"
-          aria-hidden={concealFile ? true : undefined}
-          style={concealFile ? { visibility: "hidden" } : undefined}
-        >
-          <button
-            type="button"
-            className="planner-secondary"
-            disabled={!filePressable || concealFile}
-            tabIndex={concealFile ? -1 : undefined}
-            {...lcvStay("file-brief", "chat:results")}
-            onClick={onFile}
-          >
-            {fileLabel}
           </button>
         </div>
       ) : null}

@@ -497,6 +497,74 @@ test("names the details control the same in the header, composer, and drawer", a
   }
 });
 
+test("places File this brief below the ranked venues", async ({ page }) => {
+  for (const viewport of sizedViewports) {
+    await page.setViewportSize(viewport);
+    await reachResults(page);
+    const thread = page.locator(".planner-thread");
+    await thread.evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+    });
+    const file = page.locator(".planner-assistant [data-lcv-event=file-brief]");
+    await expect(file).toHaveText("File this brief");
+    await expect(file).toBeEnabled();
+    const placed = await page.evaluate(() => {
+      const summary = document.querySelector("[data-lcv-count=reply]");
+      const fileButton = document.querySelector(".planner-assistant [data-lcv-event=file-brief]");
+      const cards = [...document.querySelectorAll("[data-offer-card]")];
+      const first = cards[0];
+      const last = cards.at(-1);
+      const threadNode = document.querySelector(".planner-thread");
+      if (
+        !(summary instanceof HTMLElement) ||
+        !(fileButton instanceof HTMLButtonElement) ||
+        !(first instanceof HTMLElement) ||
+        !(last instanceof HTMLElement) ||
+        !(threadNode instanceof HTMLElement)
+      ) {
+        return null;
+      }
+      const summaryBox = summary.getBoundingClientRect();
+      const firstBox = first.getBoundingClientRect();
+      const lastBox = last.getBoundingClientRect();
+      const fileBox = fileButton.getBoundingClientRect();
+      const points = [
+        [fileBox.left + fileBox.width / 2, fileBox.top + fileBox.height / 2],
+        [fileBox.left + 8, fileBox.top + 8],
+        [fileBox.right - 8, fileBox.bottom - 8],
+      ];
+      const covered = points.some(([x, y]) => {
+        const hit = document.elementFromPoint(x, y);
+        return hit === null || !fileButton.contains(hit);
+      });
+      return {
+        summaryAbove: summaryBox.bottom <= firstBox.top + 1,
+        fileBelow: fileBox.top >= lastBox.bottom - 0.5,
+        fileTop: fileBox.top,
+        fileLeft: fileBox.left,
+        fileRight: fileBox.right,
+        fileBottom: fileBox.bottom,
+        covered,
+        threadOverflow: threadNode.scrollWidth > threadNode.clientWidth + 1,
+        docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
+    expect(placed).not.toBeNull();
+    if (placed === null) {
+      return;
+    }
+    expect(placed.summaryAbove).toBe(true);
+    expect(placed.fileBelow).toBe(true);
+    expect(placed.fileTop).toBeGreaterThanOrEqual(0);
+    expect(placed.fileLeft).toBeGreaterThanOrEqual(0);
+    expect(placed.fileRight).toBeLessThanOrEqual(viewport.width + 1);
+    expect(placed.fileBottom).toBeLessThanOrEqual(viewport.height);
+    expect(placed.covered).toBe(false);
+    expect(placed.threadOverflow).toBe(false);
+    expect(placed.docOverflow).toBe(false);
+  }
+});
+
 test("separates the budget on the confirm step", async ({ page }) => {
   for (const viewport of sizedViewports) {
     await page.setViewportSize(viewport);
