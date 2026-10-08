@@ -32,13 +32,13 @@ Free text, clean, confirm, structured data, then the views. Then favorites, fetc
 
 Required to match: city, start date, start time, attendees, and an end time. The end time can be absent when a duration is set, or when the end date is after the start. A budget with no basis stays on confirm and asks "Is that per person or total?" Yes stays hidden until the basis is set. The rest sits in Add details.
 
-Filing needs an email, both dates, attendees, a language, and rooms when the end date is after the start. English with no stated language stores `en`. Yes asks for a missing email. A later file on the page returns the stored filing. Matching does not need those fields.
+Filing needs an email, both dates, attendees, a language, and rooms when the end date is after the start. A single-day brief uses the start date as the end date for that check. English with no stated language stores `en`. A missing email, end date, or end time is an input with Save and Skip. Skip leaves `Left unfiled.` Another missing filing fact is one sentence. A later file on the page returns the stored filing. Matching does not need those fields.
 
 The search sends no city filter. Rank does not call the model. The model, when `XAI_API_KEY` is set, extracts the brief. The collab-finder decision model is not in this build.
 
 ## Page
 
-One sticky input at the bottom. The thread shows a step only when they must see it. The page draws that part in React. `/api/chat` can stream the same `data-offer-group` part. AG-UI is not connected. Detail opens in an overlay. Company is not the first control.
+One route holds the chat, the detail, and Add details. History is one row per chat, named from the brief, with a venue count and a filed count when it was filed more than once. After filing, a different city or start date offers Start a new chat. Add details opens filled, in five folds, one open at a time. One sticky input at the bottom. The thread shows a step only when they must see it. The page draws that part in React. `/api/chat` can stream the same `data-offer-group` part. AG-UI is not connected. Detail opens in an overlay. Company is not the first control.
 
 Tailwind and shadcn stay the materials ([DESIGN.md](../DESIGN.md)). Off-topic asks stop at the hold in [TASTE.md](../TASTE.md).
 
@@ -47,3 +47,7 @@ Tailwind and shadcn stay the materials ([DESIGN.md](../DESIGN.md)). Off-topic as
 Images, whether a row opens its own page, and the collab-finder model in place of the fetch stand-in. Rank stays the sort above. From the same input: a faster path, the inner working when they ask, and other jobs.
 
 Fetch is the search plus the city and capacity checks. Show the top five. Further matches wait behind one control.
+
+Back: [Actualization](actualization.md)
+
+Read next: [Architecture](../docs/ARCHITECTURE.md)

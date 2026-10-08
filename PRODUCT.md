@@ -28,7 +28,7 @@ The app is a web page at the repository root. Names are fixed in [planner-produc
 | Organisation | The planner's client |
 | Venue | A priced row |
 
-The input is first. Company is never the first control. History stays off the first glance.
+The input is first. Company is never the first control. History stays off the first glance. History is one row per chat, named from the brief, with the venue count and a filed count when it was filed more than once.
 
 ## Capabilities and Constraints
 
@@ -40,15 +40,16 @@ The input is first. Company is never the first control. History stays off the fi
 | People | A count |
 | Budget | When a budget is set and `budget.scope` is missing, ask "Is that per person or total?" Yes stays hidden until the answer |
 
-Add details is a drawer from the right: event name, organisation, email, language, rooms, meeting rooms, food, notes, budget. Saving changes only edited fields. The budget label uses the brief currency, for example `Budget (SEK)`, and writes `budgetMinor`. It leaves `budget.scope` unset. A named currency stays when the city changes. Otherwise the label follows the city.
+Add details opens from the right, filled from the brief. One fold stays open: Contact, Event and dates, People and rooms, Budget, or Preferences. The open fold is the first missing required fact, otherwise Contact. Apply sends only edited fields. No change says Nothing changed. The budget label uses the brief currency, for example `Budget (SEK)`, and writes `budgetMinor`. It leaves `budget.scope` unset. A named currency stays when the city changes. Otherwise the label follows the city.
 
 | Filing | Matching |
 | --- | --- |
 | Email, both dates, attendees, a language, and rooms when the end date is after the start | Those fields are not required |
 | English with no stated language stores `en` | — |
-| Yes asks for one missing filing field | — |
+| A missing email, end date, or end time is an input with Save and Skip | — |
 | The word `file` returns a stored filing and makes no second Proposales call | — |
-| In the detail, File with no email opens Add details and focuses Email | — |
+| File with no email opens Add details and focuses Email. The same gap check keeps File off when another filing fact is missing | — |
+| After filing, a different city or start date offers Start a new chat | — |
 | After filing, that button reads Filed and is disabled | Favorites are a mark on the ranked list |
 
 A model attempt waits 40 seconds. Turn and chat set maxDuration to 60. A missing key, a model error, or that window falls back to the scripted extractor.

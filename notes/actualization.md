@@ -29,15 +29,22 @@ Ranking rule: simple arithmetic goes to the plain sort, trade-offs to a decision
 ```mermaid
 flowchart LR
   planner([Planner]) -->|writes| brief[Brief]
+  core["@adaptate/core, owner's package"] -.-> brief
   brief -->|for| org["Organisation: the planner's client"]
   brief -->|filed to| inbox["Inbox, via inbox_token"]
   brief -->|or filed as| draft["Draft, via API key"]
   inbox --> company["Company: hotel account, company_id"]
   draft --> company
+  utils["@adaptate/utils, owner's package"] -.-> company
   company -->|owns| proposal["Proposal: status, version, series"]
+  utils -.-> proposal
   proposal -->|holds| blocks["Blocks: accommodation, meetingRoom, food, quantity, price, currency"]
   library["Content library"] -->|fills| blocks
 ```
+
+`@adaptate/core` finds gaps on a fileable brief, a comparable brief, and an offer row. `@adaptate/utils` builds Zod from OpenAPI for Company, Proposal, CreateRfpRequest, CreateProposalRequest, ProposalMutationResponse, CreateRfpResponse, and ProposalSearchResult, and the contract test checks those schemas against the HTTP readers.
+
+[@adaptate/core](https://www.npmjs.com/package/@adaptate/core) and [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils). Source: [adaptate](https://github.com/p10ns11y/adaptate).
 
 `inbox_token` is public by design, for website forms. The API key stays on the server.
 
@@ -106,3 +113,7 @@ Direction, not shipped: AG-UI is not connected today. Each brief keeps its own s
 ## References
 
 - [AG-UI](https://github.com/ag-ui-protocol/ag-ui), protocol 1.0
+
+Back: [Front page](../README.md)
+
+Read next: [Product](planner-product.md)
