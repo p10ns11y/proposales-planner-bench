@@ -34,7 +34,7 @@ A file is inside the band when the later count is between 40% and 60% of the ear
 | 1 | 1 | kept | CLAUDE.md |
 | 23826 | 12605 |  | Total, 24 files |
 
-`e2e/features/critical-path.feature` is 1105 words after main added scenarios. `qa/composer-mic.md` is 91 words and `qa/filing-email.md` is 74. Those three arrived with `db1324d`.
+`e2e/features/critical-path.feature` is 1105 words after main added scenarios. `qa/composer-mic.md` is 91 words and `qa/filing-email.md` is 113. Those three arrived with `db1324d`.
 
 The README is a new front page, so the 40–60% band does not apply. It has 113 words in all, and 78 words outside fenced blocks. A few rows sit a little over 60% after the drawer, currency, and filing sentences from main.
 
@@ -48,7 +48,7 @@ The capture is the page in Chromium.
 | --- | --- |
 | docs/media/walkthrough.mp4 | 14.57 s, 449118 bytes, 1280×800, H.264, 30 fps, no audio |
 | docs/media/walkthrough.gif | 14.60 s, 1913437 bytes, 720×450, 146 frames |
-| docs/media/hero-desktop.png | 1280×800, 60677 bytes |
+| docs/media/hero-desktop.png | 1280×736, 42413 bytes, cropped below the floating header |
 | docs/media/hero-phone.png | 390×844, 47269 bytes |
 | docs/media/poster.png | 1280×800, 60476 bytes, still of Add details |
 | docs/media/actualization-brief.png | 1280×800, 40001 bytes, production brief card |

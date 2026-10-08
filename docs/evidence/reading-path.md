@@ -23,10 +23,11 @@ Session-span figures are the owner's estimate as supplied. They were not recompu
 | Issues open | `gh issue list --repo p10ns11y/proposales-planner-bench --state open --limit 200 --json number` | 11 |
 | ship-by-thursday | Same closed and open lists, label `ship-by-thursday` | 19 closed, 0 open |
 | Finding issues | Closed issues titled V1–V6, V8–V10, U1, or U3 | 11, all closed |
-| Vitest | `pnpm exec vitest run` on `182b6f4` | 329 passed, 36 files, 40.89 s. Start 18:07:25 UTC |
+| Vitest | `pnpm exec vitest run` on `182b6f4` | 329 passed, 36 files, 40.89 s. Start 20:07:25 Stockholm |
 | Playwright scenarios | `pnpm exec playwright test --list` | Total: 27 tests in 6 files |
 | Vitest plus Playwright | 329 + 27 | 356 |
-| Production deploys | Vercel production list for this project, limit 100 | 34 records, one page: 33 ready, 1 error. Newest ready sha `182b6f4`, created `2026-10-08T18:46:03+02:00`. `isRollbackCandidate` is not a completed rollback |
+| Production deploys | `gh api repos/p10ns11y/proposales-planner-bench/deployments?environment=Production` | 32, all successful. Newest `182b6f4` at 18:46:32 Stockholm. The first page is 30 and links a next page of 2. |
+| Rollbacks | Production was rolled back to `4b99a6a` at 16:35 Stockholm on 8 Oct | 1 |
 
 `docs/FINDINGS.md` is a note in the repo. It is not treated as the V-findings issue count.
 

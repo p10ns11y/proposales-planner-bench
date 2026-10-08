@@ -42,9 +42,12 @@ Thursday's span stops at 14:57. Commits and merged pull requests are the whole S
 | Vitest tests | 329 passed, 36 files, 40.89 s |
 | Playwright tests | 27 in 6 files |
 | Vitest plus Playwright | 356 |
-| Production deploys | 34 listed (33 ready, 1 error) |
+| Production deploys | 32 |
+| Rollbacks | 1 |
 
-Counted on main at `182b6f4`. The production list does not show a completed rollback. Commands: [evidence](../docs/evidence/reading-path.md).
+Open pull requests are not in the totals.
+
+Counted on main at `182b6f4`. Commands: [evidence](../docs/evidence/reading-path.md).
 
 ## Written log
 
@@ -62,8 +65,6 @@ UTC+2. This is the log as written with the pages. It is not the session-span est
 | Minutes | Prompts | Harnesses |
 | --- | --- | --- |
 | ~154 min | 24 | Cursor, Grok build, cloud agent |
-
-Open pull requests are not in the totals.
 
 Back: [Architecture](../docs/ARCHITECTURE.md)
 
