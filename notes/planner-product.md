@@ -1,8 +1,20 @@
 # Product — planner bench
 
+## Overview
+
 Flow, names, fetch, and rank. Shell and hold: [PRODUCT.md](../PRODUCT.md). Voice: [TASTE.md](../TASTE.md). Visuals: [DESIGN.md](../DESIGN.md).
 
 One sticky input. The bench makes a short brief, ranks Proposales venues in the thread, and marks favorites on that list. Photos and a page per venue wait. Evidence: [ux-findings.md](./ux-findings.md). Terms: [ontology.md](./ontology.md). Build: [control-card.md](./control-card.md).
+
+## Contents
+
+| Section | What it is |
+| --- | --- |
+| [Names](#names) | Brief, organisation, company, venue |
+| [Flow](#flow) | Capture through show |
+| [Page](#page) | One route |
+| [Later](#later) | What waits |
+| [References](#references) | Back and next |
 
 ## Names
 
@@ -47,6 +59,8 @@ Tailwind and shadcn stay the materials ([DESIGN.md](../DESIGN.md)). Off-topic as
 Images, whether a row opens its own page, and the collab-finder model in place of the fetch stand-in. Rank stays the sort above. From the same input: a faster path, the inner working when they ask, and other jobs.
 
 Fetch is the search plus the city and capacity checks. Show the top five. Further matches wait behind one control.
+
+## References
 
 Back: [Actualization](actualization.md)
 

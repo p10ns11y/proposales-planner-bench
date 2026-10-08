@@ -1,26 +1,40 @@
 # Work log
 
+## Overview
+
 Session span beside commits and merged pull requests. The span figures are a supplied estimate. The counts are from git and GitHub. Commands: [evidence](../docs/evidence/reading-path.md).
+
+## Contents
+
+| Section | What it is |
+| --- | --- |
+| [Chart](#chart) | Commits and merged pull requests |
+| [Session span](#session-span) | Estimate beside the counts |
+| [Other counts](#other-counts) | Tests, issues, deploys |
+| [Written log](#written-log) | The log as written |
+| [References](#references) | Back and next |
+
+## Chart
 
 ```mermaid
 xychart-beta
   title "Commits as bars, merged pull requests as a line"
   x-axis ["5 Oct", "6 Oct", "7 Oct", "8 Oct"]
-  y-axis "Count" 0 --> 24
-  bar [0, 16, 15, 20]
-  line [0, 1, 14, 20]
+  y-axis "Count" 0 --> 30
+  bar [0, 16, 15, 26]
+  line [0, 1, 14, 26]
 ```
 
 ## Session span
 
-Method: the owner's message, call, mail, and commit timestamps; a gap over 25 min starts a new session; each session counts its span plus 5 min.
+Method: my message, call, mail, and commit timestamps; a gap over 25 min starts a new session; each session counts its span plus 5 min.
 
 | Day | Session span (estimate) | Low–high | Label | Commits | PRs merged |
 | --- | --- | --- | --- | --- | --- |
 | Mon 5 Oct | 1.6 h | 1.1–2.0 | estimate | 0 | 0 |
 | Tue 6 Oct | 4.0 h | 2.4–5.0 | estimate | 16 | 1 |
 | Wed 7 Oct | 6.9 h | 5.1–8.0 | session span, mostly agent build time with short human input | 15 | 14 |
-| Thu 8 Oct, to 14:57 | 3.8 h | 2.5–4.6 | session span, mostly agent build time with short human input | 20 | 20 |
+| Thu 8 Oct, to 14:57 | 3.8 h | 2.5–4.6 | session span, mostly agent build time with short human input | 26 | 26 |
 
 All four days, session span (estimate): about 16 h (11–19.5). About 9 h in five focus blocks and about 7 h in short bursts.
 
@@ -28,26 +42,25 @@ Mon 5 Oct and Tue 6 Oct keep the plain estimate label. On Wed 7 Oct and Thu 8 Oc
 
 laptop-1 sessions with Grok Build and cursor-agent show only through commits, so 5–6 Oct may be higher.
 
-Thursday's span stops at 14:57. Commits and merged pull requests are the whole Stockholm day. In this snapshot the latest stamp on 8 Oct is 18:45 Stockholm time.
+Thursday's span stops at 14:57. Commits and merged pull requests are the whole Stockholm day. In this snapshot the latest stamp on 8 Oct is 23:34 Stockholm time.
 
 ## Other counts
 
 | What | Number |
 | --- | --- |
-| Commits on main, 5–8 Oct | 51 |
-| Pull requests merged | 35 |
+| Commits on main, 5–8 Oct | 57 |
+| Pull requests merged | 41 |
 | Issues closed | 27 (11 open) |
 | ship-by-thursday issues | 19, all closed |
 | Finding issues | 11 (V1–V6, V8–V10, U1, U3), all closed |
-| Vitest tests | 329 passed, 36 files, 40.89 s |
-| Playwright tests | 27 in 6 files |
-| Vitest plus Playwright | 356 |
-| Production deploys | 32 |
-| Rollbacks | 1 |
+| Vitest tests | 359 passed, 37 files, 45.79 s |
+| Playwright tests | 31 in 7 files |
+| Vitest plus Playwright | 390 |
+| Production deploys | 39 |
 
 Open pull requests are not in the totals.
 
-Counted on main at `182b6f4`. Commands: [evidence](../docs/evidence/reading-path.md).
+Counted on `origin/main` at `d5f8657`. Commands: [evidence](../docs/evidence/reading-path.md).
 
 ## Written log
 
@@ -64,7 +77,9 @@ UTC+2. This is the log as written with the pages. It is not the session-span est
 
 | Minutes | Prompts | Harnesses |
 | --- | --- | --- |
-| ~154 min | 24 | Cursor, Grok build, cloud agent |
+| ~154 min | 24 | Cursor, Grok Build, cloud agent |
+
+## References
 
 Back: [Architecture](../docs/ARCHITECTURE.md)
 

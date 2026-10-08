@@ -1,6 +1,26 @@
 # Architecture
 
+## Overview
+
 A brief is confirmed, then venues are ranked. Instants and `today` are UTC (`Date.UTC` for weekdays). `expires_at` seconds become a UTC instant and a row expires before `today`. Clocks stay `HH:MM`.
+
+## Contents
+
+| Section | What it is |
+| --- | --- |
+| [System](#system) | Packages and the session |
+| [Request](#request) | Turn, chat, and the model |
+| [Screen](#screen) | What the page shows |
+| [Budget](#budget) | Minor units and basis |
+| [Extraction](#extraction) | Script, then the model |
+| [Rank](#rank) | City, people, currency |
+| [Not stated](#not-stated) | Neutral, not a gap |
+| [Where the code lives](#where-the-code-lives) | Folders and merge |
+| [Offers and failures](#offers-and-failures) | Fixture, live, status |
+| [Filing](#filing) | When a brief is filed |
+| [Contract](#contract) | Zod against the readers |
+| [Checks](#checks) | Scripts |
+| [References](#references) | Back and next |
 
 ## System
 
@@ -77,7 +97,7 @@ Absent breakout or diet is `Not stated` (`Breakout not stated`, `Diet not stated
 
 `src/app` to `src/flow` (`src/domain`, `src/proposales`). `src/views` draws the shell, detail, and Add details. `renderPart` passes `hiddenCount`, `openName`, `onOpen`, and `onShowMore` to `OfferGroupCard`.
 
-`mergeBrief` replaces fields the patch sets. A clock replaces `timeAssumption` and can clear it. Food merges meal and diets and sets `foodRequired` when unset. Diet names share one spelling. Budget currency is upper case. Fitness uses `makeConditionalSchemaTransformer` from `@adaptate/core`, the owner's package. Rooms are required when the end date is after the start. `normaliseProposal` sums each package split times quantity into rooms, food, space, and extras: `value_without_tax` when present, otherwise `value_with_tax`. It drops a trailing ` (demo venue)`. The account company name is not a venue name.
+`mergeBrief` replaces fields the patch sets. A clock replaces `timeAssumption` and can clear it. Food merges meal and diets and sets `foodRequired` when unset. Diet names share one spelling. Budget currency is upper case. Fitness uses `makeConditionalSchemaTransformer` from `@adaptate/core`, my package. Rooms are required when the end date is after the start. `normaliseProposal` sums each package split times quantity into rooms, food, space, and extras: `value_without_tax` when present, otherwise `value_with_tax`. It drops a trailing parenthetical from a fixture venue title. The account company name is not a venue name.
 
 ## Offers and failures
 
@@ -128,7 +148,7 @@ An empty event name uses city and date. Dates are `Z` timestamps, `00:00` when t
 
 ## Contract
 
-`proposalesSchemas()` uses `@adaptate/utils`, the owner's package, for Proposal, Company, CreateRfpRequest, CreateProposalRequest, ProposalMutationResponse, CreateRfpResponse, and ProposalSearchResult. DevDependency. Only the contract test imports it. That test checks the schemas against `companyReader`, `proposalEnvelopeReader`, `rfpReader`, `draftReader`, `searchEnvelopeReader`, and `searchIdentityReader`. Runtime uses the readers in `http-client.ts`. `openAPISchemaToZod` drops `additionalProperties`.
+`proposalesSchemas()` uses `@adaptate/utils`, my package, for Proposal, Company, CreateRfpRequest, CreateProposalRequest, ProposalMutationResponse, CreateRfpResponse, and ProposalSearchResult. DevDependency. Only the contract test imports it. That test checks the schemas against `companyReader`, `proposalEnvelopeReader`, `rfpReader`, `draftReader`, `searchEnvelopeReader`, and `searchIdentityReader`. Runtime uses the readers in `http-client.ts`. `openAPISchemaToZod` drops `additionalProperties`.
 
 Company rejects a null timezone and a loose website. Proposal rejects a loose email, a loose website, null `is_agreement`, and null `pending`. Readers keep id, name, inbox token, and unknown `data`. HTTP tests accept a company and a proposal those schemas reject.
 
@@ -146,6 +166,8 @@ Company rejects a null timezone and a loose website. Proposal rejects a loose em
 `--skip-mutation` defers mutation. No model calls.
 
 Findings: [FINDINGS.md](FINDINGS.md). Browser notes: [critical path](../qa/critical-path.md), [composer microphone](../qa/composer-mic.md), [filing and email](../qa/filing-email.md).
+
+## References
 
 Back: [Product](../notes/planner-product.md)
 
