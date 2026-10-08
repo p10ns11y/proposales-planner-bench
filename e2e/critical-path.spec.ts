@@ -268,26 +268,29 @@ async function fileEnglishBrief(page: Page, viewport: { width: number; height: n
   await card.click();
   const detail = page.getByRole("dialog", { name: venue ?? "" });
   await expect(detail).toBeVisible();
-  await detail.getByRole("button", { name: "File this brief" }).click();
-  const drawer = page.getByRole("dialog", { name: "Add details" });
-  await expect(drawer).toBeVisible();
-  const email = drawer.getByLabel("Email");
-  await expect(email).toBeFocused();
-  await email.fill("planner@northwind.example");
-  const saved = page.waitForResponse(
+  const asked = page.waitForResponse(
     (response) => response.url().includes("/api/turn") && response.request().method() === "POST",
   );
-  await drawer.locator("[data-lcv-event=save-more]").click();
-  await saved;
-  await expect(drawer).toBeHidden();
-  await expect(detail).toBeVisible();
+  await detail.getByRole("button", { name: "File this brief" }).click();
+  await asked;
+  const closed = page.waitForResponse(
+    (response) => response.url().includes("/api/turn") && response.request().method() === "POST",
+  );
+  await detail.getByRole("button", { name: "Close" }).click();
+  await closed;
+  const email = page.getByLabel("Email");
+  await expect(email).toBeVisible();
+  await email.fill("planner@northwind.example");
   const filed = page.waitForResponse(
     (response) => response.url().includes("/api/turn") && response.request().method() === "POST",
   );
-  await detail.getByRole("button", { name: "File this brief" }).click();
+  await page.getByRole("button", { name: "Save" }).click();
   await filed;
-  await expect(detail.getByRole("status")).toHaveText("The brief is filed.");
-  const filedButton = detail.getByRole("button", { name: "Filed" });
+  await expect(page.getByText("The brief is filed.")).toBeVisible();
+  await card.click();
+  const again = page.getByRole("dialog", { name: venue ?? "" });
+  await expect(again).toBeVisible();
+  const filedButton = again.getByRole("button", { name: "Filed" });
   await expect(filedButton).toBeDisabled();
   await expect(filedButton).toHaveAttribute("data-lcv-event", "file-brief");
   await expectNoTurn(page, () => filedButton.click({ force: true }));

@@ -16,7 +16,7 @@ import { renderPart } from "../transport/render-part";
 import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
 import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
-import { fileBriefChoice, fileBriefLabel, fileBriefPressable, moreOpenedForEmail } from "./file-brief-state";
+import { fileBriefChoice, fileBriefLabel, fileBriefPressable } from "./file-brief-state";
 import { InlineAskCard, NewEventCard } from "./inline-ask-card";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
@@ -307,12 +307,6 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       email: viewModel.more.contactEmail,
     });
     if (choice === "ignore") {
-      return;
-    }
-    if (choice === "ask-email") {
-      setFocusEmail(true);
-      setDetailNote(moreOpenedForEmail);
-      setMoreOpen(true);
       return;
     }
     setFocusEmail(false);

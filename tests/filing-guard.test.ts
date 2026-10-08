@@ -4,7 +4,7 @@ import type { PlannerBrief } from "../src/domain/planner-brief";
 import { addEnglishLanguage, briefWrittenInEnglish, statesOtherLanguage } from "../src/flow/brief-language";
 import { isFileUtterance, turnIntent } from "../src/flow/fixture-extractor";
 import {
-  attemptFiling,
+  attemptFiling as attemptFilingWithIntent,
   fileableBrief,
   filingFingerprint,
   firstFileableGap,
@@ -16,6 +16,7 @@ import {
 } from "../src/flow/filing-guard";
 import { emptySnapshot } from "../src/flow/planner-snapshot";
 import { runViewportAction } from "../src/flow/viewport-turn";
+import { askedToFile, fileWithIntent } from "../src/proposales/file-with-intent";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../src/proposales/filing";
 import type { BriefDraft, FileBriefResult } from "../src/proposales/types";
 import { shellViewModel } from "../src/view-models/selectors";
@@ -29,6 +30,15 @@ import {
   fileBriefPressable,
   moreOpenedForEmail,
 } from "../src/views/file-brief-state";
+
+function attemptFiling(
+  input: Parameters<typeof attemptFilingWithIntent>[0],
+): ReturnType<typeof attemptFilingWithIntent> {
+  if (input.intent !== undefined) {
+    return attemptFilingWithIntent(input);
+  }
+  return attemptFilingWithIntent({ ...input, intent: askedToFile() });
+}
 
 const englishWords = [
   "the",
@@ -262,6 +272,44 @@ function countingFileClient(mode: "ok" | "throw" | "once") {
 }
 
 describe("attempt filing", () => {
+  it("rejects a filing call without an explicit file intent and sends nothing", async () => {
+    const watched = countingFileClient("ok");
+    const attempt = await attemptFilingWithIntent({
+      brief: readyBrief,
+      filing: null,
+      filingAvailable: true,
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: watched.client,
+      intent: null,
+    });
+    expect(watched.filings).toHaveLength(0);
+    expect(attempt.filing).toBeNull();
+    expect(attempt.notice).toBeNull();
+    let sent = false;
+    type SentFiling = { filing: { path: "inbox"; id: number } | null };
+    const blocked = await fileWithIntent<SentFiling>({
+      intent: null,
+      refused: { filing: null },
+      send: async () => {
+        sent = true;
+        return { filing: { path: "inbox", id: 1 } };
+      },
+    });
+    expect(sent).toBe(false);
+    expect(blocked.filing).toBeNull();
+    const allowed = await fileWithIntent<SentFiling>({
+      intent: askedToFile(),
+      refused: { filing: null },
+      send: async () => {
+        sent = true;
+        return { filing: { path: "inbox", id: 1 } };
+      },
+    });
+    expect(sent).toBe(true);
+    expect(allowed.filing).toEqual({ path: "inbox", id: 1 });
+  });
+
   it("returns a stored filing without calling the client", async () => {
     const watched = countingFileClient("throw");
     const stored: FileBriefResult = { path: "inbox", id: 100 };

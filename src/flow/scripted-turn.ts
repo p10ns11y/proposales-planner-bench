@@ -5,6 +5,7 @@ import { normaliseProposal } from "../domain/normalise-proposal";
 import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
 import { attemptFiling, fileableBrief, releaseStaleFiling } from "./filing-guard";
+import { askedToFile } from "../proposales/file-with-intent";
 import { projectBriefFlow } from "./brief-flow";
 import { addEnglishLanguage } from "./brief-language";
 import { extractBriefPatch, extractPastedOffer, readBudgetScope, turnIntent } from "./fixture-extractor";
@@ -48,6 +49,7 @@ export async function runFixtureTurn(input: {
           selectedCompanyId,
           companies: input.snapshot.companies,
           client: input.client,
+          intent: askedToFile(),
         });
     filing = attempt.filing;
     filingKey = attempt.filingKey;
@@ -133,6 +135,7 @@ export async function runFixtureTurn(input: {
       brief,
       newEvent: null,
       inlinePaused: false,
+      fileAsked: false,
       stage: projected.stage,
       phase,
       offers: projected.offers,

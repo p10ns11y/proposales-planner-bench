@@ -16,6 +16,7 @@ import { offerGroupFromShell } from "../view-models/offer-part";
 import { shellViewModel } from "../view-models/selectors";
 import { modelAttemptSignal, modelIsUsable, plannerLanguageModel } from "./agent-mode";
 import { attemptFiling } from "./filing-guard";
+import { askedToFile } from "../proposales/file-with-intent";
 import { latestUserText, readChatRequest, readSessionSnapshot, type ChatTurnMessage } from "./chat-request";
 import { snapshotForClient, type PlannerSnapshot } from "./planner-snapshot";
 import { runFixtureTurn } from "./scripted-turn";
@@ -242,6 +243,7 @@ export async function fileChatBrief(input: {
     selectedCompanyId,
     companies: input.snapshot.companies,
     client: input.client,
+    intent: askedToFile(),
   });
   return runFixtureTurn({
     text: "file the brief",

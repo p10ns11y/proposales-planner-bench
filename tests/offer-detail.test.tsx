@@ -171,7 +171,7 @@ describe("offer detail", () => {
     expect(within(dialog).getByRole("status").textContent).toBe("The brief is filed.");
   });
 
-  it("opens More on the email field when File is pressed without an email", async () => {
+  it("sends a file utterance from the open detail without opening More", async () => {
     installDomShims();
     const user = userEvent.setup();
     const events: PlannerViewEvent[] = [];
@@ -183,18 +183,10 @@ describe("offer detail", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: "File this brief" }));
-    expect(events.some((event) => event.type === "composerSubmitted")).toBe(false);
-    const email = screen.getByLabelText("Email");
-    expect(email).toBe(document.activeElement);
-    expect(email.getAttribute("id")).toBe("more-contactEmail");
-    expect(email.getAttribute("aria-required")).toBe("true");
-    expect(screen.getByText("Venues reply to this address")).toBeTruthy();
-    const detailStatus = document.querySelector(".planner-detail-sheet [role=status]");
-    expect(detailStatus?.textContent).toBe("Add details opened so venues reply to this address.");
-    await user.click(screen.getByRole("button", { name: "Apply" }));
-    expect(screen.getByRole("dialog", { name: "Add details" })).toBeTruthy();
-    expect(email.getAttribute("aria-invalid")).toBe("true");
+    expect(events).toContainEqual({ type: "composerSubmitted", text: "file" });
     expect(events.some((event) => event.type === "moreEdited")).toBe(false);
+    expect(screen.queryByRole("dialog", { name: "Add details" })).toBeNull();
+    expect(screen.queryByText("Venues reply to this address")).toBeNull();
   });
 
   it("keeps Email optional when More opens from the header", async () => {
@@ -223,8 +215,8 @@ describe("offer detail", () => {
     const resultsFile = screen.getByRole("button", { name: "File this brief" });
     expect(resultsFile.getAttribute("data-lcv-event")).toBe("file-brief");
     await user.click(resultsFile);
-    expect(events.some((event) => event.type === "composerSubmitted")).toBe(false);
-    expect(screen.getByText("Venues reply to this address")).toBeTruthy();
+    expect(events).toEqual([{ type: "composerSubmitted", text: "file" }]);
+    expect(screen.queryByRole("dialog", { name: "Add details" })).toBeNull();
     view.rerender(
       <PlannerShell
         viewModel={model({ openRow: canalLoft })}

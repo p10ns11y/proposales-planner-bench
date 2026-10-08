@@ -4,10 +4,11 @@ import {
   offersForBrief,
   rankComparisonRows,
 } from "../domain/compare-offers";
-import { briefConfirmHold, findBriefGaps, isFileableGap } from "../domain/fitness";
+import { briefConfirmHold, findBriefGaps, isFileableGap, questionForGap } from "../domain/fitness";
 import { minorUnits } from "../domain/minor-units";
 import { briefCurrency, mergeBrief, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
+import { askedToFile } from "../proposales/file-with-intent";
 import type { ProposalesClient } from "../proposales/types";
 import { addEnglishLanguage } from "./brief-language";
 import { describesDifferentEvent } from "./event-split";
@@ -75,10 +76,10 @@ async function applyViewportAction(input: {
       const confirmed = input.action;
       const base =
         confirmed.brief === undefined ? input.snapshot : editBrief(input.snapshot, confirmed.brief);
-      return confirmBrief(base, input.client);
+      return confirmBrief(base);
     }
     case "inlineAnswered":
-      return answerInline(input.snapshot, input.action.field, input.action.value, input.client);
+      return answerInline(input.snapshot, input.action.field, input.action.value, input.client, input.today);
     case "inlineSkipped":
       return skipInline(input.snapshot, input.client, input.today);
     case "moreEdited":
@@ -112,7 +113,7 @@ async function ingestText(
   }
   const cleared = { ...snapshot, notice: null, newEvent: null, inlinePaused: false };
   if (turnIntent(text) === "file") {
-    return tryFile(cleared, client);
+    return applyAskedFile(cleared, client);
   }
   const patch = await readIncomingPatch(text, cleared.brief, readPatch);
   if (keepsFiledBrief(cleared) && describesDifferentEvent(cleared.brief, patch)) {
@@ -126,7 +127,7 @@ async function ingestText(
   }
   if (cleared.phase === "confirm") {
     if (cleared.gaps.length === 0 && isAffirmation(text)) {
-      return confirmBrief(cleared, client);
+      return confirmBrief(cleared);
     }
     return answerGap(cleared, text, patch);
   }
@@ -200,50 +201,38 @@ async function editMore(
   return next;
 }
 
-async function confirmBrief(
-  snapshot: PlannerSnapshot,
-  client: ProposalesClient,
-): Promise<PlannerSnapshot> {
+function confirmBrief(snapshot: PlannerSnapshot): PlannerSnapshot {
   if (briefConfirmHold(snapshot.brief) !== null) {
-    return withConfirmState(snapshot, snapshot.brief);
+    return withConfirmState({ ...snapshot, fileAsked: false }, snapshot.brief);
   }
   const brief = fileableBrief(snapshot.brief);
-  const attempt = await attemptFiling({
-    brief,
-    filing: snapshot.filing,
-    filingKey: snapshot.filingKey,
-    filingAvailable: snapshot.filingAvailable,
-    selectedCompanyId: snapshot.selectedCompanyId,
-    companies: snapshot.companies,
-    client,
-  });
   const firstGap = findBriefGaps(brief, "brief:fileable")[0];
-  const asking = attempt.filing === null && firstGap !== undefined;
+  const asking = firstGap !== undefined;
   const projected = projectBriefFlow({
     brief,
-    filing: attempt.filing,
+    filing: snapshot.filing,
     offers: snapshot.offers,
   });
   const favoritesQuestion = "Which places do you already have in mind? You can skip.";
+  const question = asking && firstGap !== undefined ? questionForGap(firstGap) : favoritesQuestion;
   return {
     ...snapshot,
     brief,
     newEvent: null,
     inlinePaused: false,
+    fileAsked: false,
     filing: projected.filing,
-    filingKey: projected.filing === null ? null : attempt.filingKey,
+    filingKey: projected.filing === null ? null : snapshot.filingKey,
     stage: projected.stage,
-    selectedCompanyId: attempt.selectedCompanyId,
-    filingAvailable: attempt.filingAvailable,
     phase: "favorites",
     gaps: asking && firstGap !== undefined ? [firstGap] : [],
-    nextQuestion: asking && attempt.notice !== null ? attempt.notice : favoritesQuestion,
-    notice: attempt.notice,
+    nextQuestion: question,
+    notice: asking && firstGap !== undefined ? question : null,
     openVenueName: null,
   };
 }
 
-async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Promise<PlannerSnapshot> {
+async function applyAskedFile(snapshot: PlannerSnapshot, client: ProposalesClient): Promise<PlannerSnapshot> {
   const brief = fileableBrief(snapshot.brief);
   const attempt = await attemptFiling({
     brief,
@@ -253,6 +242,7 @@ async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Pro
     selectedCompanyId: snapshot.selectedCompanyId,
     companies: snapshot.companies,
     client,
+    intent: askedToFile(),
   });
   const projected = projectBriefFlow({
     brief,
@@ -266,6 +256,7 @@ async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Pro
     brief,
     newEvent: null,
     inlinePaused: false,
+    fileAsked: !filed && gap !== undefined,
     filing: projected.filing,
     filingKey: projected.filing === null ? null : attempt.filingKey,
     stage: projected.stage,
@@ -282,6 +273,7 @@ async function answerInline(
   field: InlineField,
   value: string,
   client: ProposalesClient,
+  today: string,
 ): Promise<PlannerSnapshot> {
   const patch = inlineValuePatch(field, value);
   if (patch === null) {
@@ -289,10 +281,35 @@ async function answerInline(
   }
   const brief = mergeBrief(snapshot.brief, patch);
   const next = { ...snapshot, brief, newEvent: null, inlinePaused: false, notice: null };
-  if (field === "endTime") {
-    return withConfirmState(next, brief);
+  if (snapshot.fileAsked) {
+    return applyAskedFile(next, client);
   }
-  return tryFile(next, client);
+  return storeInline(next, client, today);
+}
+
+async function storeInline(
+  snapshot: PlannerSnapshot,
+  client: ProposalesClient,
+  today: string,
+): Promise<PlannerSnapshot> {
+  const next = { ...snapshot, fileAsked: false, newEvent: null, inlinePaused: false, notice: null };
+  if (snapshot.phase === "results") {
+    if (briefConfirmHold(next.brief) !== null) {
+      return withConfirmState(next, next.brief);
+    }
+    return rerank(next, client, today);
+  }
+  if (snapshot.phase === "favorites") {
+    const gap = findBriefGaps(fileableBrief(next.brief), "brief:fileable")[0];
+    const favoritesQuestion = "Which places do you already have in mind? You can skip.";
+    return {
+      ...next,
+      gaps: gap === undefined ? [] : [gap],
+      nextQuestion: gap === undefined ? favoritesQuestion : questionForGap(gap),
+      notice: gap === undefined ? null : questionForGap(gap),
+    };
+  }
+  return withConfirmState(next, next.brief);
 }
 
 async function skipInline(
@@ -302,6 +319,7 @@ async function skipInline(
 ): Promise<PlannerSnapshot> {
   const paused: PlannerSnapshot = {
     ...snapshot,
+    fileAsked: false,
     inlinePaused: true,
     notice: leftUnfiledNote,
     newEvent: null,

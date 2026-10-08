@@ -159,21 +159,30 @@ describe("filing turns", () => {
       client: watched.client,
       today,
     });
-    expect(confirmed.snapshot.filing?.path).toBe("draft");
+    expect(confirmed.snapshot.filing).toBeNull();
+    expect(watched.filings).toHaveLength(0);
     const again = await runViewportAction({
       action: { type: "composerSubmitted", text: "file" },
       snapshot: confirmed.snapshot,
       client: watched.client,
       today,
     });
+    expect(again.snapshot.filing?.path).toBe("draft");
     expect(watched.filings).toHaveLength(1);
-    expect(again.snapshot.filing).toEqual(confirmed.snapshot.filing);
-    if (again.snapshot.filing?.path !== "draft") {
+    const repeat = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: again.snapshot,
+      client: watched.client,
+      today,
+    });
+    expect(watched.filings).toHaveLength(1);
+    expect(repeat.snapshot.filing).toEqual(again.snapshot.filing);
+    if (repeat.snapshot.filing?.path !== "draft") {
       return;
     }
-    expect(again.snapshot.notice).toBe(draftCreatedNotice);
+    expect(repeat.snapshot.notice).toBe(draftCreatedNotice);
     const view = shellViewModel({
-      snapshot: again.snapshot,
+      snapshot: repeat.snapshot,
       busy: false,
       errorText: null,
       speechAvailable: false,
@@ -183,7 +192,7 @@ describe("filing turns", () => {
     expect(view.draftConfirmation).toBe(draftCreatedNotice);
   });
 
-  it("shows the filed brief after confirm files it", async () => {
+  it("files the brief once when asked after confirm", async () => {
     const watched = countingClient();
     const snapshot = openingSnapshot(await watched.client.listCompanies());
     const captured = await runViewportAction({
@@ -201,9 +210,17 @@ describe("filing turns", () => {
       client: watched.client,
       today,
     });
-    expect(confirmed.snapshot.filing).toEqual({ path: "inbox", id: 100 });
-    const view = shellViewModel({
+    expect(confirmed.snapshot.filing).toBeNull();
+    expect(watched.filings).toHaveLength(0);
+    const filed = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
       snapshot: confirmed.snapshot,
+      client: watched.client,
+      today,
+    });
+    expect(filed.snapshot.filing).toEqual({ path: "inbox", id: 100 });
+    const view = shellViewModel({
+      snapshot: filed.snapshot,
       busy: false,
       errorText: null,
       speechAvailable: false,
@@ -213,12 +230,12 @@ describe("filing turns", () => {
     expect(view.notice).toBe(briefFiledNotice);
     const again = await runViewportAction({
       action: { type: "composerSubmitted", text: "file" },
-      snapshot: confirmed.snapshot,
+      snapshot: filed.snapshot,
       client: watched.client,
       today,
     });
     expect(watched.filings).toHaveLength(1);
-    expect(again.snapshot.filing).toEqual(confirmed.snapshot.filing);
+    expect(again.snapshot.filing).toEqual(filed.snapshot.filing);
   });
 
   it("asks for a missing language at Yes and does not file", async () => {

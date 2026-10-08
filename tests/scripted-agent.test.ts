@@ -78,7 +78,7 @@ describe("viewport flow without a model key", () => {
     expect(matchFavoriteVenues("skip")).toEqual([]);
   });
 
-  it("files through the first company after confirm and ranks fixture venues", async () => {
+  it("files when asked and ranks fixture venues", async () => {
     const client = createFixtureClient();
     const snapshot = openingSnapshot(await client.listCompanies());
     const captured = await runViewportAction({
@@ -94,11 +94,18 @@ describe("viewport flow without a model key", () => {
       client,
       today,
     });
-    expect(confirmed.snapshot.filing).toEqual({ path: "inbox", id: 100 });
+    expect(confirmed.snapshot.filing).toBeNull();
     expect(confirmed.snapshot.phase).toBe("favorites");
+    const filed = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: confirmed.snapshot,
+      client,
+      today,
+    });
+    expect(filed.snapshot.filing).toEqual({ path: "inbox", id: 100 });
     const ranked = await runViewportAction({
       action: { type: "favoritesSubmitted", text: "Ridge Hall" },
-      snapshot: confirmed.snapshot,
+      snapshot: filed.snapshot,
       client,
       today,
     });
@@ -132,11 +139,18 @@ describe("viewport flow without a model key", () => {
       client,
       today,
     });
-    expect(confirmed.snapshot.filing?.path).toBe("draft");
-    if (confirmed.snapshot.filing?.path !== "draft") {
+    expect(confirmed.snapshot.filing).toBeNull();
+    const filed = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: confirmed.snapshot,
+      client,
+      today,
+    });
+    expect(filed.snapshot.filing?.path).toBe("draft");
+    if (filed.snapshot.filing?.path !== "draft") {
       return;
     }
-    const stored = await client.getProposal(confirmed.snapshot.filing.uuid);
+    const stored = await client.getProposal(filed.snapshot.filing.uuid);
     expect(stored).toMatchObject({
       company_id: 2,
       data: { message: "One plenary and dinner." },
