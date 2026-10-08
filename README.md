@@ -59,6 +59,8 @@ Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the addre
 - [layout-content-view](https://github.com/p10ns11y/plugins/tree/31d93a0355838d8b24511966ae1ba0062c05f012/layout-content-view) at `31d93a0`
 - [Mermaid](https://mermaid.js.org)
 - [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans)
+- [Firecrawl](https://www.firecrawl.dev): the tool I used for research and filtering on the night of 5 Oct.
+- [Superdesign](https://superdesign.dev): the design agent behind the UI.
 
 Back: [start](#planner-bench)
 
