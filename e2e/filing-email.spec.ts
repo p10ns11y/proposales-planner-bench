@@ -95,6 +95,48 @@ test("asks for one missing fileable field at Yes and confirms the filing in chat
   }
 });
 
+test("a typed file without an email files nothing and an edit clears the filed brief", async ({ page }) => {
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await reachResults(page);
+    await page.locator("#composer").fill("file");
+    const asked = waitForTurn(page);
+    await page.locator("[data-lcv-event=send]").click();
+    await asked;
+    await expect(page.getByRole("status")).toHaveText(emailAsk);
+    await expect(page.getByRole("button", { name: "File this brief" })).toBeEnabled();
+    await expect(page.getByText(filedNotice)).toHaveCount(0);
+    await expect(page.getByText("A draft was created in Proposales.")).toHaveCount(0);
+
+    await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+    const drawer = page.getByRole("dialog", { name: "Add details" });
+    await drawer.getByLabel("Email").fill("planner@northwind.example");
+    const saved = waitForTurn(page);
+    await drawer.locator("[data-lcv-event=save-more]").click();
+    await saved;
+    await expect(drawer).toBeHidden();
+
+    const filed = waitForTurn(page);
+    await page.getByRole("button", { name: "File this brief" }).click();
+    await filed;
+    await expect(page.getByText(filedNotice)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Filed" })).toBeDisabled();
+
+    await page.locator("#composer").fill("30 people");
+    const edited = waitForTurn(page);
+    await page.locator("[data-lcv-event=send]").click();
+    await edited;
+    await expect(page.getByRole("button", { name: "File this brief" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Filed" })).toHaveCount(0);
+
+    const refiled = waitForTurn(page);
+    await page.getByRole("button", { name: "File this brief" }).click();
+    await refiled;
+    await expect(page.getByText(filedNotice)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Filed" })).toBeDisabled();
+  }
+});
+
 test("shows a transport error in the open detail and keeps File pressable", async ({ page }) => {
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
