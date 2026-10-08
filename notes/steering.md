@@ -49,7 +49,7 @@ My framing: Grok Bot plus Cursor cloud agents, until steering from a phone was e
 
 | In this repo | |
 | --- | --- |
-| Branches | 28 of 29 merged pull requests use a branch name with `cursor`. |
+| Branches | 31 of 35 merged pull requests use a branch name with `cursor`. |
 | Trailers | Ten commits on 7 Oct carry a Cursor Agent trailer. The work log names a cloud agent that day. |
 | Card | The productize card names cursor-agent in ask mode (`eea1d9b`). |
 | Grok Bot | The [reference pack](design-refs/REFERENCE-PACK.md) uses it as the look of the chat column. It does not record steering. |

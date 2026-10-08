@@ -48,7 +48,7 @@ Add details opens from the right, filled from the brief. One fold stays open: Co
 | English with no stated language stores `en` | — |
 | A missing email, end date, or end time is an input with Save and Skip | — |
 | The word `file` returns a stored filing and makes no second Proposales call | — |
-| File with no email opens Add details and focuses Email. The same gap check keeps File off when another filing fact is missing | — |
+| File with no email shows the email input. Save on that card files. Another gap keeps File off. Yes does not file | — |
 | After filing, a different city or start date offers Start a new chat | — |
 | After filing, that button reads Filed and is disabled | Favorites are a mark on the ranked list |
 

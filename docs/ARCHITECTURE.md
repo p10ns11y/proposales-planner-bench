@@ -101,31 +101,30 @@ Fileable means email, both dates, attendees, a language, and rooms when the end 
 
 | Trigger | Result |
 | --- | --- |
-| Yes, filing stored | No post. Notice cleared. Favorites |
-| Yes, no email | Email input, Save, and Skip. No post. Save tries to file. Skip sets `Left unfiled.` |
-| Yes, end date or end time is the gap | That input, Save, and Skip. Save on an end time returns to confirm. Save on an end date tries to file. Skip sets `Left unfiled.` |
+| Yes | No post. Any file ask is cleared |
+| Yes, no email | Email input, Save, and Skip. Save stores the email and does not file. Skip sets `Left unfiled.` |
+| Yes, end date or end time is the gap | That input, Save, and Skip. Save stores the value and does not file. Skip sets `Left unfiled.` |
 | Yes, another gap | One sentence for that gap. No post |
-| Yes, fileable | Selected company, else the first. Then post |
-| `file`, filing stored | Return it. No Proposales call. Phase stays |
-| `file`, email, end date, or end time missing | That input, Save, and Skip. Save on an email or an end date tries to file. File stays enabled when the only gap is email. |
-| `file`, another gap | File is disabled. The same gap check writes the hint. No post. Phase stays |
-| No company, filing open | Yes: no post, empty notice. `file`: `Which company should receive the brief?` |
+| Yes, fileable | Favorites. No post |
+| `file`, `file it`, `file this`, or `file this brief`, filing stored | Return it. No second Proposales call. Phase stays |
+| Exact file phrase, email, end date, or end time missing | That input, Save, and Skip. Save on that card tries to file. File stays enabled when the only gap is email |
+| Exact file phrase, another gap | File is disabled. The same gap check writes the hint. No post. Phase stays |
+| No company, filing open | Yes: no post. Exact file phrase: `Which company should receive the brief?` |
 | No company, filing closed | `Filing is unavailable right now.` |
 | Inbox token | `POST /v1/inbox/{token}`. No bearer. `The brief is filed.` |
 | No token | `POST /v3/proposals`. Bearer. Detail and thread: `A draft was created in Proposales.` |
 | Post throws | `Filing is unavailable right now.` No draft sentence |
-| Yes, after the post | Favorites. Notice empty on success |
-| `file`, after the post | Phase stays. Inbox sentence on the notice |
+| Exact file phrase, after the post | Phase stays. Inbox sentence on the notice |
 
 `addEnglishLanguage` stores `en` for two words from a small English list, with no accents and no Swedish, French, or German markers. A set language, a patch language, `in swedish`, `på svenska`, or `Language` plus two letters other than `en` stays.
 
-One `firstFileableGap` check feeds the hint and the File button. A single-day brief uses the start date as the end date for that check, so an end-date hint does not sit beside an enabled File button. Detail sends `file` when an email is set. No email opens Add details, focuses Email, and makes no server call. The detail says `Add details opened so venues reply to this address.` An end date or end time still missing is an input in the detail, with Save and Skip, and the status line stays hidden unless there is an error. After filing, the button reads Filed and is disabled. A later city or start date keeps the filed brief and shows `Start a new chat for {name}.` The button starts a fresh chat.
+One `firstFileableGap` check feeds the hint and the File button. A single-day brief uses the start date as the end date for that check, so an end-date hint does not sit beside an enabled File button. A File press sends the exact phrase `file` and does not open Add details. Yes does not file. Save files only on a card opened by that press or by an exact file phrase. Any other gap keeps File off. An inline card hides the status line unless there is an error. After filing, the button reads Filed and is disabled. A later city or start date keeps the filed brief and shows `Start a new chat for {name}.` The button starts a fresh chat.
 
 `projectBriefFlow` is `collecting`, `fileable`, `filed`, or `comparing`. Offers append only from `filed`. Ranked rows can still show while `collecting` or `fileable`.
 
 An empty event name uses city and date. Dates are `Z` timestamps, `00:00` when the clock is missing. Inbox `is_test` is `1`. `draftBody` is the inbox fields plus `planner_bench_brief`, not a stored `Proposal.data`.
 
-`/api/chat` files in `runFixtureTurn` when the text says file and the company id is `selectedCompanyId`. `fileBrief` sends `file the brief` and may set the company. Chat can post again. The page returns the stored filing.
+`/api/chat` files only when the user text is an exact file phrase. The page button sends `file`. A stored filing comes back with no second post.
 
 ## Contract
 

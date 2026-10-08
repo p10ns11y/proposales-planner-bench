@@ -6,9 +6,9 @@ Session span beside commits and merged pull requests. The span figures are a sup
 xychart-beta
   title "Commits as bars, merged pull requests as a line"
   x-axis ["5 Oct", "6 Oct", "7 Oct", "8 Oct"]
-  y-axis "Count" 0 --> 20
-  bar [0, 16, 15, 14]
-  line [0, 1, 14, 14]
+  y-axis "Count" 0 --> 24
+  bar [0, 16, 15, 20]
+  line [0, 1, 14, 20]
 ```
 
 ## Session span
@@ -20,7 +20,7 @@ Method: the owner's message, call, mail, and commit timestamps; a gap over 25 mi
 | Mon 5 Oct | 1.6 h | 1.1–2.0 | estimate | 0 | 0 |
 | Tue 6 Oct | 4.0 h | 2.4–5.0 | estimate | 16 | 1 |
 | Wed 7 Oct | 6.9 h | 5.1–8.0 | session span, mostly agent build time with short human input | 15 | 14 |
-| Thu 8 Oct, to 14:57 | 3.8 h | 2.5–4.6 | session span, mostly agent build time with short human input | 14 | 14 |
+| Thu 8 Oct, to 14:57 | 3.8 h | 2.5–4.6 | session span, mostly agent build time with short human input | 20 | 20 |
 
 All four days, session span (estimate): about 16 h (11–19.5). About 9 h in five focus blocks and about 7 h in short bursts.
 
@@ -28,24 +28,23 @@ Mon 5 Oct and Tue 6 Oct keep the plain estimate label. On Wed 7 Oct and Thu 8 Oc
 
 laptop-1 sessions with Grok Build and cursor-agent show only through commits, so 5–6 Oct may be higher.
 
-Thursday's span stops at 14:57. Commits and merged pull requests are the whole Stockholm day. In this snapshot the latest stamp on 8 Oct is 13:05 Stockholm time.
+Thursday's span stops at 14:57. Commits and merged pull requests are the whole Stockholm day. In this snapshot the latest stamp on 8 Oct is 18:45 Stockholm time.
 
 ## Other counts
 
 | What | Number |
 | --- | --- |
-| Commits on main, 5–8 Oct | 48 |
-| Pull requests merged | 32 |
+| Commits on main, 5–8 Oct | 51 |
+| Pull requests merged | 35 |
 | Issues closed | 27 (11 open) |
 | ship-by-thursday issues | 19, all closed |
-| V-findings issues | 10 (V1–V6, V8–V10, U1), all closed |
-| Vitest tests | 240 |
-| Playwright tests | 25 |
-| Vitest plus Playwright | 265 |
-| Production deploys | 30 |
-| Rollbacks | 1 |
+| Finding issues | 11 (V1–V6, V8–V10, U1, U3), all closed |
+| Vitest tests | 329 passed, 36 files, 40.89 s |
+| Playwright tests | 27 in 6 files |
+| Vitest plus Playwright | 356 |
+| Production deploys | 34 listed (33 ready, 1 error) |
 
-Counted from GitHub, Vercel and a test run on main at `8e61a26`, 8 Oct 17:35 UTC+2.
+Counted on main at `182b6f4`. The production list does not show a completed rollback. Commands: [evidence](../docs/evidence/reading-path.md).
 
 ## Written log
 
@@ -64,7 +63,7 @@ UTC+2. This is the log as written with the pages. It is not the session-span est
 | --- | --- | --- |
 | ~154 min | 24 | Cursor, Grok build, cloud agent |
 
-Counts are `origin/main` at `4b99a6a`. Open pull requests are not in the totals.
+Open pull requests are not in the totals.
 
 Back: [Architecture](../docs/ARCHITECTURE.md)
 

@@ -25,7 +25,7 @@ A normal sentence is dropped. "Hi, I need a place in Stockholm for 40 people on 
 
 The only message that fills the form is a labelled dump: title, organisation, email, start, end, attendees, language, city, meeting rooms, food, notes. Nothing on the page shows that shape.
 
-The assistant then coaches "Say file the brief" and "Say add the venue proposals". A shorter reply has to work. "file" must count. Those two phrases do file and then show the grid. History goes to 1.
+The assistant then coaches "Say file the brief" and "Say add the venue proposals". A shorter reply has to work. "file" must count. The exact phrases that file are `file`, `file it`, `file this`, and `file this brief`.
 
 ## Names
 

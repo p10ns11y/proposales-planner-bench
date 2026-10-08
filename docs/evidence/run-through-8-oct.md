@@ -18,7 +18,7 @@ After the change the same chat is one row. The name comes from the brief (Lunch 
 
 ## Email
 
-Typing file with no email used to show "Add an email under Add details so venues reply to this address." The same card now has an email field, Save, and Skip. File this brief stays enabled and still opens Add details.
+Typing file with no email used to show "Add an email under Add details so venues reply to this address." The same card now has an email field, Save, and Skip. File this brief stays enabled. It does not open Add details.
 
 ![Email phone before](run-through-8-oct/before-file-email-390x844.png)
 
