@@ -17,6 +17,8 @@ on:
       - ".env.example"
       - "stryker.config.mjs"
       - ".github/workflows/planner-bench.yml"
+      - "!**/*.md"
+      - "!docs/**"
   pull_request:
     paths:
       - "*"
@@ -33,6 +35,8 @@ on:
       - ".env.example"
       - "stryker.config.mjs"
       - ".github/workflows/planner-bench.yml"
+      - "!**/*.md"
+      - "!docs/**"
 
 permissions:
   contents: read
