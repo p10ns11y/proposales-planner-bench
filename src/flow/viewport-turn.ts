@@ -392,6 +392,9 @@ function keepsFileCard(snapshot: PlannerSnapshot, field?: InlineField): boolean 
 }
 
 function preservesFileAsk(snapshot: PlannerSnapshot, action: ViewportAction): boolean {
+  if (action.type === "rowOpened" || action.type === "rowClosed" || action.type === "showMore") {
+    return true;
+  }
   if (action.type === "inlineAnswered") {
     return keepsFileCard(snapshot, action.field);
   }

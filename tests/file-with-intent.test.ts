@@ -178,6 +178,51 @@ describe("file intent", () => {
     expect(fileBriefLabel(viewOf(saved.snapshot).filed)).toBe("Filed");
   });
 
+  it("files exactly once when Save follows File after the detail closes", async () => {
+    const opened = await capture(withoutEmail);
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: opened.snapshot,
+      client: opened.client,
+      today,
+    });
+    const ranked = await runViewportAction({
+      action: { type: "favoritesSubmitted", text: "skip" },
+      snapshot: confirmed.snapshot,
+      client: opened.client,
+      today,
+    });
+    const shown = await runViewportAction({
+      action: { type: "rowOpened", venueName: "Harbour House" },
+      snapshot: ranked.snapshot,
+      client: opened.client,
+      today,
+    });
+    const asked = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: shown.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(asked.snapshot.fileAsked).toBe(true);
+    const closed = await runViewportAction({
+      action: { type: "rowClosed" },
+      snapshot: asked.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(closed.snapshot.fileAsked).toBe(true);
+    expect(opened.filings).toHaveLength(0);
+    const saved = await runViewportAction({
+      action: { type: "inlineAnswered", field: "contactEmail", value: "planner@northwind.example" },
+      snapshot: closed.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(opened.filings).toHaveLength(1);
+    expect(saved.snapshot.filing?.path).toBe("draft");
+  });
+
   it("shows an end time card and save or skip does not file", async () => {
     const opened = await capture(sameDay);
     expect(viewOf(opened.snapshot).inlineAsk).toEqual({ field: "endTime", inputType: "time", label: "End time" });
