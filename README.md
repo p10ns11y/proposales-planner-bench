@@ -17,13 +17,16 @@ Live: [proposales-planner-bench.vercel.app](https://proposales-planner-bench.ver
 ```mermaid
 flowchart LR
   A[Front page] --> B[Actualization] --> C[Product] --> D[Architecture] --> E[Work log] --> F[Steering]
-  click A "./README.md" "Front page"
-  click B "./notes/actualization.md" "Actualization"
-  click C "./notes/planner-product.md" "Product"
-  click D "./docs/ARCHITECTURE.md" "Architecture"
-  click E "./notes/worklog.md" "Work log"
-  click F "./notes/steering.md" "Steering"
+  click A href "https://github.com/p10ns11y/proposales-planner-bench/blob/main/README.md" "Front page" _blank
+  click B href "https://github.com/p10ns11y/proposales-planner-bench/blob/main/notes/actualization.md" "Actualization" _blank
+  click C href "https://github.com/p10ns11y/proposales-planner-bench/blob/main/notes/planner-product.md" "Product" _blank
+  click D href "https://github.com/p10ns11y/proposales-planner-bench/blob/main/docs/ARCHITECTURE.md" "Architecture" _blank
+  click E href "https://github.com/p10ns11y/proposales-planner-bench/blob/main/notes/worklog.md" "Work log" _blank
+  click F href "https://github.com/p10ns11y/proposales-planner-bench/blob/main/notes/steering.md" "Steering" _blank
 ```
+
+Read in order: [Front page](./README.md), [Actualization](./notes/actualization.md), [Product](./notes/planner-product.md), [Architecture](./docs/ARCHITECTURE.md), [Work log](./notes/worklog.md), [Steering](./notes/steering.md).
+
 ## Run
 
 ```bash
