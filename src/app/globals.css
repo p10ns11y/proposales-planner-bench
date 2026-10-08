@@ -291,6 +291,32 @@ body:has(.planner-drawer[data-state="open"]) .planner-header {
   padding: 14px 16px;
 }
 
+.planner-file-suggestion {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  border-radius: 2px 16px 16px;
+  background: var(--surface-assistant);
+  padding: 14px 16px;
+}
+
+.planner-file-suggestion > .planner-assistant-bubble {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.planner-file-suggestion > .planner-actions {
+  flex: none;
+  margin-left: auto;
+}
+
 .planner-text {
   margin: 0;
   white-space: pre-line;

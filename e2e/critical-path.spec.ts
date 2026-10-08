@@ -497,7 +497,7 @@ test("names the details control the same in the header, composer, and drawer", a
   }
 });
 
-test("places File this brief below the ranked venues", async ({ page }) => {
+test("places File this brief on the best-match suggestion", async ({ page }) => {
   for (const viewport of sizedViewports) {
     await page.setViewportSize(viewport);
     await reachResults(page);
@@ -505,63 +505,55 @@ test("places File this brief below the ranked venues", async ({ page }) => {
     await thread.evaluate((node) => {
       node.scrollTop = node.scrollHeight;
     });
-    const file = page.locator(".planner-assistant [data-lcv-event=file-brief]");
+    const file = page.locator(".planner-file-suggestion [data-lcv-event=file-brief]");
     await expect(file).toHaveText("File this brief");
     await expect(file).toBeEnabled();
-    const placed = await page.evaluate(() => {
-      const summary = document.querySelector("[data-lcv-count=reply]");
-      const fileButton = document.querySelector(".planner-assistant [data-lcv-event=file-brief]");
-      const cards = [...document.querySelectorAll("[data-offer-card]")];
-      const first = cards[0];
-      const last = cards.at(-1);
+    const placed = await page.evaluate((width) => {
+      const row = document.querySelector(".planner-file-suggestion");
+      const summary = row?.querySelector("[data-lcv-count=reply]");
+      const fileButton = row?.querySelector("[data-lcv-event=file-brief]");
+      const last = [...document.querySelectorAll("[data-offer-card]")].at(-1);
       const threadNode = document.querySelector(".planner-thread");
       if (
+        !(row instanceof HTMLElement) ||
         !(summary instanceof HTMLElement) ||
         !(fileButton instanceof HTMLButtonElement) ||
-        !(first instanceof HTMLElement) ||
         !(last instanceof HTMLElement) ||
         !(threadNode instanceof HTMLElement)
       ) {
         return null;
       }
+      const rowBox = row.getBoundingClientRect();
       const summaryBox = summary.getBoundingClientRect();
-      const firstBox = first.getBoundingClientRect();
       const lastBox = last.getBoundingClientRect();
       const fileBox = fileButton.getBoundingClientRect();
-      const points = [
-        [fileBox.left + fileBox.width / 2, fileBox.top + fileBox.height / 2],
-        [fileBox.left + 8, fileBox.top + 8],
-        [fileBox.right - 8, fileBox.bottom - 8],
-      ];
-      const covered = points.some(([x, y]) => {
-        const hit = document.elementFromPoint(x, y);
-        return hit === null || !fileButton.contains(hit);
-      });
+      const overlaps =
+        fileBox.top < summaryBox.bottom && fileBox.bottom > summaryBox.top && fileBox.left > summaryBox.left;
+      const wrapped = fileBox.top >= summaryBox.bottom - 1;
+      const inside =
+        fileBox.left >= rowBox.left - 1 &&
+        fileBox.right <= rowBox.right + 1 &&
+        fileBox.top >= rowBox.top - 1 &&
+        fileBox.bottom <= rowBox.bottom + 1 &&
+        summaryBox.left >= rowBox.left - 1 &&
+        summaryBox.right <= rowBox.right + 1;
       return {
-        summaryAbove: summaryBox.bottom <= firstBox.top + 1,
-        fileBelow: fileBox.top >= lastBox.bottom - 0.5,
-        fileTop: fileBox.top,
-        fileLeft: fileBox.left,
-        fileRight: fileBox.right,
-        fileBottom: fileBox.bottom,
-        covered,
+        belowResults: rowBox.top >= lastBox.bottom - 1,
+        inside,
+        beside: width >= 800 ? overlaps && fileBox.right > summaryBox.right - 1 : inside && (overlaps || wrapped),
+        wrapGap: wrapped ? fileBox.top - summaryBox.bottom : 0,
         threadOverflow: threadNode.scrollWidth > threadNode.clientWidth + 1,
-        docOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };
-    });
+    }, viewport.width);
     expect(placed).not.toBeNull();
     if (placed === null) {
       return;
     }
-    expect(placed.summaryAbove).toBe(true);
-    expect(placed.fileBelow).toBe(true);
-    expect(placed.fileTop).toBeGreaterThanOrEqual(0);
-    expect(placed.fileLeft).toBeGreaterThanOrEqual(0);
-    expect(placed.fileRight).toBeLessThanOrEqual(viewport.width + 1);
-    expect(placed.fileBottom).toBeLessThanOrEqual(viewport.height);
-    expect(placed.covered).toBe(false);
+    expect(placed.belowResults).toBe(true);
+    expect(placed.inside).toBe(true);
+    expect(placed.beside).toBe(true);
+    expect(placed.wrapGap).toBeLessThanOrEqual(16);
     expect(placed.threadOverflow).toBe(false);
-    expect(placed.docOverflow).toBe(false);
   }
 });
 

@@ -14,11 +14,11 @@ At 1280×800 the summary ended at 256, the button ran from 264 to 308, and the l
 
 ## After
 
-The order is the summary, the ranked venues, then File this brief. The label stays "File this brief" and the test id stays `file-brief`.
+The best-match suggestion sits in one row under the ranked venues. File this brief is in that same row, on the right. The label stays "File this brief" and the test id stays `file-brief`.
 
-At 390×844, after scrolling to the end, the last venue row ends at 632 and the button runs from 680 to 724. It sits inside the viewport, above the composer. The thread does not scroll sideways.
+At 1280×800 the suggestion and the button share one line. The button starts to the right of the sentence.
 
-At 1280×800 the summary ends at 256, the last venue row ends at 588, and the button runs from 636 to 680, inside the viewport.
+At 390×844 the sentence wraps and the button stays on the right inside the same row. There is no second block between them.
 
 ![Phone after](cursor-file-button-order-f6d8/after-phone.png)
 

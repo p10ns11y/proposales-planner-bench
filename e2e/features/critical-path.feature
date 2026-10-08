@@ -131,18 +131,14 @@ Feature: Planner critical path
     When the visitor opens it from the composer
     Then the same drawer is open
 
-  Scenario: places File this brief below the ranked venues
+  Scenario: places File this brief on the best-match suggestion
     Given the ranked results
     When the visitor scrolls the thread at 390 by 844
-    Then the summary sits above the venue rows
-    And the File button top is below the last venue row bottom
-    And the File button is fully visible
-    And the thread does not scroll sideways
+    Then File this brief sits in the suggestion row below the venues
+    And that row keeps the button attached to the suggestion
     When the visitor scrolls the thread at 1280 by 800
-    Then the summary sits above the venue rows
-    And the File button top is below the last venue row bottom
-    And the File button is fully visible
-    And the thread does not scroll sideways
+    Then File this brief sits in the suggestion row below the venues
+    And the button is on the right of that suggestion
 
   Scenario: separates the budget on the confirm step
     Given a phone or a desktop viewport and a full-day brief waiting on confirm
