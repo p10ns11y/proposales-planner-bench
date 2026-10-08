@@ -116,7 +116,7 @@ describe("result cards", () => {
     expect(ranked.proposals()).toBe(offers + 1);
   });
 
-  it.each(["hi", "hello", "thanks"])(
+  it.each(["hi", "hello", "thanks", "ok", "okay", "yes"])(
     "answers %s with a reply and leaves the card",
     async (text) => {
       const ranked = await rankedChat();
@@ -185,6 +185,22 @@ describe("result cards", () => {
     expect(edited.snapshot.resultCards[0]?.summary).toContain("40");
     expect(edited.snapshot.resultCards[1]?.summary).toContain("45");
     expect(edited.snapshot.resultCards[1]?.id).not.toBe(before?.id);
+  });
+
+  it("leaves the card when Apply changes nothing", async () => {
+    const ranked = await rankedChat();
+    const before = ranked.snapshot.resultCards[0];
+    const offers = ranked.proposals();
+    const edited = await runViewportAction({
+      action: { type: "moreEdited", details: { attendeeCount: "40" } },
+      snapshot: ranked.snapshot,
+      client: ranked.client,
+      today,
+    });
+    expect(edited.snapshot.brief).toEqual(ranked.snapshot.brief);
+    expect(edited.snapshot.resultCards).toHaveLength(1);
+    expect(edited.snapshot.resultCards[0]).toBe(before);
+    expect(ranked.proposals()).toBe(offers);
   });
 
   it("appends a card when Save in results changes the brief", async () => {

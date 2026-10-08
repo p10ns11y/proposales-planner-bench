@@ -17,7 +17,7 @@ test("greetings stay in the chat and leave the card", async ({ page }) => {
     const cards = page.locator("[data-result-card]");
     await expect(cards).toHaveCount(1);
     const firstVenues = await venueNames(cards.nth(0));
-    for (const text of ["hi", "hello", "thanks"]) {
+    for (const text of ["hi", "hello", "thanks", "ok", "okay", "yes"]) {
       await send(page, text);
       await expect(page.getByText("Let's get back to planning the event.")).toBeVisible();
       await expect(cards).toHaveCount(1);

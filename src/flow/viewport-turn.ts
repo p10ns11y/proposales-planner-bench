@@ -217,6 +217,9 @@ async function editMore(
   }
   const next = { ...snapshot, brief, notice: null };
   if (snapshot.phase === "results") {
+    if (JSON.stringify(brief) === JSON.stringify(snapshot.brief)) {
+      return snapshot;
+    }
     const ranked = await rerank(next, client, today, "append", moreQuery(details));
     return preserveOpenVenue(ranked, snapshot.openVenueName);
   }

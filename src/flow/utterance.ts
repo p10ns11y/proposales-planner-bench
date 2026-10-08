@@ -25,7 +25,7 @@ export function utteranceKind(text: string, phase: ViewportPhase): UtteranceKind
   if (phase === "favorites") {
     return "plan";
   }
-  if (isAffirmation(trimmed) && (phase === "confirm" || phase === "results")) {
+  if (phase === "confirm" && isAffirmation(trimmed)) {
     return "plan";
   }
   if (isPlannerText(trimmed)) {

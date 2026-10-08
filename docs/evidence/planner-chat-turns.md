@@ -10,6 +10,11 @@ After a Stockholm result card, each of these replies "Let's get back to planning
 - hi
 - hello
 - thanks
+- ok
+- okay
+- yes
+
+On the recap, typed Yes and the Yes button still move on to favourites.
 
 ## A word that fills a field
 
@@ -17,7 +22,7 @@ After a Stockholm result card, each of these replies "Let's get back to planning
 
 ## Brief changes
 
-Drawer Apply from 40 to 45 guests appends a card. The earlier card still shows 40 guests. Inline Save in results appends a card. A favourite ranking that changes appends a card. An unchanged ranking keeps the same card. Show more expands the latest card in place, including after hi. The control label is Further matches.
+Drawer Apply from 40 to 45 guests appends a card. The earlier card still shows 40 guests. Apply with the same guest count leaves that card and sends no offers request. Inline Save in results appends a card. A favourite ranking that changes appends a card. An unchanged ranking keeps the same card. Show more expands the latest card in place, including after hi. The control label is Further matches.
 
 ## Narrow
 
@@ -25,16 +30,16 @@ Drawer Apply from 40 to 45 guests appends a card. The earlier card still shows 4
 
 ## Filing
 
-The filing sweep includes the weather follow-up, refine, and hi, hello, and thanks. Each leaves filing null and the filings list empty. File, then hi or "pick only two", clears the press. A later Save files nothing. Filing still goes through `fileWithIntent`. The caller scan in `tests/file-with-intent.test.ts` passed with the unit suite.
+The filing sweep includes the weather follow-up, refine, hi, hello, thanks, and ok, okay, and yes in results. Each leaves filing null and the filings list empty. File, then hi or "pick only two", clears the press. A later Save files nothing. Filing still goes through `fileWithIntent`. The caller scan in `tests/file-with-intent.test.ts` passed with the unit suite.
 
 ## Browser
 
-`e2e/result-cards.spec.ts` runs the weather sequence, hi, hello, thanks, Apply from 40 to 45 after hi, and Further matches after hi, at 390×844 and 1280×800. The thread does not scroll sideways. The Playwright list in `scripts/verify.mjs` passed: 31 tests.
+`e2e/result-cards.spec.ts` runs the weather sequence, hi, hello, thanks, ok, okay, yes, Apply from 40 to 45 after hi, and Further matches after hi, at 390×844 and 1280×800. The thread does not scroll sideways. The Playwright list in `scripts/verify.mjs` passed: 31 tests.
 
 ## Other checks
 
 - `pnpm typecheck` passed
 - `pnpm lint` passed
-- `pnpm exec vitest run` passed: 37 files, 352 tests
+- `pnpm exec vitest run` passed: 37 files, 359 tests
 - `pnpm exec node scripts/crap-score.mjs` — worst `briefWrittenInEnglish` at 6.00, threshold 6. `src/flow/result-cards.ts` is in that scope. `rememberRank` is 5.00.
 - The mutation file list and its 0.95 line are unchanged.
