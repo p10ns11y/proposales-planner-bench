@@ -2,6 +2,7 @@ import { findBriefGaps, questionForGap } from "../domain/fitness";
 import { singleDayClockBrief, type PlannerBrief } from "../domain/planner-brief";
 import { briefDraftFromPlanner } from "./brief-draft";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
+import { fileWithIntent, sendFileBrief } from "../proposales/file-with-intent";
 import type { FileBriefResult, ProposalesClient } from "../proposales/types";
 
 export function noticeForFiling(path: FileBriefResult["path"]): string {
@@ -65,6 +66,7 @@ type AttemptInput = {
   selectedCompanyId: number | null;
   companies: readonly { id: number }[];
   client: Pick<ProposalesClient, "fileBrief">;
+  utterance: string | null;
 };
 
 function token(value: string | number | boolean | undefined): string {
@@ -213,7 +215,7 @@ function missingCompanyNotice(filingAvailable: boolean): string {
 
 async function postFiling(input: AttemptInput, selectedCompanyId: number): Promise<FilingAttempt> {
   try {
-    const filing = await input.client.fileBrief(briefDraftFromPlanner(input.brief, selectedCompanyId));
+    const filing = await sendFileBrief(input.client, briefDraftFromPlanner(input.brief, selectedCompanyId));
     return {
       filing,
       filingKey: filingFingerprint(input.brief),
@@ -246,5 +248,15 @@ export async function attemptFiling(input: AttemptInput): Promise<FilingAttempt>
   if (selectedCompanyId === null) {
     return held(ready, missingCompanyNotice(ready.filingAvailable));
   }
-  return postFiling(ready, selectedCompanyId);
+  return fileWithIntent({
+    utterance: input.utterance,
+    refused: {
+      filing: null,
+      filingKey: null,
+      notice: null,
+      filingAvailable: ready.filingAvailable,
+      selectedCompanyId,
+    },
+    send: () => postFiling(ready, selectedCompanyId),
+  });
 }

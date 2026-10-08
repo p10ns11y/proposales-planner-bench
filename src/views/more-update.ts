@@ -12,6 +12,13 @@ export function moreUpdateLine(details: Partial<MoreFieldValues>): string {
     foodPart(details.foodRequired),
     notesPart(details.notes),
     budgetPart(details.budget),
+    namedPart(details.city, "city cleared"),
+    namedPart(details.startDate, "start date cleared"),
+    namedPart(details.endDate, "end date cleared"),
+    namedPart(details.startTime, "start time cleared"),
+    namedPart(details.endTime, "end time cleared"),
+    basisPart(details.budgetBasis),
+    namedPart(details.currency, "currency cleared"),
   ].filter(presentPart);
   if (parts.length === 0) {
     return "Nothing changed";
@@ -82,6 +89,19 @@ function notesPart(value: string | undefined): string | null {
     return "notes cleared";
   }
   return "notes updated";
+}
+
+function basisPart(value: MoreFieldValues["budgetBasis"] | undefined): string | null {
+  if (value === undefined) {
+    return null;
+  }
+  if (value === "") {
+    return "budget basis cleared";
+  }
+  if (value === "per-person") {
+    return "budget per person";
+  }
+  return "budget total";
 }
 
 function budgetPart(value: string | undefined): string | null {

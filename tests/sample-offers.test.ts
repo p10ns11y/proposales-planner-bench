@@ -235,11 +235,19 @@ describe("filing failures", () => {
       today: "2026-10-06",
     });
     expect(confirmed.snapshot.filing).toBeNull();
-    expect(confirmed.snapshot.filingAvailable).toBe(false);
-    expect(confirmed.snapshot.notice).toBe(filingUnavailableNotice);
+    expect(confirmed.snapshot.filingAvailable).toBe(true);
+    const asked = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: confirmed.snapshot,
+      client,
+      today: "2026-10-06",
+    });
+    expect(asked.snapshot.filing).toBeNull();
+    expect(asked.snapshot.filingAvailable).toBe(false);
+    expect(asked.snapshot.notice).toBe(filingUnavailableNotice);
     const ranked = await runViewportAction({
       action: { type: "favoritesSubmitted", text: "skip" },
-      snapshot: confirmed.snapshot,
+      snapshot: asked.snapshot,
       client,
       today: "2026-10-06",
     });

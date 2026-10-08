@@ -16,7 +16,7 @@ import { renderPart } from "../transport/render-part";
 import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
 import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
-import { fileBriefChoice, fileBriefLabel, fileBriefPressable, moreOpenedForEmail } from "./file-brief-state";
+import { fileBriefChoice, fileBriefLabel, fileBriefPressable } from "./file-brief-state";
 import { InlineAskCard, NewEventCard } from "./inline-ask-card";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
@@ -304,15 +304,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       filed: viewModel.filed,
       busy: viewModel.busy,
       ready: viewModel.ready,
-      email: viewModel.more.contactEmail,
     });
     if (choice === "ignore") {
-      return;
-    }
-    if (choice === "ask-email") {
-      setFocusEmail(true);
-      setDetailNote(moreOpenedForEmail);
-      setMoreOpen(true);
       return;
     }
     setFocusEmail(false);
@@ -363,12 +356,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       filed: viewModel.filed,
       ready: viewModel.ready,
     }) && !fileBlocked;
-  const detailInline =
-    viewModel.inlineAsk !== null && viewModel.inlineAsk.field !== "contactEmail" ? viewModel.inlineAsk : null;
+  const detailInline = openOffer === null ? null : viewModel.inlineAsk;
   const showResultsFile = viewModel.phase === "results" && viewModel.rows.length > 0;
   const liveCopy = (
     <LiveCopy
-      viewModel={viewModel}
+      viewModel={detailInline === null ? viewModel : { ...viewModel, inlineAsk: null }}
       onConfirm={() => {
         pushTurn("Yes");
         lastKind.current = "search";

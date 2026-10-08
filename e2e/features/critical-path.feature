@@ -57,10 +57,8 @@ Feature: Planner critical path
   Scenario: files an English brief from the detail after the email is filled
     Given a wide desktop viewport and the ranked results
     When the visitor opens the first offer and chooses File this brief
-    Then the dialog "Add details" is visible
-    And Email is focused
+    Then the chat asks for an email
     When the visitor sets Email to "planner@northwind.example" and saves
-    And the visitor chooses File this brief
     Then the status is "The brief is filed."
     And Filed is disabled
     When the visitor chooses Filed

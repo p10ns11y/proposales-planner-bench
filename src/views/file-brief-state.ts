@@ -1,16 +1,8 @@
-export type FileBriefChoice = "ignore" | "ask-email" | "send";
+export type FileBriefChoice = "ignore" | "send";
 
-export function fileBriefChoice(input: {
-  filed: boolean;
-  busy: boolean;
-  ready: boolean;
-  email: string;
-}): FileBriefChoice {
+export function fileBriefChoice(input: { filed: boolean; busy: boolean; ready: boolean }): FileBriefChoice {
   if (!input.ready || input.busy || input.filed) {
     return "ignore";
-  }
-  if (input.email.trim() === "") {
-    return "ask-email";
   }
   return "send";
 }
@@ -24,8 +16,6 @@ export function fileBriefDisabled(busy: boolean, filed: boolean): boolean {
 }
 
 export const emailReplyHint = "Venues reply to this address";
-
-export const moreOpenedForEmail = "Add details opened so venues reply to this address.";
 
 export function emailApplyDecision(input: { required: boolean; email: string }): "apply" | "need-email" {
   if (!input.required) {

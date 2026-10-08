@@ -40,7 +40,7 @@ export function isFileUtterance(text: string): boolean {
 
 export function turnIntent(text: string): TurnIntent {
   const normalised = text.toLowerCase();
-  if (normalised.includes("file the brief") || isFileUtterance(normalised)) {
+  if (isFileUtterance(text)) {
     return "file";
   }
   if (normalised.includes("add the venue proposals") || normalised.includes("add offers")) {

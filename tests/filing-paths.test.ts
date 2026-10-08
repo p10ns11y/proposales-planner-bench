@@ -34,6 +34,38 @@ function countingClient(): { client: ProposalesClient; filings: BriefDraft[] } {
 }
 
 describe("filing paths", () => {
+  it("makes no filing from the chat tool or model text without a user file message", async () => {
+    const watched = countingClient();
+    const snapshot = openingSnapshot(await watched.client.listCompanies());
+    const captured = await runViewportAction({
+      action: { type: "captureSubmitted", text: fileableText },
+      snapshot,
+      client: watched.client,
+      today,
+    });
+    const tool = await fileChatBrief({
+      snapshot: captured.snapshot,
+      client: watched.client,
+      today,
+    });
+    const modelPhrase = await runFixtureTurn({
+      text: "file the brief",
+      snapshot: captured.snapshot,
+      client: watched.client,
+      today,
+    });
+    const modelWord = await runFixtureTurn({
+      text: "file",
+      snapshot: captured.snapshot,
+      client: watched.client,
+      today,
+    });
+    expect(tool.snapshot.filing).toBeNull();
+    expect(modelPhrase.snapshot.filing).toBeNull();
+    expect(modelWord.snapshot.filing).toBeNull();
+    expect(watched.filings).toHaveLength(0);
+  });
+
   it("calls the client once across chat, the fixture turn, and the page", async () => {
     const watched = countingClient();
     const snapshot = openingSnapshot(await watched.client.listCompanies());
@@ -48,10 +80,12 @@ describe("filing paths", () => {
       snapshot: captured.snapshot,
       client: watched.client,
       today,
+      userText: "file",
     });
     expect(watched.filings).toHaveLength(1);
     const fixture = await runFixtureTurn({
       text: "file the brief",
+      userText: "file",
       snapshot: chat.snapshot,
       client: watched.client,
       today,
@@ -81,9 +115,11 @@ describe("filing paths", () => {
       snapshot: missingEmail.snapshot,
       client: watched.client,
       today,
+      userText: "file",
     });
     const fixtureEmail = await runFixtureTurn({
       text: "file the brief",
+      userText: "file",
       snapshot: missingEmail.snapshot,
       client: watched.client,
       today,
@@ -109,9 +145,11 @@ describe("filing paths", () => {
       snapshot: missingLanguage.snapshot,
       client: watched.client,
       today,
+      userText: "file",
     });
     const fixtureLanguage = await runFixtureTurn({
       text: "file the brief",
+      userText: "file",
       snapshot: missingLanguage.snapshot,
       client: watched.client,
       today,

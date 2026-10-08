@@ -4,7 +4,7 @@ import type { PlannerBrief } from "../src/domain/planner-brief";
 import { addEnglishLanguage, briefWrittenInEnglish, statesOtherLanguage } from "../src/flow/brief-language";
 import { isFileUtterance, turnIntent } from "../src/flow/fixture-extractor";
 import {
-  attemptFiling,
+  attemptFiling as attemptFilingWithIntent,
   fileableBrief,
   filingFingerprint,
   firstFileableGap,
@@ -16,6 +16,7 @@ import {
 } from "../src/flow/filing-guard";
 import { emptySnapshot } from "../src/flow/planner-snapshot";
 import { runViewportAction } from "../src/flow/viewport-turn";
+import { fileWithIntent } from "../src/proposales/file-with-intent";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../src/proposales/filing";
 import type { BriefDraft, FileBriefResult } from "../src/proposales/types";
 import { shellViewModel } from "../src/view-models/selectors";
@@ -27,8 +28,16 @@ import {
   fileBriefDisabled,
   fileBriefLabel,
   fileBriefPressable,
-  moreOpenedForEmail,
 } from "../src/views/file-brief-state";
+
+function attemptFiling(
+  input: Omit<Parameters<typeof attemptFilingWithIntent>[0], "utterance"> & { utterance?: string | null },
+): ReturnType<typeof attemptFilingWithIntent> {
+  if (input.utterance !== undefined) {
+    return attemptFilingWithIntent({ ...input, utterance: input.utterance });
+  }
+  return attemptFilingWithIntent({ ...input, utterance: "file" });
+}
 
 const englishWords = [
   "the",
@@ -172,15 +181,13 @@ describe("filing guard", () => {
 });
 
 describe("file brief control", () => {
-  it("ignores a second file, asks when the email is blank, and sends otherwise", () => {
-    const ready = { filed: false, busy: false, ready: true, email: "planner@northwind.example" };
+  it("ignores a second file and sends when the brief can be filed", () => {
+    const ready = { filed: false, busy: false, ready: true };
     expect(fileBriefChoice(ready)).toBe("send");
-    expect(fileBriefChoice({ ...ready, email: "  " })).toBe("ask-email");
-    expect(fileBriefChoice({ ...ready, email: "" })).toBe("ask-email");
     expect(fileBriefChoice({ ...ready, filed: true })).toBe("ignore");
     expect(fileBriefChoice({ ...ready, busy: true })).toBe("ignore");
     expect(fileBriefChoice({ ...ready, ready: false })).toBe("ignore");
-    expect(fileBriefChoice({ ...ready, filed: true, busy: true, ready: false, email: "" })).toBe("ignore");
+    expect(fileBriefChoice({ ...ready, filed: true, busy: true, ready: false })).toBe("ignore");
   });
 
   it("reads Filed and stays disabled once the brief is filed", () => {
@@ -192,9 +199,8 @@ describe("file brief control", () => {
     expect(fileBriefDisabled(true, true)).toBe(true);
   });
 
-  it("requires an email only when File opened More, and keeps File pressable after a transport error", () => {
+  it("keeps File pressable after a transport error", () => {
     expect(emailReplyHint).toBe("Venues reply to this address");
-    expect(moreOpenedForEmail).toBe("Add details opened so venues reply to this address.");
     expect(emailApplyDecision({ required: false, email: "" })).toBe("apply");
     expect(emailApplyDecision({ required: false, email: "  " })).toBe("apply");
     expect(emailApplyDecision({ required: true, email: "" })).toBe("need-email");
@@ -208,8 +214,8 @@ describe("file brief control", () => {
     const error = "Couldn't reach Proposales. Your brief is saved.";
     expect(detailStatusLine({ errorText: null, filingMessage: null, whyMore: null })).toBeNull();
     expect(detailStatusLine({ errorText: "  ", filingMessage: "  ", whyMore: "  " })).toBeNull();
-    expect(detailStatusLine({ errorText: `  ${error}  `, filingMessage: briefFiledNotice, whyMore: moreOpenedForEmail })).toBe(error);
-    expect(detailStatusLine({ errorText: null, filingMessage: briefFiledNotice, whyMore: `  ${moreOpenedForEmail}  ` })).toBe(moreOpenedForEmail);
+    expect(detailStatusLine({ errorText: `  ${error}  `, filingMessage: briefFiledNotice, whyMore: emailReplyHint })).toBe(error);
+    expect(detailStatusLine({ errorText: null, filingMessage: briefFiledNotice, whyMore: `  ${emailReplyHint}  ` })).toBe(emailReplyHint);
     expect(detailStatusLine({ errorText: "", filingMessage: `  ${briefFiledNotice}  `, whyMore: null })).toBe(briefFiledNotice);
   });
 });
@@ -262,6 +268,44 @@ function countingFileClient(mode: "ok" | "throw" | "once") {
 }
 
 describe("attempt filing", () => {
+  it("rejects a filing call without an explicit file intent and sends nothing", async () => {
+    const watched = countingFileClient("ok");
+    const attempt = await attemptFilingWithIntent({
+      brief: readyBrief,
+      filing: null,
+      filingAvailable: true,
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: watched.client,
+      utterance: null,
+    });
+    expect(watched.filings).toHaveLength(0);
+    expect(attempt.filing).toBeNull();
+    expect(attempt.notice).toBeNull();
+    let sent = false;
+    type SentFiling = { filing: { path: "inbox"; id: number } | null };
+    const blocked = await fileWithIntent<SentFiling>({
+      utterance: null,
+      refused: { filing: null },
+      send: async () => {
+        sent = true;
+        return { filing: { path: "inbox", id: 1 } };
+      },
+    });
+    expect(sent).toBe(false);
+    expect(blocked.filing).toBeNull();
+    const allowed = await fileWithIntent<SentFiling>({
+      utterance: "file",
+      refused: { filing: null },
+      send: async () => {
+        sent = true;
+        return { filing: { path: "inbox", id: 1 } };
+      },
+    });
+    expect(sent).toBe(true);
+    expect(allowed.filing).toEqual({ path: "inbox", id: 1 });
+  });
+
   it("returns a stored filing without calling the client", async () => {
     const watched = countingFileClient("throw");
     const stored: FileBriefResult = { path: "inbox", id: 100 };
@@ -389,6 +433,8 @@ describe("attempt filing", () => {
     expect(turnIntent("file it")).toBe("file");
     expect(isFileUtterance("file this")).toBe(true);
     expect(isFileUtterance("file this brief")).toBe(true);
+    expect(isFileUtterance("please don't file the brief yet")).toBe(false);
+    expect(turnIntent("please don't file the brief yet")).not.toBe("file");
     const sample = {
       ...emptySnapshot([{ id: 2, name: "Northwind" }], "", []),
       brief: omitField("contactEmail"),
@@ -462,6 +508,32 @@ describe("attempt filing", () => {
     });
     expect(watched.filings).toHaveLength(2);
     expect(third.filing).toEqual(second.filing);
+  });
+
+  it("treats a missing field as empty, keeps neighbouring fields apart, and files when a key has no result", async () => {
+    expect(filingFingerprint({ ...readyBrief, notes: undefined })).toBe(filingFingerprint({ ...readyBrief, notes: "" }));
+    expect(filingFingerprint({ ...readyBrief, eventTitle: "ab", organisationName: "c" })).not.toBe(
+      filingFingerprint({ ...readyBrief, eventTitle: "a", organisationName: "bc" }),
+    );
+    expect(fileableBrief({ ...readyBrief, contactEmail: "   " })).toEqual({
+      startDate: readyBrief.startDate,
+      endDate: readyBrief.endDate,
+      attendeeCount: readyBrief.attendeeCount,
+      language: readyBrief.language,
+    });
+    const watched = countingFileClient("ok");
+    const posted = await attemptFiling({
+      brief: readyBrief,
+      filing: null,
+      filingKey: filingFingerprint(readyBrief),
+      filingAvailable: true,
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: watched.client,
+    });
+    expect(watched.filings).toHaveLength(1);
+    expect(posted.filing).toEqual({ path: "inbox", id: 100 });
+    expect(posted.filingKey).toBe(filingFingerprint(readyBrief));
   });
 
   it("asks for one missing field and does not call the client", async () => {

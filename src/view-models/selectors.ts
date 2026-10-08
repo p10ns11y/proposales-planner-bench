@@ -410,14 +410,47 @@ function moreFields(brief: PlannerBrief): MoreFieldValues {
     eventTitle: brief.eventTitle ?? "",
     organisationName: brief.organisationName ?? "",
     contactEmail: brief.contactEmail ?? "",
+    city: brief.city ?? "",
     language: brief.language ?? "",
+    startDate: brief.startDate ?? "",
+    endDate: brief.endDate ?? "",
+    startTime: brief.startTime ?? "",
+    endTime: brief.endTime ?? "",
     attendeeCount: brief.attendeeCount === undefined ? "" : String(brief.attendeeCount),
     roomCount: brief.roomCount === undefined ? "" : String(brief.roomCount),
     meetingRoomCount: brief.meetingRoomCount === undefined ? "" : String(brief.meetingRoomCount),
     foodRequired: brief.foodRequired === undefined ? "" : brief.foodRequired ? "yes" : "no",
     notes: brief.notes ?? "",
-    budget: brief.budgetMinor === undefined ? "" : formatBudgetMajor(brief.budgetMinor.amount),
+    budget: budgetMajor(brief),
+    budgetBasis: brief.budget?.scope ?? "",
+    currency: briefCurrency(brief),
   };
+}
+
+function budgetMajor(brief: PlannerBrief): string {
+  if (brief.budgetMinor !== undefined) {
+    return formatBudgetMajor(brief.budgetMinor.amount);
+  }
+  if (brief.budget === undefined) {
+    return "";
+  }
+  return formatMajorAmount(brief.budget.amount);
+}
+
+function formatMajorAmount(amount: number): string {
+  if (!Number.isFinite(amount) || amount < 0) {
+    return "";
+  }
+  const cents = Math.round(amount * 100);
+  const major = Math.floor(cents / 100);
+  const minor = cents % 100;
+  if (minor === 0) {
+    return String(major);
+  }
+  if (minor % 10 === 0) {
+    return `${major}.${String(minor / 10)}`;
+  }
+  return `${major}.${String(minor).padStart(2, "0")}`;
 }
 
 function moreStamp(more: MoreFieldValues): string {
@@ -425,13 +458,20 @@ function moreStamp(more: MoreFieldValues): string {
     more.eventTitle,
     more.organisationName,
     more.contactEmail,
+    more.city,
     more.language,
+    more.startDate,
+    more.endDate,
+    more.startTime,
+    more.endTime,
     more.attendeeCount,
     more.roomCount,
     more.meetingRoomCount,
     more.foodRequired,
     more.notes,
     more.budget,
+    more.budgetBasis,
+    more.currency,
   ].join("\u001f");
 }
 

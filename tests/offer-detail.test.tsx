@@ -36,13 +36,20 @@ const emptyMore: MoreFieldValues = {
   eventTitle: "",
   organisationName: "",
   contactEmail: "",
+  city: "",
   language: "",
+  startDate: "",
+  endDate: "",
+  startTime: "",
+  endTime: "",
   attendeeCount: "",
   roomCount: "",
   meetingRoomCount: "",
   foodRequired: "",
   notes: "",
   budget: "",
+  budgetBasis: "",
+  currency: "",
 };
 
 function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
@@ -164,7 +171,24 @@ describe("offer detail", () => {
     expect(within(dialog).getByRole("status").textContent).toBe("The brief is filed.");
   });
 
-  it("opens More on the email field when File is pressed without an email", async () => {
+  it("shows the email card in the open detail", () => {
+    installDomShims();
+    render(
+      <PlannerShell
+        viewModel={model({
+          openRow: canalLoft,
+          inlineAsk: { field: "contactEmail", inputType: "email", label: "Email" },
+        })}
+        onEvent={() => undefined}
+        historyControl={null}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Canal Loft" });
+    expect(within(dialog).getByLabelText("Email")).toBeTruthy();
+    expect(screen.getAllByLabelText("Email")).toHaveLength(1);
+  });
+
+  it("sends a file utterance from the open detail without opening More", async () => {
     installDomShims();
     const user = userEvent.setup();
     const events: PlannerViewEvent[] = [];
@@ -176,18 +200,10 @@ describe("offer detail", () => {
       />,
     );
     await user.click(screen.getByRole("button", { name: "File this brief" }));
-    expect(events.some((event) => event.type === "composerSubmitted")).toBe(false);
-    const email = screen.getByLabelText("Email");
-    expect(email).toBe(document.activeElement);
-    expect(email.getAttribute("id")).toBe("more-contactEmail");
-    expect(email.getAttribute("aria-required")).toBe("true");
-    expect(screen.getByText("Venues reply to this address")).toBeTruthy();
-    const detailStatus = document.querySelector(".planner-detail-sheet [role=status]");
-    expect(detailStatus?.textContent).toBe("Add details opened so venues reply to this address.");
-    await user.click(screen.getByRole("button", { name: "Apply" }));
-    expect(screen.getByRole("dialog", { name: "Add details" })).toBeTruthy();
-    expect(email.getAttribute("aria-invalid")).toBe("true");
+    expect(events).toContainEqual({ type: "composerSubmitted", text: "file" });
     expect(events.some((event) => event.type === "moreEdited")).toBe(false);
+    expect(screen.queryByRole("dialog", { name: "Add details" })).toBeNull();
+    expect(screen.queryByText("Venues reply to this address")).toBeNull();
   });
 
   it("keeps Email optional when More opens from the header", async () => {
@@ -216,8 +232,8 @@ describe("offer detail", () => {
     const resultsFile = screen.getByRole("button", { name: "File this brief" });
     expect(resultsFile.getAttribute("data-lcv-event")).toBe("file-brief");
     await user.click(resultsFile);
-    expect(events.some((event) => event.type === "composerSubmitted")).toBe(false);
-    expect(screen.getByText("Venues reply to this address")).toBeTruthy();
+    expect(events).toEqual([{ type: "composerSubmitted", text: "file" }]);
+    expect(screen.queryByRole("dialog", { name: "Add details" })).toBeNull();
     view.rerender(
       <PlannerShell
         viewModel={model({ openRow: canalLoft })}
@@ -400,6 +416,7 @@ describe("More drawer", () => {
     render(<PlannerShell viewModel={model({ phase: "capture", rows: [], offerSummary: null })} onEvent={(event) => events.push(event)} historyControl={null} />);
     await openAddDetails(user);
     await user.type(screen.getByLabelText("Email"), "planner@northwind.example");
+    await openFold(user, "Preferences");
     await user.click(screen.getByRole("button", { name: "Svenska" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));
     expect(events.at(-1)).toEqual({
@@ -426,6 +443,7 @@ describe("More drawer", () => {
       />,
     );
     await openAddDetails(user);
+    await openFold(user, "People and rooms");
     await user.click(screen.getByRole("button", { name: "Fewer meeting rooms" }));
     await user.click(screen.getByRole("button", { name: "Fewer meeting rooms" }));
     await user.click(screen.getByRole("switch", { name: "Food" }));
@@ -454,6 +472,7 @@ describe("More drawer", () => {
       />,
     );
     await openAddDetails(user);
+    await openFold(user, "Budget");
     const budget = screen.getByLabelText("Budget (EUR)");
     expect(budget).toBeInstanceOf(HTMLInputElement);
     if (!(budget instanceof HTMLInputElement)) {
@@ -502,6 +521,7 @@ describe("More drawer", () => {
       />,
     );
     await user.click(within(headerRegion()).getByRole("button", { name: "Add details" }));
+    await openFold(user, "People and rooms");
     await user.click(screen.getByRole("button", { name: "More guests" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));
     expect(events.at(-1)).toEqual({
@@ -530,6 +550,14 @@ function composerRegion(): HTMLElement {
 
 async function openAddDetails(user: UserEvent) {
   await user.click(within(headerRegion()).getByRole("button", { name: "Add details" }));
+}
+
+async function openFold(user: UserEvent, name: string) {
+  const toggle = screen.getByRole("button", { name: (accessibleName) => accessibleName === name });
+  if (toggle.getAttribute("aria-expanded") === "true") {
+    return;
+  }
+  await user.click(toggle);
 }
 
 function installDomShims() {

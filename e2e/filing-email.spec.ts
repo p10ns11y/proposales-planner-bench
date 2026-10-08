@@ -13,12 +13,11 @@ const labeledBrief =
 
 const emailAsk = "Add an email under Add details so venues reply to this address.";
 const languageAsk = "Add a language under Add details.";
-const whyMore = "Add details opened so venues reply to this address.";
 const replyHint = "Venues reply to this address";
 const transportError = "Couldn't reach Proposales. Your brief is saved.";
 const filedNotice = "The brief is filed.";
 
-test("keeps email optional while searching and requires it when File opens More", async ({ page }) => {
+test("keeps email optional while searching and files once from the email card after File", async ({ page }) => {
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await reachResults(page);
@@ -30,36 +29,22 @@ test("keeps email optional while searching and requires it when File opens More"
     await page.keyboard.press("Escape");
     await expect(optional).toBeHidden();
 
+    const asked = waitForTurn(page);
     await page.getByRole("button", { name: "File this brief" }).click();
-    const required = page.getByRole("dialog", { name: "Add details" });
-    await expect(required.getByLabel("Email")).toHaveAttribute("aria-required", "true");
-    await expect(required.getByText(replyHint)).toBeVisible();
-    await shot(required.getByText(replyHint), "email-hint.png", viewport.width);
-    await required.getByRole("button", { name: "Apply" }).click();
-    await expect(required).toBeVisible();
-    await expect(required.getByLabel("Email")).toHaveAttribute("aria-invalid", "true");
-    await page.keyboard.press("Escape");
-    await expect(required).toBeHidden();
-
-    const card = page.locator("[data-offer-card]").first();
-    const venue = await card.getAttribute("data-venue");
-    expect(venue).toBeTruthy();
-    await card.click();
-    const detail = page.getByRole("dialog", { name: venue ?? "" });
-    await expect(detail).toBeVisible();
-    await detail.getByRole("button", { name: "File this brief" }).click();
-    await expect(page.locator(".planner-detail-sheet [role=status]")).toHaveText(whyMore);
-    const drawer = page.getByRole("dialog", { name: "Add details" });
-    await drawer.getByLabel("Email").fill("planner@northwind.example");
-    const saved = waitForTurn(page);
-    await drawer.locator("[data-lcv-event=save-more]").click();
-    await saved;
-    await expect(drawer).toBeHidden();
+    await asked;
+    const email = page.getByLabel("Email");
+    await expect(email).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Skip" })).toBeVisible();
+    await expect(page.getByText(filedNotice)).toHaveCount(0);
+    await expect(page.getByText("A draft was created in Proposales.")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "File this brief" })).toBeEnabled();
+    await email.fill("planner@northwind.example");
     const filed = waitForTurn(page);
-    await detail.getByRole("button", { name: "File this brief" }).click();
+    await page.getByRole("button", { name: "Save" }).click();
     await filed;
-    await expect(detail.getByRole("status")).toHaveText(filedNotice);
-    await shot(detail.getByRole("status"), "filed-status.png", viewport.width);
+    await expect(page.getByText(filedNotice)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Filed" })).toBeDisabled();
   }
 });
 
@@ -148,18 +133,18 @@ test("shows a transport error in the open detail and keeps File pressable", asyn
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await reachResults(page);
-    const card = page.locator("[data-offer-card]").first();
-    const venue = await card.getAttribute("data-venue");
-    expect(venue).toBeTruthy();
-    await card.click();
-    const detail = page.getByRole("dialog", { name: venue ?? "" });
-    await detail.getByRole("button", { name: "File this brief" }).click();
+    await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
     const drawer = page.getByRole("dialog", { name: "Add details" });
     await drawer.getByLabel("Email").fill("planner@northwind.example");
     const saved = waitForTurn(page);
     await drawer.locator("[data-lcv-event=save-more]").click();
     await saved;
     await expect(drawer).toBeHidden();
+    const card = page.locator("[data-offer-card]").first();
+    const venue = await card.getAttribute("data-venue");
+    expect(venue).toBeTruthy();
+    await card.click();
+    const detail = page.getByRole("dialog", { name: venue ?? "" });
 
     await page.route("**/api/turn", async (route) => {
       if (route.request().method() === "POST") {

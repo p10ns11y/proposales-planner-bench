@@ -1,6 +1,7 @@
 import { z } from "zod";
 import packageJson from "../../package.json";
 import { draftBody, filingPath, inboxBody, isPlannerBenchBrief } from "./filing";
+import { postDraftFile, postInboxFile } from "./file-with-intent";
 import type { CompanyRecord, FileBriefResult, ProposalesClient } from "./types";
 
 export const plannerUserAgent = `planner-bench/${packageJson.version}`;
@@ -137,20 +138,12 @@ export function createHttpClient(options: HttpClientOptions): ProposalesClient {
       if (path === "inbox") {
         const token = requireInboxToken(company.inboxToken);
         const body = inboxBody(brief);
-        const payload = rfpReader.parse(
-          await request(
-            `/v1/inbox/${encodeURIComponent(token)}`,
-            { method: "POST", body: JSON.stringify(body) },
-            false,
-          ),
-        );
+        const payload = rfpReader.parse(await postInboxFile({ request, token, body }));
         const result: FileBriefResult = { path: "inbox", id: payload.id };
         return result;
       }
       const body = draftBody(brief);
-      const payload = draftReader.parse(
-        await request("/v3/proposals", { method: "POST", body: JSON.stringify(body) }, true),
-      );
+      const payload = draftReader.parse(await postDraftFile({ request, body }));
       const result: FileBriefResult = { path: "draft", uuid: payload.proposal.uuid };
       return result;
     },

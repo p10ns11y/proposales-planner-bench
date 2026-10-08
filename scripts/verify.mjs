@@ -151,7 +151,21 @@ async function main() {
     steps.push(
       stepFrom(
         "e2e",
-        run("pnpm", ["exec", "playwright", "test", "e2e/critical-path.spec.ts", "e2e/filing-email.spec.ts", "e2e/composer-mic.spec.ts", "e2e/run-through.spec.ts"], env),
+        run(
+          "pnpm",
+          [
+            "exec",
+            "playwright",
+            "test",
+            "e2e/critical-path.spec.ts",
+            "e2e/filing-email.spec.ts",
+            "e2e/composer-mic.spec.ts",
+            "e2e/add-details-fold.spec.ts",
+            "e2e/run-through.spec.ts",
+            "e2e/no-unprompted-file.spec.ts",
+          ],
+          env,
+        ),
       ),
     );
   }

@@ -1128,13 +1128,76 @@ h2.planner-text {
   padding: 12px 20px 20px;
 }
 
-.planner-fields {
+.planner-fields,
+.planner-folds {
   display: flex;
   width: 100%;
   min-width: 0;
   max-width: 100%;
   flex-direction: column;
+}
+
+.planner-fields {
   gap: 24px;
+}
+
+.planner-fold {
+  min-width: 0;
+  max-width: 100%;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.planner-fold-heading {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.planner-fold-toggle {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.planner-fold-toggle span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.planner-fold-toggle svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.planner-fold-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.planner-fold-panel {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 0 16px;
+}
+
+.planner-fold-panel[hidden] {
+  display: none;
 }
 
 .planner-field {

@@ -22,13 +22,20 @@ export type MoreFieldValues = {
   eventTitle: string;
   organisationName: string;
   contactEmail: string;
+  city: string;
   language: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
   attendeeCount: string;
   roomCount: string;
   meetingRoomCount: string;
   foodRequired: "" | "yes" | "no";
   notes: string;
   budget: string;
+  budgetBasis: "" | "total" | "per-person";
+  currency: string;
 };
 
 export type ShellBlock = {

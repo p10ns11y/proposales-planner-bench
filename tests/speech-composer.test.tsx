@@ -18,13 +18,20 @@ const emptyMore: MoreFieldValues = {
   eventTitle: "",
   organisationName: "",
   contactEmail: "",
+  city: "",
   language: "",
+  startDate: "",
+  endDate: "",
+  startTime: "",
+  endTime: "",
   attendeeCount: "",
   roomCount: "",
   meetingRoomCount: "",
   foodRequired: "",
   notes: "",
   budget: "",
+  budgetBasis: "",
+  currency: "",
 };
 
 const recognitionErrors = [
