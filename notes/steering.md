@@ -1,6 +1,6 @@
 # Steering
 
-The first days were local agents. Late on 5 Oct, around 10 at night, I ran one stretch with Grok Build and cursor-agent into the 6th—the commit landed at midnight—and went from research to a product.
+The first days were local agents. Late on 5 Oct, around 10 at night, I ran one continuous night with Grok Build and cursor-agent into midnight on the 6th; Firecrawl was the tool I used for the research and filtering during that stretch, and I went from research to a product.
 
 I chose the tools and the plugins around them. One plugin repo loads into each harness; I do not copy it. [p10ns11y/plugins](https://github.com/p10ns11y/plugins) removed the need to set up agent files here because the harness workflow took care of it. Grok Build loads `.grok-plugin`. cursor-agent, local Cursor, and cloud Cursor load `.cursor-plugin`. Claude Code loads the marketplace in `.claude-plugin/marketplace.json`. [Workflow](workflow.md) says plugins are loaded, not copied. `next dev` writes the agent file again.
 
