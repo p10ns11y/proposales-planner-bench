@@ -160,6 +160,20 @@ describe("Add details drawer", () => {
       />,
     );
     const dialog = screen.getByRole("dialog", { name: "Add details" });
+    for (const [name, event] of [
+      ["Contact", "fold-contact"],
+      ["Event and dates", "fold-event"],
+      ["People and rooms", "fold-people"],
+      ["Budget", "fold-budget"],
+      ["Preferences", "fold-preferences"],
+    ] as const) {
+      const toggle = screen.getByRole("button", { name });
+      expect(toggle.getAttribute("data-lcv-event")).toBe(event);
+      expect(toggle.getAttribute("data-lcv-from")).toBe("more:open");
+      expect(toggle.getAttribute("data-lcv-to-success")).toBe("more:open");
+      expect(toggle.getAttribute("data-lcv-to-fail")).toBe("more:open");
+      expect(toggle.getAttribute("data-lcv-to-interrupted")).toBe("more:open");
+    }
     expect(dialog.querySelectorAll('[aria-expanded="true"]')).toHaveLength(1);
     expect(screen.getByRole("region", { name: "Contact" })).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Event and dates" })).toBeNull();

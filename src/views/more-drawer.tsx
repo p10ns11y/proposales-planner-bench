@@ -366,6 +366,7 @@ function Fold({
           className="planner-fold-toggle"
           aria-expanded={open}
           aria-controls={panelId}
+          {...lcvStay(`fold-${id}`, "more:open")}
           onClick={() => onOpen(id)}
         >
           <span>{foldTitle[id]}</span>
