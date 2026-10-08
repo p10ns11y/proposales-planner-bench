@@ -34,28 +34,30 @@ A file is inside the band when the later count is between 40% and 60% of the ear
 | 1 | 1 | kept | CLAUDE.md |
 | 23826 | 12605 |  | Total, 24 files |
 
-`e2e/features/critical-path.feature` is 1105 words after main added scenarios. `qa/composer-mic.md` is 91 words and `qa/filing-email.md` is 74. Those three arrived with `db1324d`.
+`e2e/features/critical-path.feature` is 1105 words after main added scenarios. `qa/composer-mic.md` is 91 words and `qa/filing-email.md` is 113. Those three arrived with `db1324d`.
 
 The README is a new front page, so the 40–60% band does not apply. It has 113 words in all, and 78 words outside fenced blocks. A few rows sit a little over 60% after the drawer, currency, and filing sentences from main.
 
 ## Walkthrough
 
-Recorded on production at https://proposales-planner-bench.vercel.app after `db1324d`. The brief is made up: a team offsite for 25 people in Stockholm on 3 December, half day, meeting room and lunch. The clip opens on the ranked venues, then the Canal Loft detail, then File with no email, which opens Add details with Email empty. Apply is not pressed. No draft is filed.
+Recorded on production at https://proposales-planner-bench.vercel.app after `182b6f4`. The brief is made up: Harbour day, Northwind, 25 people, Stockholm, 3 December 2026, 09:00–17:00. The clip opens on the email card, then the ranked venues, one History row named Harbour day, then Add details with Contact open and Event and dates filled. File was not pressed. The brief stays unfiled. The filed still is fixture mode, not this production capture.
 
 The capture is the page in Chromium.
 
 | File | What |
 | --- | --- |
-| docs/media/walkthrough.mp4 | 32.6 s, 294412 bytes, 1280×800, H.264, 30 fps, no audio |
-| docs/media/walkthrough.gif | 32.63 s, 658174 bytes, 720×450, 261 frames |
-| docs/media/hero-desktop.png | 1280×800, 56730 bytes |
-| docs/media/hero-phone.png | 390×844, 45022 bytes |
-| docs/media/poster.png | 1280×800, 130683 bytes, still of Add details |
+| docs/media/walkthrough.mp4 | 14.57 s, 449118 bytes, 1280×800, H.264, 30 fps, no audio |
+| docs/media/walkthrough.gif | 14.60 s, 1913437 bytes, 720×450, 146 frames |
+| docs/media/hero-desktop.png | 1280×736, 42413 bytes, cropped below the floating header |
+| docs/media/hero-phone.png | 390×844, 47269 bytes |
+| docs/media/poster.png | 1280×800, 60476 bytes, still of Add details |
+| docs/media/actualization-brief.png | 1280×800, 40001 bytes, production brief card |
+| docs/media/actualization-filed.png | 1280×800, 62182 bytes, fixture mode, File pressed only there |
 
 The README embed is the GIF, linked to the mp4:
 
 ```markdown
-[![Walkthrough: ranked venues for a Stockholm offsite, then File opens Add details](media/walkthrough.gif)](media/walkthrough.mp4)
+[![Walkthrough: ranked venues for a Stockholm offsite](media/walkthrough.gif)](media/walkthrough.mp4)
 ```
 
 ## Privacy
@@ -64,7 +66,7 @@ Docs and the new media were checked before and after the cut.
 
 - Markdown has no email address, no home path, no loopback address, no machine name, and no secret.
 - `AI` remains only inside proper names: Vercel AI SDK, xAI, `@ai-sdk/xai`, and `AI_GATEWAY_API_KEY`.
-- Frames of the walkthrough and both hero shots show the made-up Stockholm offsite, an empty Email field, and no address bar, account name, or key.
+- Production frames show the made-up Stockholm brief, an empty Email field, and no address bar, account name, or key. The filed still is fixture mode.
 - Tests and the verify script still contain fictional example addresses and a loopback bind. The merge kept those in the application.
 
 ## Links

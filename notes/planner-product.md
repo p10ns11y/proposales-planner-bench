@@ -32,7 +32,7 @@ Free text, clean, confirm, structured data, then the views. Then favorites, fetc
 
 Required to match: city, start date, start time, attendees, and an end time. The end time can be absent when a duration is set, or when the end date is after the start. A budget with no basis stays on confirm and asks "Is that per person or total?" Yes stays hidden until the basis is set. The rest sits in Add details.
 
-Filing needs an email, both dates, attendees, a language, and rooms when the end date is after the start. A single-day brief uses the start date as the end date for that check. English with no stated language stores `en`. A missing email, end date, or end time is an input with Save and Skip. Skip leaves `Left unfiled.` Another missing filing fact is one sentence. A later file on the page returns the stored filing. Matching does not need those fields.
+Filing needs an email, both dates, attendees, a language, and rooms when the end date is after the start. A single-day brief uses the start date as the end date for that check. English with no stated language stores `en`. A missing email, end date, or end time is an input with Save and Skip. Skip leaves `Left unfiled.` Another missing filing fact is one sentence. Yes does not file. A File press or an exact phrase does: `file`, `file it`, `file this`, `file this brief`. A later file on the page returns the stored filing. Matching does not need those fields.
 
 The search sends no city filter. Rank does not call the model. The model, when `XAI_API_KEY` is set, extracts the brief. The collab-finder decision model is not in this build.
 

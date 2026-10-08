@@ -6,9 +6,9 @@ What it takes for the planner to be real. What is built is in [control-card-prod
 
 ![Brief card on production, made-up brief](../docs/media/actualization-brief.png)
 
-![The brief is filed, filed in sample mode](../docs/media/actualization-filed.png)
+![Filed in fixture mode](../docs/media/actualization-filed.png)
 
-Proposales customers are hotels selling group and event business. The planner asks in one line instead of a form. The hotel gets a structured request instead of an email thread. Top: production, made-up brief. Bottom: filed in sample mode. Here the model only extracts the brief. Ranking and filing are plain code, so results repeat and nothing is filed by guesswork.
+Proposales customers are hotels selling group and event business. The planner asks in one line instead of a form. The hotel gets a structured request instead of an email thread. Top: production, made-up brief. Bottom: fixture mode. File was pressed only there. Here the model only extracts the brief. Ranking and filing are plain code, so results repeat and nothing is filed by guesswork.
 
 ```mermaid
 flowchart LR

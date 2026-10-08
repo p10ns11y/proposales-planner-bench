@@ -8,7 +8,7 @@ Proposales API readers are validated with [@adaptate/utils](https://www.npmjs.co
 
 Live: [proposales-planner-bench.vercel.app](https://proposales-planner-bench.vercel.app)
 
-![Desktop, 1280 by 800](docs/media/hero-desktop.png)
+![Desktop, 1280 by 736](docs/media/hero-desktop.png)
 
 ![Phone, 390 by 844](docs/media/hero-phone.png)
 
