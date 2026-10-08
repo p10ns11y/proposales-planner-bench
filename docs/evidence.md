@@ -55,7 +55,7 @@ The capture is the page in Chromium.
 The README embed is the GIF, linked to the mp4:
 
 ```markdown
-[![Walkthrough: ranked venues for a Stockholm offsite, then File opens Add details](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
+[![Walkthrough: ranked venues for a Stockholm offsite, then File opens Add details](media/walkthrough.gif)](media/walkthrough.mp4)
 ```
 
 ## Privacy
