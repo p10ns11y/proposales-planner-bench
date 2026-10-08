@@ -26,7 +26,7 @@ const timedBrief =
   "Title Northwind offsite. Organisation Northwind. Email ada@northwind.example. Start 2026-11-12. End 2026-11-12. Attendees 40. Language en. City Stockholm. Meeting rooms 2. Food yes. Notes One plenary and dinner. Start time 09:00. End time 17:00.";
 
 const sentence =
-  "Three places fit. Harbour House is the best match; Canal Loft\u2019s offer has expired and Ridge Hall has no food included.";
+  "Three places fit. Ridge Hall is the best match; Canal Loft\u2019s offer has expired and Ridge Hall has no food included.";
 
 const countWords = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 
@@ -75,16 +75,16 @@ describe("offer count", () => {
 });
 
 describe("best match from the ranked rows", () => {
-  it("marks Harbour House and leaves the expired Canal Loft unmarked", async () => {
+  it("marks Ridge Hall and leaves the expired Canal Loft unmarked", async () => {
     const view = await stockholmResults();
     expect(view.ask).toBe(sentence);
-    expect(view.rows.map((row) => row.venueName)).toEqual(["Harbour House", "Canal Loft", "Ridge Hall"]);
+    expect(view.rows.map((row) => row.venueName)).toEqual(["Ridge Hall", "Harbour House", "Canal Loft"]);
     const group = offerGroupFromShell(view);
     expect(group).not.toBeNull();
-    expect(group?.offers.find((offer) => offer.venueName === "Harbour House")?.bestMatch).toBe(true);
+    expect(group?.offers.find((offer) => offer.venueName === "Ridge Hall")?.bestMatch).toBe(true);
     expect(group?.offers.find((offer) => offer.venueName === "Canal Loft")?.bestMatch).toBe(false);
     expect(group?.offers.find((offer) => offer.venueName === "Canal Loft")?.gaps).toContain("expired");
-    expect(group?.offers.filter((offer) => offer.bestMatch).map((offer) => offer.venueName)).toEqual(["Harbour House"]);
+    expect(group?.offers.filter((offer) => offer.bestMatch).map((offer) => offer.venueName)).toEqual(["Ridge Hall"]);
   });
 
   it("moves the badge off an expired offer that ranks first", () => {
@@ -226,7 +226,7 @@ describe("turn payload", () => {
     const payload = { snapshot: captured.snapshot, planner: "scripted" };
     expect(readTurnSnapshot(payload)).toEqual(captured.snapshot);
     expect(readTurnSnapshot({ planner: "model", snapshot: { phase: "nope" } })).toBeNull();
-    expect(view.rows[0]?.venueName).toBe("Harbour House");
+    expect(view.rows[0]?.venueName).toBe("Ridge Hall");
   });
 });
 

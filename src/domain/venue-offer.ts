@@ -21,6 +21,7 @@ export const venueOfferSchema = z.object({
   dayPart: offerDayPartSchema.optional(),
   eventType: z.string().min(1).optional(),
   currency: z.string().optional(),
+  status: z.string().optional(),
   expiresAt: z.string().optional(),
   roomsMinor: minorUnitsSchema.optional(),
   foodAndBeverageMinor: minorUnitsSchema.optional(),

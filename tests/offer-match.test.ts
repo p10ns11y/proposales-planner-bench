@@ -3,6 +3,7 @@ import { bestNonExpiredIndex } from "../src/contract/offer-group";
 import { compareOffers, offersForBrief, rankComparisonRows } from "../src/domain/compare-offers";
 import type { ComparisonRow } from "../src/domain/comparison-row";
 import { minorUnits } from "../src/domain/minor-units";
+import { briefCurrency } from "../src/domain/planner-brief";
 import { normaliseProposal } from "../src/domain/normalise-proposal";
 import type { VenueOffer } from "../src/domain/venue-offer";
 import { extractBriefPatch } from "../src/flow/fixture-extractor";
@@ -249,14 +250,22 @@ describe("mixed currency ranking", () => {
     expect(best?.currency).toBe("EUR");
   });
 
-  it("leads with the currency of the offer that has fewer gaps when the brief has no budget", () => {
-    const ranked = rankComparisonRows([
+  it("leads with the event currency when the brief names no currency", () => {
+    const ranked = rankComparisonRows(
+      [
+        priced("Euro Fit", "EUR", 100),
+        priced("Krona Gap", "SEK", 9_000_000, ["space"]),
+      ],
+      briefCurrency({ city: "Stockholm" }),
+    );
+    expect(ranked.map((row) => row.venueName)).toEqual(["Krona Gap", "Euro Fit"]);
+    expect(ranked[bestNonExpiredIndex(ranked)]?.currency).toBe("SEK");
+    const fallback = rankComparisonRows([
       priced("Euro One", "EUR", 100, ["space"]),
       priced("Euro Two", "EUR", 200, ["space"]),
       priced("Krona Fit", "SEK", 9_000_000),
     ]);
-    expect(ranked.map((row) => row.venueName)).toEqual(["Krona Fit", "Euro One", "Euro Two"]);
-    expect(ranked[bestNonExpiredIndex(ranked)]?.currency).toBe("SEK");
+    expect(fallback.map((row) => row.venueName)).toEqual(["Euro One", "Euro Two", "Krona Fit"]);
   });
 });
 

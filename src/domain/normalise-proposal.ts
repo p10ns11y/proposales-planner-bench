@@ -18,6 +18,7 @@ const proposalForOfferSchema = z.object({
   title: z.string().nullable().optional(),
   company_id: z.number().int().optional(),
   currency: z.string().optional(),
+  status: z.string().nullable().optional(),
   expires_at: z.number().nullable().optional(),
   data: z.unknown().optional(),
   blocks: z.array(
@@ -61,6 +62,7 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
   const extrasMinor = minorUnits(Math.round(totals.extrasMinor));
   const venueName = venueNameFromTitle(parsed.title);
   const facts = readProposalData(parsed.data);
+  const status = typeof parsed.status === "string" && parsed.status !== "" ? parsed.status : undefined;
   const blocks = parsed.blocks.flatMap((block) => {
     const title = block.title?.trim() ?? "";
     if (title === "") {
@@ -75,6 +77,7 @@ export function normaliseProposal(proposal: unknown): VenueOffer {
     companyId: parsed.company_id,
     ...facts,
     currency: parsed.currency,
+    ...(status !== undefined ? { status } : {}),
     blocks,
     expiresAt:
       parsed.expires_at === undefined || parsed.expires_at === null

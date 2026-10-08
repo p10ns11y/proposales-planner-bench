@@ -10,7 +10,7 @@ import {
 } from "../src/domain/compare-offers";
 import type { ComparisonRow } from "../src/domain/comparison-row";
 import { minorUnits } from "../src/domain/minor-units";
-import type { PlannerBrief } from "../src/domain/planner-brief";
+import { briefCurrency, type PlannerBrief } from "../src/domain/planner-brief";
 import type { VenueOffer } from "../src/domain/venue-offer";
 
 const today = "2026-10-07";
@@ -76,13 +76,13 @@ describe("offer ranking", () => {
     );
   });
 
-  it("picks the lead from the fewest gaps, then currency, then price", () => {
+  it("orders currency groups from A to Z when no lead is given", () => {
     expectRank(
       [
         row({ venueName: "Euro Gap", currency: "EUR", totalMinor: minorUnits(10), gaps: ["space"] }),
         row({ venueName: "Krona Fit", currency: "SEK", totalMinor: minorUnits(90) }),
       ],
-      ["Krona Fit", "Euro Gap"],
+      ["Euro Gap", "Krona Fit"],
     );
     expectRank(
       [
@@ -115,6 +115,130 @@ describe("offer ranking", () => {
       ["Letters", "Sharp", "Euro"],
       "ss",
     );
+  });
+
+  it("ranks a dear krona ahead of a cheap euro when the event currency leads", () => {
+    const brief: PlannerBrief = {
+      city: "Stockholm",
+      budget: { amount: 300, currency: "SEK", scope: "total" },
+    };
+    const cheapEuro = row({ venueName: "Cheap Euro", currency: "EUR", totalMinor: minorUnits(100) });
+    const dearKrona = row({ venueName: "Dear Krona", currency: "SEK", totalMinor: minorUnits(500_000) });
+    const shared = [cheapEuro, dearKrona]
+      .sort((left, right) => left.totalMinor.amount - right.totalMinor.amount)
+      .map((item) => item.venueName);
+    expect(shared).toEqual(["Cheap Euro", "Dear Krona"]);
+    const ranked = rankComparisonRows(
+      compareOffers(
+        brief,
+        [
+          { venueName: "Cheap Euro", currency: "EUR", totalMinor: minorUnits(100) },
+          { venueName: "Dear Krona", currency: "SEK", totalMinor: minorUnits(500_000) },
+        ],
+        today,
+      ),
+      briefCurrency(brief),
+    );
+    expect(ranked.map((item) => item.venueName)).toEqual(["Dear Krona", "Cheap Euro"]);
+    expect(ranked[0]?.neutral ?? []).not.toContain("not-compared");
+    expect(ranked[1]?.neutral).toContain("not-compared");
+    expectRank(
+      [
+        row({ venueName: "Dollar", currency: "USD", totalMinor: minorUnits(1) }),
+        row({ venueName: "Krona", currency: "SEK", totalMinor: minorUnits(500_000) }),
+        row({ venueName: "Euro", currency: "EUR", totalMinor: minorUnits(100) }),
+      ],
+      ["Krona", "Euro", "Dollar"],
+      "SEK",
+    );
+    expectRank(
+      [
+        row({ venueName: "Dear Krona", currency: "SEK", totalMinor: minorUnits(80), gaps: ["space"] }),
+        row({ venueName: "Cheap Krona", currency: "SEK", totalMinor: minorUnits(10) }),
+      ],
+      ["Cheap Krona", "Dear Krona"],
+      briefCurrency({ city: "Stockholm" }),
+    );
+  });
+
+  it("keeps an expired offer behind an open offer in the same currency", () => {
+    expectRank(
+      [
+        row({ venueName: "Open Gappy", currency: "EUR", totalMinor: minorUnits(90_000), gaps: ["space", "rooms"] }),
+        row({ venueName: "Old Dear", currency: "EUR", totalMinor: minorUnits(50), gaps: ["expired"] }),
+        row({ venueName: "Old Cheap", currency: "EUR", totalMinor: minorUnits(10), gaps: ["expired", "space"] }),
+      ],
+      ["Open Gappy", "Old Dear", "Old Cheap"],
+      "EUR",
+    );
+    expectRank(
+      [
+        row({ venueName: "Old Krona", currency: "SEK", totalMinor: minorUnits(100), gaps: ["expired"] }),
+        row({ venueName: "Open Euro", currency: "EUR", totalMinor: minorUnits(100) }),
+      ],
+      ["Old Krona", "Open Euro"],
+      "SEK",
+    );
+    const brief: PlannerBrief = { city: "Helsinki", foodRequired: true, meetingRoomCount: 1 };
+    const dated = rankComparisonRows(
+      compareOffers(
+        brief,
+        [
+          {
+            venueName: "Old Hall",
+            currency: "EUR",
+            totalMinor: minorUnits(1_000),
+            foodAndBeverageMinor: minorUnits(1),
+            spaceMinor: minorUnits(1),
+            expiresAt: "2020-01-01",
+          },
+          {
+            venueName: "Open Hall",
+            currency: "EUR",
+            totalMinor: minorUnits(80_000),
+            expiresAt: "2027-01-01",
+          },
+        ],
+        today,
+      ),
+      briefCurrency(brief),
+    );
+    expect(dated.map((item) => item.venueName)).toEqual(["Open Hall", "Old Hall"]);
+    expect(dated.find((item) => item.venueName === "Old Hall")?.gaps).toEqual(["expired"]);
+    const named = rankComparisonRows(
+      compareOffers(
+        { city: "Helsinki" },
+        [
+          {
+            venueName: "Old Hall",
+            currency: "EUR",
+            totalMinor: minorUnits(1_000),
+            status: "expired",
+            expiresAt: "2027-06-01",
+          },
+          {
+            venueName: "Open Hall",
+            currency: "EUR",
+            totalMinor: minorUnits(50_000),
+            status: "active",
+            expiresAt: "2027-06-01",
+          },
+          {
+            venueName: "Dated Hall",
+            currency: "EUR",
+            totalMinor: minorUnits(40_000),
+            status: "active",
+            expiresAt: "2020-01-01",
+          },
+        ],
+        today,
+      ),
+      "EUR",
+    );
+    expect(named.map((item) => item.venueName)).toEqual(["Open Hall", "Old Hall", "Dated Hall"]);
+    expect(comparisonGaps({ city: "Helsinki" }, { venueName: "Old Hall", currency: "EUR", totalMinor: minorUnits(1), status: "expired", expiresAt: "2020-01-01" }, today)).toEqual(["expired"]);
+    expect(comparisonGaps({ city: "Helsinki" }, { venueName: "Draft Hall", currency: "EUR", totalMinor: minorUnits(1), status: "draft", expiresAt: "2027-06-01" }, today)).not.toContain("expired");
+    expect(comparisonGaps({ city: "Helsinki" }, { venueName: "Open Hall", currency: "EUR", totalMinor: minorUnits(1), status: "active", expiresAt: "2027-06-01" }, today)).not.toContain("expired");
   });
 });
 
@@ -348,6 +472,22 @@ describe("comparison gaps and marks", () => {
     expect(offersForBrief({ attendeeCount: 10 }, [offer({ venueName: "Min", minCapacity: 10 })]).map((item) => item.venueName)).toEqual(["Min"]);
     expect(offersForBrief({ attendeeCount: 10 }, [offer({ venueName: "Max", capacity: 10 })]).map((item) => item.venueName)).toEqual(["Max"]);
     expect(offersForBrief({}, offers).map((item) => item.venueName)).toEqual(["A", "B", "C", "D", "E"]);
+  });
+
+  it("keeps every offer when the brief names a city and no offer states one", () => {
+    const offers = [
+      offer({ venueName: "Plain", currency: "EUR", totalMinor: minorUnits(1) }),
+      offer({ venueName: "Blank", currency: "EUR", totalMinor: minorUnits(1), city: "   " }),
+      offer({ venueName: "Empty", currency: "EUR", totalMinor: minorUnits(1), city: "" }),
+    ];
+    expect(offersForBrief({ city: "Stockholm" }, offers).map((item) => item.venueName)).toEqual([
+      "Plain",
+      "Blank",
+      "Empty",
+    ]);
+    const rows = compareOffers({ city: "Stockholm" }, offers, today);
+    expect(rows.map((item) => item.venueName)).toEqual(["Plain", "Blank", "Empty"]);
+    expect(rows.every((item) => !(item.neutral ?? []).includes("city") && !item.gaps.includes("city"))).toBe(true);
   });
 
   it("uses the fileable gaps while collecting and the comparable gaps later", () => {

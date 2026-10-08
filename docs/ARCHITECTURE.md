@@ -50,9 +50,10 @@ Confirm, favorites, show more, and opening a row leave `planner` scripted. Rank 
 | --- | --- |
 | City | Blank: skip. Else trim, lower case, strip accents. A different city drops the offer. |
 | People | No count: keep. Outside a set minimum or maximum: drop. |
-| Lead | Set `budget.currency` leads. EUR brief: EUR before SEK. SEK brief: SEK first. Unset: fewest gaps, then A–Z, then lower total. Fewer SEK gaps can lead a larger total. |
-| One currency | Fewer gaps, then lower total. No conversion. |
-| Best match | First row that is not expired. None: `bestNonExpiredIndex` is -1. An expired row can still sort first. |
+| Lead | A named budget or stated currency leads. Otherwise the event city's currency leads, including EUR when the city is unknown. |
+| One currency | Open offers before expired ones, then fewer gaps, then the lower total. No conversion. |
+| Other currencies | A to Z after the lead group. Totals stay inside one currency. |
+| Best match | First row that is not expired. None: `bestNonExpiredIndex` is -1. An expired offer stays behind open offers in its own currency, and can still sit above an open offer in another currency. |
 
 ## Not stated
 

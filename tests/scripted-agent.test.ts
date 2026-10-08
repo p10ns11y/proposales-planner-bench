@@ -104,15 +104,15 @@ describe("viewport flow without a model key", () => {
     });
     expect(ranked.snapshot.phase).toBe("results");
     expect(ranked.snapshot.grid.map((row) => row.venueName)).toEqual([
+      "Ridge Hall",
       "Harbour House",
       "Canal Loft",
-      "Ridge Hall",
     ]);
-    expect(ranked.snapshot.grid[0]?.favorite).toBe(false);
-    expect(ranked.snapshot.grid[2]?.favorite).toBe(true);
-    expect(ranked.snapshot.grid[1]?.heldByCompanyName).toBe("Quiet Court");
-    expect(ranked.snapshot.grid[2]?.heldByCompanyName).toBe("Harbour House");
-    expect(ranked.snapshot.grid[0]?.heldByCompanyName).toBeUndefined();
+    expect(ranked.snapshot.grid[0]?.favorite).toBe(true);
+    expect(ranked.snapshot.grid[1]?.favorite).toBe(false);
+    expect(ranked.snapshot.grid[0]?.heldByCompanyName).toBe("Harbour House");
+    expect(ranked.snapshot.grid[2]?.heldByCompanyName).toBe("Quiet Court");
+    expect(ranked.snapshot.grid[1]?.heldByCompanyName).toBeUndefined();
     expect(ranked.snapshot.offerSource).toBe("fixture");
     expect(ranked.snapshot.sampleOffers).toBe(false);
   });
@@ -264,9 +264,9 @@ describe("viewport flow without a model key", () => {
     expect(ranked.snapshot.phase).toBe("results");
     expect(ranked.snapshot.filing).toBeNull();
     expect(ranked.snapshot.grid.map((row) => row.venueName)).toEqual([
+      "Ridge Hall",
       "Harbour House",
       "Canal Loft",
-      "Ridge Hall",
     ]);
     expect(watched.filings).toBe(0);
     expect(watched.proposals).toBe(1);
