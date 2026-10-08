@@ -5,15 +5,33 @@ on:
     paths:
       - planner-bench/**
       - .github/workflows/planner-bench.yml
+      - .githooks/**
   pull_request:
     paths:
       - planner-bench/**
       - .github/workflows/planner-bench.yml
+      - .githooks/**
 
 permissions:
   contents: read
 
 jobs:
+  trailers:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Head commit has no Co-authored-by
+        run: |
+          if git log -1 --format=%B "$GITHUB_SHA" | grep -qiF 'co-authored-by:'; then
+            echo "::error::Head commit message contains Co-authored-by"
+            exit 1
+          fi
+
   verify:
     runs-on: ubuntu-latest
     defaults:

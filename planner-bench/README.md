@@ -57,6 +57,10 @@ Speech uses the browser speech API when the browser has it. Typing always works.
 
 Keys stay in server environment variables. Do not commit `.env` files.
 
+## Commits
+
+Run `git config core.hooksPath .githooks` once to drop Co-authored-by lines from commit messages.
+
 ## References
 
 - Grok Bot desktop app screenshots supplied for this redesign (the chat column, the card inside a reply, and the right-panel header). These are the primary visual source.

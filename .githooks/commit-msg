@@ -1,0 +1,3 @@
+#!/bin/sh
+grep -vi '^co-authored-by:' "$1" > "$1.tmp" || true
+mv "$1.tmp" "$1"
