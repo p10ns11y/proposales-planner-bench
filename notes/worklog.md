@@ -34,15 +34,18 @@ Thursday's span stops at 14:57. Commits and merged pull requests are the whole S
 
 | What | Number |
 | --- | --- |
-| Commits on main, 5–8 Oct | 45 |
-| Pull requests merged | 29 |
-| Issues closed | Unknown |
-| ship-by-thursday issues | Unknown |
-| V-findings issues | Unknown |
-| Vitest tests | 275 |
-| Playwright scenarios | 22 |
-| Vitest plus Playwright | 297 |
-| Production deploys | Unknown |
+| Commits on main, 5–8 Oct | 48 |
+| Pull requests merged | 32 |
+| Issues closed | 27 (11 open) |
+| ship-by-thursday issues | 19, all closed |
+| V-findings issues | 10 (V1–V6, V8–V10, U1), all closed |
+| Vitest tests | 240 |
+| Playwright tests | 25 |
+| Vitest plus Playwright | 265 |
+| Production deploys | 30 |
+| Rollbacks | 1 |
+
+Counted from GitHub, Vercel and a test run on main at `8e61a26`, 8 Oct 17:35 UTC+2.
 
 ## Written log
 
