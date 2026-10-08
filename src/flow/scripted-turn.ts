@@ -4,7 +4,7 @@ import { briefCurrency, mergeBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
-import { attemptFiling, releaseStaleFiling } from "./filing-guard";
+import { attemptFiling, fileableBrief, releaseStaleFiling } from "./filing-guard";
 import { projectBriefFlow } from "./brief-flow";
 import { addEnglishLanguage } from "./brief-language";
 import { extractBriefPatch, extractPastedOffer, readBudgetScope, turnIntent } from "./fixture-extractor";
@@ -18,7 +18,10 @@ export async function runFixtureTurn(input: {
   filingSettled?: boolean;
 }): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
   const intent = turnIntent(input.text);
-  const brief = briefWithAnsweredBasis(input.snapshot.brief, input.text);
+  const brief =
+    intent === "file"
+      ? fileableBrief(briefWithAnsweredBasis(input.snapshot.brief, input.text))
+      : briefWithAnsweredBasis(input.snapshot.brief, input.text);
   let filing = input.snapshot.filing;
   let filingKey = input.snapshot.filingKey;
   let filingAvailable = input.snapshot.filingAvailable;
@@ -126,7 +129,10 @@ export async function runFixtureTurn(input: {
   return {
     reply: notes.join(" "),
     snapshot: releaseStaleFiling({
+      chatId: input.snapshot.chatId,
       brief,
+      newEvent: null,
+      inlinePaused: false,
       stage: projected.stage,
       phase,
       offers: projected.offers,

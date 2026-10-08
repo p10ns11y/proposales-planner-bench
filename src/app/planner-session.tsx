@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { readHistoryLog, historyStorageKey, upsertHistory, type HistoryEntry } from "../flow/history-log";
 import { plannerSnapshotSchema, type PlannerSnapshot } from "../flow/planner-snapshot";
 import type { ViewportAction } from "../flow/viewport-turn";
+import { historyMeta } from "../view-models/history-row";
 import { shellViewModel } from "../view-models/selectors";
 import type { PlannerViewEvent } from "../view-models/view-model";
 import { HistoryView } from "../views/history-view";
@@ -130,6 +131,14 @@ export function PlannerSession() {
     }
     if (event.type === "rowClosed") {
       void sendAction({ type: "rowClosed" }, null);
+      return;
+    }
+    if (event.type === "inlineAnswered") {
+      void sendAction({ type: "inlineAnswered", field: event.field, value: event.value }, pending ?? "more");
+      return;
+    }
+    if (event.type === "inlineSkipped") {
+      void sendAction({ type: "inlineSkipped" }, pending ?? null);
     }
   }
 
@@ -155,6 +164,12 @@ export function PlannerSession() {
                 stage: entry.stage,
                 savedAt: entry.savedAt,
                 venueCount: entry.venueCount,
+                meta: historyMeta({
+                  venueCount: entry.venueCount,
+                  filedCount: entry.filedCount,
+                  savedAt: entry.savedAt,
+                  timeZone: browserTimeZone(),
+                }),
               })),
             }}
             onEvent={onEvent}
@@ -188,6 +203,10 @@ function useStoredHistory(): HistoryEntry[] {
   } catch {
     return [];
   }
+}
+
+function browserTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 function readStoredHistory(): string {

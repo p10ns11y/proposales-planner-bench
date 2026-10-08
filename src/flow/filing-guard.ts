@@ -1,5 +1,5 @@
 import { findBriefGaps, questionForGap } from "../domain/fitness";
-import type { PlannerBrief } from "../domain/planner-brief";
+import { singleDayClockBrief, type PlannerBrief } from "../domain/planner-brief";
 import { briefDraftFromPlanner } from "./brief-draft";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import type { FileBriefResult, ProposalesClient } from "../proposales/types";
@@ -99,6 +99,14 @@ export function filingFingerprint(brief: PlannerBrief): string {
 }
 
 export function fileableBrief(brief: PlannerBrief): PlannerBrief {
+  return datedBrief(blankEmailRemoved(brief));
+}
+
+export function firstFileableGap(brief: PlannerBrief): string | undefined {
+  return findBriefGaps(fileableBrief(brief), "brief:fileable")[0];
+}
+
+function blankEmailRemoved(brief: PlannerBrief): PlannerBrief {
   const email = brief.contactEmail;
   if (email === undefined) {
     return brief;
@@ -109,6 +117,17 @@ export function fileableBrief(brief: PlannerBrief): PlannerBrief {
   const next = { ...brief };
   delete next.contactEmail;
   return next;
+}
+
+function datedBrief(brief: PlannerBrief): PlannerBrief {
+  if (brief.endDate !== undefined) {
+    return brief;
+  }
+  const startDate = brief.startDate;
+  if (startDate === undefined || singleDayClockBrief(brief) === false) {
+    return brief;
+  }
+  return { ...brief, endDate: startDate };
 }
 
 function withoutFilingNotice(notice: string | null): string | null {

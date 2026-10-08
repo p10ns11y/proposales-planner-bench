@@ -68,11 +68,15 @@ test("asks for one missing fileable field at Yes and confirms the filing in chat
     await page.setViewportSize(viewport);
     await reachConfirm(page);
     await page.getByRole("button", { name: "Yes" }).click();
-    await expect(page.getByRole("heading", { level: 2 })).toHaveText(emailAsk);
-    await expect(page.getByRole("status")).toHaveCount(0);
-    await shot(page.getByRole("heading", { level: 2 }), "email-question.png", viewport.width);
+    const email = page.getByLabel("Email");
+    await expect(email).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Skip" })).toBeVisible();
+    await expect(page.getByText(emailAsk)).toHaveCount(0);
+    await shot(email, "email-question.png", viewport.width);
     await page.getByRole("button", { name: "Skip" }).click();
     await expect(page.locator("[data-offer-card]").first()).toBeVisible();
+    await expect(page.getByText("Left unfiled.")).toBeVisible();
 
     await page.goto("/");
     await page.getByRole("textbox", { name: "What are you planning?" }).fill(labeledBrief);
@@ -103,7 +107,10 @@ test("a typed file without an email files nothing and an edit clears the filed b
     const asked = waitForTurn(page);
     await page.locator("[data-lcv-event=send]").click();
     await asked;
-    await expect(page.getByRole("status")).toHaveText(emailAsk);
+    await expect(page.getByLabel("Email")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Skip" })).toBeVisible();
+    await expect(page.getByText(emailAsk)).toHaveCount(0);
     await expect(page.getByRole("button", { name: "File this brief" })).toBeEnabled();
     await expect(page.getByText(filedNotice)).toHaveCount(0);
     await expect(page.getByText("A draft was created in Proposales.")).toHaveCount(0);

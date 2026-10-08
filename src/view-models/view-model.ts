@@ -8,7 +8,15 @@ export type PlannerViewEvent =
   | { type: "rowClosed" }
   | { type: "sessionReset" }
   | { type: "historyToggled"; open: boolean }
-  | { type: "historyEntryChosen"; entryId: string };
+  | { type: "historyEntryChosen"; entryId: string }
+  | { type: "inlineAnswered"; field: "contactEmail" | "endDate" | "endTime"; value: string }
+  | { type: "inlineSkipped" };
+
+export type InlineAskView = {
+  field: "contactEmail" | "endDate" | "endTime";
+  inputType: "email" | "date" | "time";
+  label: string;
+};
 
 export type MoreFieldValues = {
   eventTitle: string;
@@ -68,6 +76,9 @@ export type ShellViewModel = {
   notice: string | null;
   draftConfirmation: string | null;
   filingMessage: string | null;
+  inlineAsk: InlineAskView | null;
+  newEventLabel: string | null;
+  fileGap: string | null;
   filed: boolean;
   offerLabel: string | null;
   factsSentence: string;
@@ -104,5 +115,6 @@ export type HistoryViewModel = {
     stage: string;
     savedAt: string;
     venueCount: number;
+    meta: string;
   }[];
 };

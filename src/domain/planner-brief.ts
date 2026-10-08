@@ -83,6 +83,22 @@ export function stayNeedsRooms(brief: PlannerBrief): boolean {
   return brief.endDate > brief.startDate;
 }
 
+export function singleDayClockBrief(brief: PlannerBrief): boolean {
+  if (brief.startDate === undefined) {
+    return false;
+  }
+  if (brief.endDate !== undefined && brief.endDate > brief.startDate) {
+    return false;
+  }
+  if (brief.startTime === undefined) {
+    return false;
+  }
+  if (brief.endTime !== undefined) {
+    return true;
+  }
+  return brief.durationMinutes !== undefined;
+}
+
 export function budgetNeedsBasis(brief: PlannerBrief): boolean {
   return brief.budget !== undefined && brief.budget.scope === undefined;
 }

@@ -17,12 +17,14 @@ import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
 import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
 import { fileBriefChoice, fileBriefLabel, fileBriefPressable, moreOpenedForEmail } from "./file-brief-state";
+import { InlineAskCard, NewEventCard } from "./inline-ask-card";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
 import { OfferDetail } from "./offer-detail";
 import {
   recognitionIdle,
   speechButtonState,
+  speechNetworkCopy,
   stepRecognition,
   toggleSpeechCapture,
   type RecognitionState,
@@ -117,6 +119,18 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   }, [viewModel.busy, pendingTick]);
 
   useEffect(() => {
+    if (recognition.phase !== "idle" || recognition.status !== speechNetworkCopy) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setRecognition((current) =>
+        current.phase === "idle" && current.status === speechNetworkCopy ? recognitionIdle : current,
+      );
+    }, 6000);
+    return () => window.clearTimeout(timer);
+  }, [recognition.phase, recognition.status]);
+
+  useEffect(() => {
     if (viewModel.busy || viewModel.errorText === null || heldDraft.current === "") {
       return;
     }
@@ -202,7 +216,17 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     if (stick.current) {
       element.scrollTop = element.scrollHeight;
     }
-  }, [lines, pending, viewModel.ask, viewModel.rows, viewModel.notice, viewModel.openRow, viewModel.draftConfirmation]);
+  }, [
+    lines,
+    pending,
+    viewModel.ask,
+    viewModel.inlineAsk,
+    viewModel.newEventLabel,
+    viewModel.rows,
+    viewModel.notice,
+    viewModel.openRow,
+    viewModel.draftConfirmation,
+  ]);
 
   function pushTurn(userText: string) {
     const live = viewModel.ask;
@@ -217,11 +241,18 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     });
   }
 
+  function clearNetworkNote() {
+    setRecognition((current) =>
+      current.phase === "idle" && current.status === speechNetworkCopy ? recognitionIdle : current,
+    );
+  }
+
   function submitText(text: string, kind: "read" | "search") {
     const trimmed = text.trim();
     if (trimmed === "" || viewModel.busy || !viewModel.ready) {
       return;
     }
+    clearNetworkNote();
     setHoldEmpty(false);
     setMoreDraft(null);
     setMoreNote(null);
@@ -325,11 +356,15 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       speechListener,
     );
   }
-  const filePressable = fileBriefPressable({
-    busy: viewModel.busy,
-    filed: viewModel.filed,
-    ready: viewModel.ready,
-  });
+  const fileBlocked = viewModel.fileGap !== null && viewModel.fileGap !== "contactEmail";
+  const filePressable =
+    fileBriefPressable({
+      busy: viewModel.busy,
+      filed: viewModel.filed,
+      ready: viewModel.ready,
+    }) && !fileBlocked;
+  const detailInline =
+    viewModel.inlineAsk !== null && viewModel.inlineAsk.field !== "contactEmail" ? viewModel.inlineAsk : null;
   const showResultsFile = viewModel.phase === "results" && viewModel.rows.length > 0;
   const liveCopy = (
     <LiveCopy
@@ -351,6 +386,18 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
         composerRef.current?.focus();
       }}
       onRetry={() => submitText(heldDraft.current, lastKind.current)}
+      onNewChat={newChat}
+      onInlineSave={(field, value) => onEvent({ type: "inlineAnswered", field, value }, "more")}
+      onInlineSkip={() => {
+        if (viewModel.phase === "favorites") {
+          pushTurn("Skip");
+          lastKind.current = "search";
+          setPendingTick((value) => value + 1);
+          onEvent({ type: "inlineSkipped" }, "search");
+          return;
+        }
+        onEvent({ type: "inlineSkipped" });
+      }}
     />
   );
 
@@ -548,7 +595,10 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                 autoComplete={viewModel.autoComplete}
                 disabled={!viewModel.ready}
                 aria-label={labelled ? undefined : viewModel.ask}
-                onChange={(event) => setDraft(event.target.value)}
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  clearNetworkNote();
+                }}
                 onKeyDown={onComposerKey}
               />
               {speech.shown ? (
@@ -629,6 +679,15 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           filed={viewModel.filed}
           active={!moreOpen}
           pressable={filePressable}
+          inlineAsk={detailInline}
+          inlineBusy={viewModel.busy || !viewModel.ready}
+          onInlineSave={(value) => {
+            if (detailInline === null) {
+              return;
+            }
+            onEvent({ type: "inlineAnswered", field: detailInline.field, value }, "more");
+          }}
+          onInlineSkip={() => onEvent({ type: "inlineSkipped" })}
           onClose={() => onEvent({ type: "rowClosed" })}
           onFile={fileBrief}
         />
@@ -684,12 +743,18 @@ function LiveCopy({
   onSkip,
   onRefine,
   onRetry,
+  onNewChat,
+  onInlineSave,
+  onInlineSkip,
 }: {
   viewModel: ShellViewModel;
   onConfirm: () => void;
   onSkip: () => void;
   onRefine: (text: string) => void;
   onRetry: () => void;
+  onNewChat: () => void;
+  onInlineSave: (field: "contactEmail" | "endDate" | "endTime", value: string) => void;
+  onInlineSkip: () => void;
 }) {
   const factsMarked = viewModel.phase === "results" || viewModel.showFacts;
   const notice = viewModel.notice !== null && viewModel.notice !== viewModel.ask ? viewModel.notice : null;
@@ -705,13 +770,33 @@ function LiveCopy({
           {viewModel.draftConfirmation}
         </p>
       ) : null}
-      <h2
-        className="planner-text"
-        data-must-show={factsMarked ? "facts" : undefined}
-        {...askMarks(viewModel)}
-      >
-        {viewModel.askLabelsComposer ? <label htmlFor="composer">{viewModel.ask}</label> : viewModel.ask}
-      </h2>
+      {viewModel.ask !== "" ? (
+        <h2
+          className="planner-text"
+          data-must-show={factsMarked ? "facts" : undefined}
+          {...askMarks(viewModel)}
+        >
+          {viewModel.askLabelsComposer ? <label htmlFor="composer">{viewModel.ask}</label> : viewModel.ask}
+        </h2>
+      ) : null}
+      {viewModel.newEventLabel ? (
+        <NewEventCard label={viewModel.newEventLabel} phase={chatState(viewModel.phase)} onStart={onNewChat} />
+      ) : null}
+      {viewModel.inlineAsk ? (
+        <InlineAskCard
+          key={viewModel.inlineAsk.field}
+          ask={viewModel.inlineAsk}
+          busy={viewModel.busy || !viewModel.ready}
+          phase={chatState(viewModel.phase)}
+          onSave={(value) => {
+            if (viewModel.inlineAsk === null) {
+              return;
+            }
+            onInlineSave(viewModel.inlineAsk.field, value);
+          }}
+          onSkip={onInlineSkip}
+        />
+      ) : null}
       {viewModel.showFacts && viewModel.factsSentence !== viewModel.ask ? (
         <p className="planner-text" data-must-show="facts">
           {viewModel.confirmRuns.map((run, index) =>
@@ -827,6 +912,8 @@ function liveIsNew(lines: Line[], live: string, viewModel: ShellViewModel): bool
     viewModel.rows.length > 0 ||
     viewModel.showConfirm ||
     viewModel.showFavorites ||
+    viewModel.inlineAsk !== null ||
+    viewModel.newEventLabel !== null ||
     viewModel.notice !== null ||
     viewModel.draftConfirmation !== null ||
     viewModel.errorText !== null ||
