@@ -57,7 +57,7 @@ S3 and S4 can run in parallel after S2.
 
 ## Later, not this card
 
-Deploy, and adding `PROPOSALES_API_KEY` or `XAI_API_KEY`, stay with the owner.
+Deploy, and adding `PROPOSALES_API_KEY` or `XAI_API_KEY`, stay with me.
 
 ## Progress
 

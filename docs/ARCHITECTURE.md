@@ -10,11 +10,11 @@ A brief is confirmed, then venues are ranked. Instants and `today` are UTC (`Dat
 
 ```mermaid
 flowchart LR
-  spec["OpenAPI components"] --> utils["@adaptate/utils, owner's package"]
+  spec["OpenAPI components"] --> utils["@adaptate/utils, my package"]
   utils --> zod["Zod: Company, Proposal, CreateRfpRequest, CreateProposalRequest, ProposalMutationResponse, CreateRfpResponse, ProposalSearchResult"]
   readers["HTTP readers"] --> test["Contract test"]
   zod --> test
-  brief["Brief and offer"] --> core["@adaptate/core, owner's package"]
+  brief["Brief and offer"] --> core["@adaptate/core, my package"]
   core --> gaps["Fileable, comparable, and offer-row gaps"]
 ```
 
