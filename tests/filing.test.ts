@@ -134,7 +134,10 @@ describe("filing turns", () => {
       errorText: null,
       speechAvailable: false,
     });
-    expect(view.filingMessage).toBe(emailQuestion);
+    expect(view.inlineAsk).toEqual({ field: "contactEmail", inputType: "email", label: "Email" });
+    expect(view.filingMessage).toBeNull();
+    expect(view.notice).toBeNull();
+    expect(view.fileGap).toBe("contactEmail");
     expect(view.filed).toBe(false);
   });
 

@@ -1,12 +1,13 @@
 import { questionForGap } from "../domain/fitness";
-import { releaseStaleFiling } from "../flow/filing-guard";
+import { firstFileableGap, releaseStaleFiling } from "../flow/filing-guard";
+import { inlineAskFor, leftUnfiledNote, type InlineField } from "../flow/inline-ask";
 import { formatBudgetMajor, type MinorUnits } from "../domain/minor-units";
 import { briefCurrency, type PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
 import { placesSentence } from "../contract/offer-group";
 import { appendBudgetLine } from "./facts-line";
-import type { ConfirmFactName, ConfirmRun, MoreFieldValues, ResultsViewModel, ShellViewModel } from "./view-model";
+import type { ConfirmFactName, ConfirmRun, InlineAskView, MoreFieldValues, ResultsViewModel, ShellViewModel } from "./view-model";
 
 const monthNames = [
   "January",
@@ -59,18 +60,22 @@ export function shellViewModel(input: {
   const openRow = openVenueName === null ? null : (rows.find((row) => row.venueName === openVenueName) ?? null);
   const more = moreFields(brief);
   const question = snapshot?.nextQuestion ?? "";
+  const inlineField = snapshot === null ? null : inlineAskFor(snapshot);
   return {
     phase,
     busy: input.busy,
     ready: snapshot !== null,
     errorText: input.errorText,
     speechAvailable: input.speechAvailable,
-    ask: askFor(phase, question, readyToConfirm, visibleRows),
+    ask: askText(phase, question, readyToConfirm, visibleRows, inlineField),
     askMark: snapshot?.gaps[0] === "budgetBasis" ? "budget-basis" : null,
     askLabelsComposer: phase === "capture" || askingGap || phase === "favorites" || phase === "results",
     notice: visibleNotice(snapshot),
     draftConfirmation: snapshot?.filing?.path === "draft" ? draftCreatedNotice : null,
     filingMessage: filingMessage(snapshot),
+    inlineAsk: inlinePresentation(inlineField),
+    newEventLabel: snapshot?.newEvent?.label ?? null,
+    fileGap: fileGapOf(snapshot),
     filed: snapshot !== null && snapshot.filing !== null,
     offerLabel: offerLabel(snapshot, phase),
     factsSentence: presented.sentence,
@@ -87,7 +92,9 @@ export function shellViewModel(input: {
     composerPlaceholder,
     offerSummary: offerSummary(brief, offerCount, phase),
     contextChips: phase === "results" ? briefContextChips(brief) : [],
-    ...inputHints(question),
+    ...(inlineField === null
+      ? inputHints(question)
+      : { inputType: "text" as const, inputMode: "text" as const, autoComplete: undefined }),
   };
 }
 
@@ -144,7 +151,7 @@ function offerLabel(snapshot: PlannerSnapshot | null, phase: ShellViewModel["pha
 
 function visibleNotice(snapshot: PlannerSnapshot | null): string | null {
   const notice = noticeText(snapshot);
-  if (notice !== null) {
+  if (notice !== null && (snapshot === null || !hideNotice(snapshot, notice))) {
     return notice;
   }
   if (snapshot?.filingAvailable === false) {
@@ -153,18 +160,13 @@ function visibleNotice(snapshot: PlannerSnapshot | null): string | null {
   return null;
 }
 
-const filingNotices = new Set<string>([
-  questionForGap("contactEmail"),
-  questionForGap("startDate"),
-  questionForGap("endDate"),
-  questionForGap("attendeeCount"),
-  questionForGap("language"),
-  questionForGap("roomCount"),
-  "Which company should receive the brief?",
-  filingUnavailableNotice,
-  draftCreatedNotice,
-  briefFiledNotice,
-]);
+function hideNotice(snapshot: PlannerSnapshot, notice: string): boolean {
+  const field = inlineAskFor(snapshot);
+  if (field !== null && notice === questionForGap(field)) {
+    return true;
+  }
+  return notice === questionForGap("endDate") && firstFileableGap(snapshot.brief) !== "endDate";
+}
 
 function filingMessage(snapshot: PlannerSnapshot | null): string | null {
   if (snapshot?.filing?.path === "draft") {
@@ -173,11 +175,34 @@ function filingMessage(snapshot: PlannerSnapshot | null): string | null {
   if (snapshot?.filing?.path === "inbox") {
     return briefFiledNotice;
   }
-  const notice = snapshot?.notice ?? null;
-  if (notice !== null && filingNotices.has(notice)) {
-    return notice;
+  if (snapshot?.notice === leftUnfiledNote) {
+    return leftUnfiledNote;
+  }
+  const gap = snapshot === null ? undefined : firstFileableGap(snapshot.brief);
+  if (gap === undefined || gap === "contactEmail" || gap === "endDate") {
+    return null;
+  }
+  return questionForGap(gap);
+}
+
+function inlinePresentation(field: InlineField | null): InlineAskView | null {
+  if (field === "contactEmail") {
+    return { field, inputType: "email", label: "Email" };
+  }
+  if (field === "endDate") {
+    return { field, inputType: "date", label: "End date" };
+  }
+  if (field === "endTime") {
+    return { field, inputType: "time", label: "End time" };
   }
   return null;
+}
+
+function fileGapOf(snapshot: PlannerSnapshot | null): string | null {
+  if (snapshot === null || snapshot.filing !== null) {
+    return null;
+  }
+  return firstFileableGap(snapshot.brief) ?? null;
 }
 
 function noticeText(snapshot: PlannerSnapshot | null): string | null {
@@ -189,6 +214,22 @@ function noticeText(snapshot: PlannerSnapshot | null): string | null {
     return null;
   }
   return notice;
+}
+
+function askText(
+  phase: ShellViewModel["phase"],
+  question: string,
+  readyToConfirm: boolean,
+  rows: ResultsViewModel["rows"],
+  inlineField: InlineField | null,
+): string {
+  if (inlineField !== null && phase === "favorites") {
+    return "";
+  }
+  if (inlineField !== null && phase === "confirm" && !readyToConfirm) {
+    return "";
+  }
+  return askFor(phase, question, readyToConfirm, rows);
 }
 
 function askFor(

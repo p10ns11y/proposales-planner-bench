@@ -14,13 +14,20 @@ export const fileBriefResultSchema = z.discriminatedUnion("path", [
   z.object({ path: z.literal("draft"), uuid: z.string() }),
 ]);
 
+export const newEventOfferSchema = z.object({
+  label: z.string(),
+});
+
 export const plannerSnapshotSchema = z.object({
+  chatId: z.string().min(1).default("chat"),
   brief: plannerBriefSchema,
   stage: z.enum(["collecting", "fileable", "filed", "comparing"]),
   phase: viewportPhaseSchema,
   offers: z.array(venueOfferSchema),
   filing: fileBriefResultSchema.nullable(),
   filingKey: z.string().nullable().default(null),
+  newEvent: newEventOfferSchema.nullable().default(null),
+  inlinePaused: z.boolean().default(false),
   gaps: z.array(z.string()),
   nextQuestion: z.string(),
   companies: z.array(companyRecordSchema),
@@ -47,7 +54,10 @@ export function emptySnapshot(
   const listed = companiesForClient(companies);
   const firstCompany = listed[0];
   return {
+    chatId: newChatId(),
     brief: {},
+    newEvent: null,
+    inlinePaused: false,
     stage: "collecting" satisfies BriefStage,
     phase: "capture",
     offers: [],
@@ -66,6 +76,10 @@ export function emptySnapshot(
     offerSource: "fixture",
     filingAvailable: true,
   };
+}
+
+export function newChatId(): string {
+  return crypto.randomUUID();
 }
 
 export function snapshotForClient(snapshot: PlannerSnapshot): PlannerSnapshot {

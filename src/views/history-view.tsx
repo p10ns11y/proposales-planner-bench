@@ -52,7 +52,7 @@ export function HistoryView({ viewModel, chatState, onEvent }: HistoryViewProps)
                   {entry.title}
                 </span>
                 <span className="planner-meta" data-lcv="preview">
-                  {entry.venueCount} venues · {entry.savedAt}
+                  {entry.meta}
                 </span>
               </button>
             </li>

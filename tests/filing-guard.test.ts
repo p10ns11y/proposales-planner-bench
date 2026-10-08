@@ -5,7 +5,9 @@ import { addEnglishLanguage, briefWrittenInEnglish, statesOtherLanguage } from "
 import { isFileUtterance, turnIntent } from "../src/flow/fixture-extractor";
 import {
   attemptFiling,
+  fileableBrief,
   filingFingerprint,
+  firstFileableGap,
   noticeForFileableGap,
   noticeForFiling,
   preserveOpenVenue,
@@ -418,7 +420,9 @@ describe("attempt filing", () => {
       speechAvailable: false,
     });
     expect(view.filed).toBe(false);
-    expect(view.filingMessage).toBe(emailQuestion);
+    expect(view.inlineAsk).toEqual({ field: "contactEmail", inputType: "email", label: "Email" });
+    expect(view.filingMessage).toBeNull();
+    expect(view.fileGap).toBe("contactEmail");
     expect(view.offerLabel).toBe("Sample offers");
   });
 
@@ -507,6 +511,49 @@ describe("attempt filing", () => {
     });
     expect(watched.filings).toHaveLength(0);
     expect(emailFirst.notice).toBe(emailQuestion);
+  });
+
+  it("copies the start date for a single-day clock brief and still asks when the day has no end", async () => {
+    const watched = countingFileClient("ok");
+    const clocks = {
+      contactEmail: "planner@northwind.example",
+      startDate: "2026-11-12",
+      startTime: "06:00",
+      endTime: "12:00",
+      attendeeCount: 20,
+      language: "en",
+    };
+    const filed = await attemptFiling({
+      brief: clocks,
+      filing: null,
+      filingAvailable: true,
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: watched.client,
+    });
+    expect(filed.filing).toEqual({ path: "inbox", id: 100 });
+    expect(watched.filings[0]?.startDate).toBe("2026-11-12T06:00:00.000Z");
+    expect(watched.filings[0]?.endDate).toBe("2026-11-12T12:00:00.000Z");
+    expect(fileableBrief(clocks).endDate).toBe("2026-11-12");
+    expect(firstFileableGap(clocks)).toBeUndefined();
+    const earlier = {
+      ...clocks,
+      endDate: "2026-11-11",
+    };
+    const kept = countingFileClient("ok");
+    await attemptFiling({
+      brief: earlier,
+      filing: null,
+      filingAvailable: true,
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: kept.client,
+    });
+    expect(kept.filings[0]?.endDate).toBe("2026-11-11T12:00:00.000Z");
+    expect(fileableBrief(earlier).endDate).toBe("2026-11-11");
+    expect(firstFileableGap(omitField("endDate"))).toBe("endDate");
+    expect(fileableBrief({ ...clocks, contactEmail: "   " }).contactEmail).toBeUndefined();
+    expect(fileableBrief(clocks).contactEmail).toBe(clocks.contactEmail);
   });
 
   it("files once for the chosen company and allows a retry after a transport failure", async () => {

@@ -50,6 +50,16 @@ describe("brief and offer gaps", () => {
     expect(findBriefGaps(overnight, "brief:fileable")).toEqual(["roomCount"]);
     expect(findBriefGaps({ ...overnight, roomCount: 2 }, "brief:fileable")).toEqual([]);
     expect(findBriefGaps({ ...overnight, endDate: "2026-06-01" }, "brief:fileable")).toEqual([]);
+    const day = {
+      contactEmail: "ada@example.com",
+      startDate: "2026-11-12",
+      attendeeCount: 20,
+      language: "en",
+    };
+    expect(findBriefGaps(day, "brief:fileable")).toEqual(["endDate"]);
+    expect(findBriefGaps({ ...day, startTime: "06:00", endTime: "12:00" }, "brief:fileable")).toEqual([]);
+    expect(findBriefGaps({ ...day, startTime: "06:00", durationMinutes: 360 }, "brief:fileable")).toEqual([]);
+    expect(findBriefGaps({ ...day, startTime: "06:00", endDate: "2026-11-14" }, "brief:fileable")).toEqual(["roomCount"]);
   });
 
   it("lists offer gaps in config order and ignores a non-string issue path", () => {

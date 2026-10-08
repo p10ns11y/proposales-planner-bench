@@ -2,6 +2,7 @@ import { plannerBriefSchema, type PlannerBrief } from "../domain/planner-brief";
 import { createClient } from "../proposales/client";
 import { resolveBriefPatch, type PlannerPath } from "./agent-mode";
 import { readSessionSnapshot } from "./chat-request";
+import { isInlineField } from "./inline-ask";
 import { moreDetailsSchema } from "./more-details";
 import { currentChatEnv, type PlannerChatEnv } from "./planner-chat";
 import { plannerSnapshotSchema, snapshotForClient } from "./planner-snapshot";
@@ -92,6 +93,17 @@ function readAction(value: unknown): ViewportAction | null {
       return null;
     }
     return { type: "briefConfirmed", brief: parsed.data };
+  }
+  if (type === "inlineAnswered") {
+    const field = Reflect.get(value, "field");
+    const text = Reflect.get(value, "value");
+    if (!isInlineField(field) || typeof text !== "string") {
+      return null;
+    }
+    return { type: "inlineAnswered", field, value: text };
+  }
+  if (type === "inlineSkipped") {
+    return { type: "inlineSkipped" };
   }
   if (type === "showMore" || type === "rowClosed") {
     return { type };
