@@ -19,6 +19,7 @@ import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
   isFileUtterance,
+  singleFieldPatch,
   matchFavoriteVenues,
   readBudgetScope,
   readClockRange,
@@ -216,7 +217,7 @@ async function editMore(
   }
   const next = { ...snapshot, brief, notice: null };
   if (snapshot.phase === "results") {
-    const ranked = await rerank(next, client, today, "refresh", "");
+    const ranked = await rerank(next, client, today, "append", moreQuery(details));
     return preserveOpenVenue(ranked, snapshot.openVenueName);
   }
   if (snapshot.phase === "confirm") {
@@ -330,20 +331,21 @@ async function answerInline(
     client,
     utterance: null,
   });
-  return storeInline(next, client, today);
+  return storeInline(next, client, today, value.trim());
 }
 
 async function storeInline(
   snapshot: PlannerSnapshot,
   client: ProposalesClient,
   today: string,
+  query: string,
 ): Promise<PlannerSnapshot> {
   const next = withoutFileAsk({ ...snapshot, newEvent: null, inlinePaused: false, notice: null });
   if (snapshot.phase === "results") {
     if (briefConfirmHold(next.brief) !== null) {
       return withConfirmState(next, next.brief);
     }
-    return rerank(next, client, today, "refresh", "");
+    return rerank(next, client, today, "append", query);
   }
   if (snapshot.phase === "favorites") {
     const gap = findBriefGaps(fileableBrief(next.brief), "brief:fileable")[0];
@@ -460,7 +462,7 @@ async function submitFavorites(
     return withConfirmState(snapshot, snapshot.brief);
   }
   const favoriteVenueNames = matchFavoriteVenues(text);
-  const record = snapshot.resultCards.length === 0 ? "seed" : "refresh";
+  const record = snapshot.resultCards.length === 0 ? "seed" : "follow";
   return rankSnapshot({ ...snapshot, favoriteVenueNames }, client, today, record, snapshot.activeQuery);
 }
 
@@ -471,7 +473,7 @@ async function reviseDuringResults(
   today: string,
   query: string,
 ): Promise<PlannerSnapshot> {
-  const brief = mergeBrief(snapshot.brief, patch);
+  const brief = mergeBrief(mergeBrief(snapshot.brief, singleFieldPatch(query)), patch);
   if (briefConfirmHold(brief) !== null) {
     return withConfirmState(snapshot, brief);
   }
@@ -486,6 +488,18 @@ async function rerank(
   query: string,
 ): Promise<PlannerSnapshot> {
   return rankSnapshot(snapshot, client, today, record, query);
+}
+
+function moreQuery(details: MoreDetails): string {
+  const guests = details.attendeeCount?.trim() ?? "";
+  if (guests !== "") {
+    return `${guests} guests`;
+  }
+  const city = details.city?.trim() ?? "";
+  if (city !== "") {
+    return city;
+  }
+  return "updated brief";
 }
 
 function narrowResults(snapshot: PlannerSnapshot, text: string): PlannerSnapshot {

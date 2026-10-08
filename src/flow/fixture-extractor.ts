@@ -1,4 +1,4 @@
-import { assumedSpan, type DayPart, type PlannerBrief } from "../domain/planner-brief";
+import { assumedSpan, isKnownPlace, type DayPart, type PlannerBrief } from "../domain/planner-brief";
 import { minorUnits } from "../domain/minor-units";
 import type { VenueOffer } from "../domain/venue-offer";
 
@@ -132,6 +132,20 @@ export function extractBriefPatch(text: string): PlannerBrief {
     }
   }
   return mergePlainEnglish(patch, text);
+}
+
+export function singleFieldPatch(text: string): PlannerBrief {
+  const trimmed = text.trim();
+  if (/^\d+$/.test(trimmed)) {
+    const count = Number(trimmed);
+    if (count > 0) {
+      return { attendeeCount: count };
+    }
+  }
+  if (/^[A-Za-z][A-Za-z-]{1,40}$/.test(trimmed) && isKnownPlace(trimmed)) {
+    return { city: trimmed };
+  }
+  return {};
 }
 
 export function matchFavoriteVenues(text: string): string[] {

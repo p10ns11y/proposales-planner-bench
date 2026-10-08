@@ -116,6 +116,150 @@ describe("result cards", () => {
     expect(ranked.proposals()).toBe(offers + 1);
   });
 
+  it.each(["hi", "hello", "thanks"])(
+    "answers %s with a reply and leaves the card",
+    async (text) => {
+      const ranked = await rankedChat();
+      const before = ranked.snapshot.resultCards[0];
+      const offers = ranked.proposals();
+      const held = await runViewportAction({
+        action: { type: "composerSubmitted", text },
+        snapshot: ranked.snapshot,
+        client: ranked.client,
+        today,
+      });
+      expect(held.snapshot.notice).toBe(steerBackLine);
+      expect(held.snapshot.brief).toEqual(ranked.snapshot.brief);
+      expect(held.snapshot.resultCards).toHaveLength(1);
+      expect(held.snapshot.resultCards[0]).toBe(before);
+      expect(ranked.proposals()).toBe(offers);
+    },
+  );
+
+  it("treats a known city and a guest count as answers", async () => {
+    const ranked = await rankedChat();
+    const before = ranked.snapshot.resultCards[0];
+    const offers = ranked.proposals();
+    const cityTurn = await runViewportAction({
+      action: { type: "composerSubmitted", text: "Gothenburg" },
+      snapshot: ranked.snapshot,
+      client: ranked.client,
+      today,
+    });
+    expect(cityTurn.snapshot.notice).toBeNull();
+    expect(cityTurn.snapshot.brief.city).toBe("Gothenburg");
+    expect(cityTurn.snapshot.resultCards).toHaveLength(2);
+    expect(cityTurn.snapshot.resultCards[0]).toBe(before);
+    expect(cityTurn.snapshot.resultCards[0]?.summary).toContain("Stockholm");
+    expect(cityTurn.snapshot.resultCards[1]?.summary).toContain("Gothenburg");
+    expect(cityTurn.snapshot.resultCards[1]?.rows.length).toBeGreaterThan(0);
+    expect(ranked.proposals()).toBe(offers + 1);
+    const countTurn = await runViewportAction({
+      action: { type: "composerSubmitted", text: "60" },
+      snapshot: cityTurn.snapshot,
+      client: ranked.client,
+      today,
+    });
+    expect(countTurn.snapshot.notice).toBeNull();
+    expect(countTurn.snapshot.brief.attendeeCount).toBe(60);
+    expect(countTurn.snapshot.brief.city).toBe("Gothenburg");
+    expect(countTurn.snapshot.resultCards).toHaveLength(3);
+    expect(countTurn.snapshot.resultCards[0]).toBe(before);
+    expect(countTurn.snapshot.resultCards[1]).toBe(cityTurn.snapshot.resultCards[1]);
+    expect(countTurn.snapshot.resultCards[2]?.summary).toContain("60");
+    expect(ranked.proposals()).toBe(offers + 2);
+  });
+
+  it("appends a card when Apply changes the guest count", async () => {
+    const ranked = await rankedChat();
+    const before = ranked.snapshot.resultCards[0];
+    const edited = await runViewportAction({
+      action: { type: "moreEdited", details: { attendeeCount: "45" } },
+      snapshot: ranked.snapshot,
+      client: ranked.client,
+      today,
+    });
+    expect(edited.snapshot.brief.attendeeCount).toBe(45);
+    expect(edited.snapshot.resultCards).toHaveLength(2);
+    expect(edited.snapshot.resultCards[0]).toBe(before);
+    expect(edited.snapshot.resultCards[0]?.summary).toContain("40");
+    expect(edited.snapshot.resultCards[1]?.summary).toContain("45");
+    expect(edited.snapshot.resultCards[1]?.id).not.toBe(before?.id);
+  });
+
+  it("appends a card when Save in results changes the brief", async () => {
+    const ranked = await rankedChat();
+    const before = ranked.snapshot.resultCards[0];
+    const saved = await runViewportAction({
+      action: { type: "inlineAnswered", field: "contactEmail", value: "planner@northwind.example" },
+      snapshot: ranked.snapshot,
+      client: ranked.client,
+      today,
+    });
+    expect(saved.snapshot.brief.contactEmail).toBe("planner@northwind.example");
+    expect(saved.snapshot.filing).toBeNull();
+    expect(saved.snapshot.resultCards).toHaveLength(2);
+    expect(saved.snapshot.resultCards[0]).toBe(before);
+    expect(saved.snapshot.resultCards[1]?.id).not.toBe(before?.id);
+  });
+
+  it("appends a card when a favourite changes the ranking", async () => {
+    const ranked = await rankedChat();
+    const before = ranked.snapshot.resultCards[0];
+    expect(before?.rows.find((row) => row.venueName === "Harbour House")?.favorite).not.toBe(true);
+    const marked = await runViewportAction({
+      action: { type: "favoritesSubmitted", text: "Harbour House" },
+      snapshot: ranked.snapshot,
+      client: ranked.client,
+      today,
+    });
+    expect(marked.snapshot.resultCards).toHaveLength(2);
+    expect(marked.snapshot.resultCards[0]).toBe(before);
+    expect(marked.snapshot.resultCards[1]?.rows.find((row) => row.venueName === "Harbour House")?.favorite).toBe(true);
+    const same = await runViewportAction({
+      action: { type: "favoritesSubmitted", text: "skip" },
+      snapshot: ranked.snapshot,
+      client: ranked.client,
+      today,
+    });
+    expect(same.snapshot.resultCards).toHaveLength(1);
+    expect(same.snapshot.resultCards[0]).toBe(before);
+  });
+
+  it("expands the latest card in place for show more", async () => {
+    const ranked = await rankedChat();
+    const before = ranked.snapshot.resultCards[0];
+    const tight = {
+      ...ranked.snapshot,
+      visibleRowCount: 1,
+      resultCards: before === undefined ? [] : [{ ...before, rows: before.rows.slice(0, 1) }],
+    };
+    const opened = await runViewportAction({
+      action: { type: "showMore" },
+      snapshot: tight,
+      client: ranked.client,
+      today,
+    });
+    expect(opened.snapshot.resultCards).toHaveLength(1);
+    expect(opened.snapshot.resultCards[0]?.id).toBe(before?.id);
+    expect(opened.snapshot.resultCards[0]?.rows.length).toBeGreaterThan(1);
+    const second = nextResultCard(opened.snapshot.resultCards, "later", opened.snapshot.grid, "later");
+    const withSecond = {
+      ...opened.snapshot,
+      resultCards: withResultCard(opened.snapshot.resultCards, second),
+      visibleRowCount: 1,
+    };
+    const again = await runViewportAction({
+      action: { type: "showMore" },
+      snapshot: withSecond,
+      client: ranked.client,
+      today,
+    });
+    expect(again.snapshot.resultCards[0]).toBe(withSecond.resultCards[0]);
+    expect(again.snapshot.resultCards[1]?.id).toBe(second.id);
+    expect(again.snapshot.resultCards[1]?.rows.length).toBeGreaterThan(1);
+  });
+
   it("appends a two-row card for pick only two and replies when it cannot narrow", async () => {
     const ranked = await rankedChat();
     const before = ranked.snapshot.resultCards[0];
@@ -145,12 +289,44 @@ describe("result cards", () => {
     expect(stuck.snapshot.resultCards[1]).toBe(narrowed.snapshot.resultCards[1]);
     expect(ranked.proposals()).toBe(offers);
   });
+
+  it.each(["pick two", "only two", "just the top two"])(
+    "narrows for %s and replies when it cannot",
+    async (text) => {
+      const ranked = await rankedChat();
+      const before = ranked.snapshot.resultCards[0];
+      const offers = ranked.proposals();
+      const narrowed = await runViewportAction({
+        action: { type: "composerSubmitted", text },
+        snapshot: ranked.snapshot,
+        client: ranked.client,
+        today,
+      });
+      expect(narrowed.snapshot.resultCards).toHaveLength(2);
+      expect(narrowed.snapshot.resultCards[0]).toBe(before);
+      expect(narrowed.snapshot.resultCards[1]?.rows).toHaveLength(2);
+      expect(ranked.proposals()).toBe(offers);
+      const stuck = await runViewportAction({
+        action: { type: "composerSubmitted", text },
+        snapshot: narrowed.snapshot,
+        client: ranked.client,
+        today,
+      });
+      expect(stuck.snapshot.notice).toBe(cannotNarrowLine);
+      expect(stuck.snapshot.resultCards).toHaveLength(2);
+      expect(stuck.snapshot.resultCards[1]).toBe(narrowed.snapshot.resultCards[1]);
+      expect(ranked.proposals()).toBe(offers);
+    },
+  );
 });
 
 describe("result card helpers", () => {
   it("builds, appends, and rewrites only the latest card", () => {
     expect(asksForTwo("pick only two")).toBe(true);
     expect(asksForTwo("  Please pick only two. ")).toBe(true);
+    expect(asksForTwo("pick two")).toBe(true);
+    expect(asksForTwo("only two")).toBe(true);
+    expect(asksForTwo("just the top two")).toBe(true);
     expect(asksForTwo("show the venues")).toBe(false);
     expect(twoRowSlice([{ venueName: "A" } as ResultCard["rows"][number]])).toBeNull();
     const rows = [
@@ -227,5 +403,42 @@ describe("result card helpers", () => {
     expect(refreshed[0]).toBe(seeded[0]);
     expect(refreshed[1]?.rows).toHaveLength(1);
     expect(refreshed[1]?.summary).toBe("1 offer · 1 guest");
+    const followed = rememberRank({
+      cards: seeded,
+      rows,
+      visibleRowCount: 3,
+      record: "follow",
+      query: "",
+      activeQuery: "Stockholm day",
+      city: "Stockholm",
+      attendees: 40,
+    });
+    expect(followed).toHaveLength(1);
+    expect(followed[0]).toBe(seeded[0]);
+    const marked = rows.map((row, index) => ({ ...row, favorite: index === 0 }));
+    const followedNext = rememberRank({
+      cards: seeded,
+      rows: marked,
+      visibleRowCount: 3,
+      record: "follow",
+      query: "Harbour House",
+      activeQuery: "Stockholm day",
+      city: "Stockholm",
+      attendees: 40,
+    });
+    expect(followedNext).toHaveLength(2);
+    expect(followedNext[0]).toBe(seeded[0]);
+    expect(followedNext[1]?.rows[0]?.favorite).toBe(true);
+    const shorter = rememberRank({
+      cards: [],
+      rows: rows.slice(0, 1),
+      visibleRowCount: 1,
+      record: "follow",
+      query: "one",
+      activeQuery: "",
+      city: undefined,
+      attendees: undefined,
+    });
+    expect(shorter).toHaveLength(1);
   });
 });

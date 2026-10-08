@@ -15,11 +15,12 @@ export const resultCardSchema = z.object({
 
 export type ResultCard = z.infer<typeof resultCardSchema>;
 
-export type CardRecord = "seed" | "append" | "refresh";
+export type CardRecord = "seed" | "append" | "refresh" | "follow";
 
 export type NarrowOutcome = { kind: "card"; rows: ComparisonRow[] } | { kind: "reply"; text: string };
 
-const twoRequest = /^\s*(?:please\s+)?pick only two\s*\.?\s*$/i;
+const twoRequest =
+  /^\s*(?:please\s+)?(?:pick only two|pick two|only two|just the top two)\s*\.?\s*$/i;
 
 export function asksForTwo(text: string): boolean {
   return twoRequest.test(text);
@@ -116,6 +117,9 @@ export function rememberRank(input: {
   if (keepsSeed(input.record, input.cards.length)) {
     return [...input.cards];
   }
+  if (input.record === "follow" && sameVenueOrder(input.cards.at(-1)?.rows, visible)) {
+    return [...input.cards];
+  }
   const card = nextResultCard(input.cards, rankQuery(input.query, input.activeQuery), visible, summary);
   return withResultCard(input.cards, card);
 }
@@ -131,6 +135,20 @@ function guestCount(attendees: number): string {
 
 function keepsSeed(record: CardRecord, count: number): boolean {
   return record === "seed" && count > 0;
+}
+
+function sameVenueOrder(left: readonly ComparisonRow[] | undefined, right: readonly ComparisonRow[]): boolean {
+  if (left === undefined || left.length !== right.length) {
+    return false;
+  }
+  return left.every((row, index) => sameRankedRow(row, right[index]));
+}
+
+function sameRankedRow(left: ComparisonRow, right: ComparisonRow | undefined): boolean {
+  if (right === undefined) {
+    return false;
+  }
+  return left.venueName === right.venueName && left.favorite === right.favorite;
 }
 
 function rankQuery(query: string, activeQuery: string): string {

@@ -250,6 +250,10 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     };
   }
 
+  function keepCurrentCard() {
+    setLines((current) => freezeLatest(current).lines);
+  }
+
   function pushTurn(userText: string) {
     const live = viewModel.ask;
     setLines((current) => {
@@ -404,7 +408,10 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       }}
       onRetry={() => submitText(heldDraft.current, lastKind.current)}
       onNewChat={newChat}
-      onInlineSave={(field, value) => onEvent({ type: "inlineAnswered", field, value }, "more")}
+      onInlineSave={(field, value) => {
+        keepCurrentCard();
+        onEvent({ type: "inlineAnswered", field, value }, "more");
+      }}
       onInlineSkip={() => {
         if (viewModel.phase === "favorites") {
           pushTurn("Skip");
@@ -505,11 +512,15 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                         data-result-card={line.cardId}
                         data-result-query={line.query}
                       >
-                        {renderPart(toOfferDataPart(line.part), {
-                          hiddenCount: 0,
+                        {renderPart(toOfferDataPart(shownCardPart(line, latestCard?.id, group)), {
+                          hiddenCount: line.cardId === latestCard?.id ? viewModel.hiddenCount : 0,
                           openName: viewModel.openRow?.venueName ?? null,
                           onOpen: (venueName) => onEvent({ type: "rowOpened", venueName }),
-                          onShowMore: () => undefined,
+                          onShowMore: () => {
+                            if (line.cardId === latestCard?.id) {
+                              onEvent({ type: "showMore" });
+                            }
+                          },
                         })}
                       </div>
                     ) : line.role === "user" ? (
@@ -690,6 +701,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           }}
           onEvent={(event) => {
             if (event.type === "moreEdited") {
+              keepCurrentCard();
               onEvent(event, "more");
               return;
             }
@@ -722,6 +734,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             if (detailInline === null) {
               return;
             }
+            keepCurrentCard();
             onEvent({ type: "inlineAnswered", field: detailInline.field, value }, "more");
           }}
           onInlineSkip={() => onEvent({ type: "inlineSkipped" })}
@@ -943,6 +956,17 @@ function SkeletonGroup() {
       <div className="planner-skeleton" />
     </div>
   );
+}
+
+function shownCardPart(
+  line: Extract<Line, { role: "card" }>,
+  latestId: string | undefined,
+  live: OfferGroupPart | null,
+): OfferGroupPart {
+  if (line.cardId === latestId && live !== null) {
+    return live;
+  }
+  return line.part;
 }
 
 function liveIsNew(lines: Line[], live: string, viewModel: ShellViewModel): boolean {

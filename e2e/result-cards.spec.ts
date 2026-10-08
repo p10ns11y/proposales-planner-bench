@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
 const viewports = [
   { width: 390, height: 844 },
@@ -8,6 +8,67 @@ const viewports = [
 const stockholm =
   "I need a place in Stockholm for 40 people on 12 November 2026, from 09:00 to 17:00, with dinner and a meeting room.";
 const followUp = "I need a place in Gothenburg for 12 people.";
+
+test("greetings stay in the chat and leave the card", async ({ page }) => {
+  test.setTimeout(120_000);
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await reachResults(page);
+    const cards = page.locator("[data-result-card]");
+    await expect(cards).toHaveCount(1);
+    const firstVenues = await venueNames(cards.nth(0));
+    for (const text of ["hi", "hello", "thanks"]) {
+      await send(page, text);
+      await expect(page.getByText("Let's get back to planning the event.")).toBeVisible();
+      await expect(cards).toHaveCount(1);
+      expect(await venueNames(cards.nth(0))).toEqual(firstVenues);
+    }
+  }
+});
+
+test("apply after an off-topic reply adds a card for the new guest count", async ({ page }) => {
+  test.setTimeout(120_000);
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await reachResults(page);
+    const cards = page.locator("[data-result-card]");
+    await expect(cards).toHaveCount(1);
+    await expect(cards.nth(0)).toContainText("40 guests");
+    await send(page, "hi");
+    await expect(page.getByText("Let's get back to planning the event.")).toBeVisible();
+    await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
+    const drawer = page.getByRole("dialog", { name: "Add details" });
+    await drawer.getByRole("button", { name: "People and rooms", exact: true }).click();
+    const moreGuests = drawer.getByRole("button", { name: "More guests" });
+    for (let step = 0; step < 5; step += 1) {
+      await moreGuests.click();
+    }
+    await drawer.getByRole("button", { name: "Apply" }).click();
+    await expect(cards).toHaveCount(2);
+    await expect(cards.nth(0)).toContainText("40 guests");
+    await expect(cards.nth(1)).toContainText("45 guests");
+    expect(await threadOverflow(page)).toBe(false);
+  }
+});
+
+test("show more still reveals rows after an off-topic reply", async ({ page }) => {
+  test.setTimeout(120_000);
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await installOfferCount(page, 8);
+    await reachResults(page);
+    const offers = page.locator("[data-offer-card]");
+    await expect(offers).toHaveCount(5);
+    await expect(page.getByRole("button", { name: "Further matches" })).toBeVisible();
+    await send(page, "hi");
+    await expect(page.getByText("Let's get back to planning the event.")).toBeVisible();
+    await expect(offers).toHaveCount(5);
+    await page.getByRole("button", { name: "Further matches" }).click();
+    await expect(offers).toHaveCount(8);
+    await expect(page.getByRole("button", { name: "Further matches" })).toHaveCount(0);
+    expect(await threadOverflow(page)).toBe(false);
+  }
+});
 
 test("keeps earlier result cards when the chat continues", async ({ page }) => {
   test.setTimeout(120_000);
@@ -74,4 +135,51 @@ async function venueNames(card: ReturnType<Page["locator"]>): Promise<string[]> 
 
 async function threadOverflow(page: Page): Promise<boolean> {
   return page.locator(".planner-thread").evaluate((node) => node.scrollWidth > node.clientWidth + 1);
+}
+
+async function installOfferCount(page: Page, count: number) {
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await page.route("**/api/turn", async (route) => {
+    await resizeTurn(route, count);
+  });
+}
+
+async function resizeTurn(route: Route, count: number) {
+  const body = route.request().postDataJSON() as { action?: { type?: string } };
+  const response = await route.fetch();
+  const payload = (await response.json()) as { snapshot?: { grid?: { venueName: string; proposalUuid?: string }[] } };
+  const grid = payload.snapshot?.grid;
+  if (
+    (body.action?.type === "favoritesSubmitted" || body.action?.type === "inlineSkipped") &&
+    grid !== undefined &&
+    payload.snapshot !== undefined
+  ) {
+    payload.snapshot.grid = sizedGrid(grid, count);
+  }
+  await route.fulfill({ response, json: payload });
+}
+
+function sizedGrid(
+  grid: { venueName: string; proposalUuid?: string }[],
+  count: number,
+): { venueName: string; proposalUuid?: string }[] {
+  if (grid.length === 0 || count === grid.length) {
+    return grid;
+  }
+  const next = grid.slice();
+  let index = 0;
+  while (next.length < count) {
+    const source = grid[index % grid.length];
+    if (source === undefined) {
+      break;
+    }
+    const n = next.length + 1;
+    next.push({
+      ...source,
+      venueName: `${source.venueName} ${n}`,
+      proposalUuid: `${source.proposalUuid ?? "row"}-${n}`,
+    });
+    index += 1;
+  }
+  return next;
 }
