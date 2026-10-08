@@ -331,6 +331,28 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     ready: viewModel.ready,
   });
   const showResultsFile = viewModel.phase === "results" && viewModel.rows.length > 0;
+  const liveCopy = (
+    <LiveCopy
+      viewModel={viewModel}
+      onConfirm={() => {
+        pushTurn("Yes");
+        lastKind.current = "search";
+        setPendingTick((value) => value + 1);
+        onEvent({ type: "briefConfirmed" }, "search");
+      }}
+      onSkip={() => {
+        pushTurn("Skip");
+        lastKind.current = "search";
+        setPendingTick((value) => value + 1);
+        onEvent({ type: "favoritesSubmitted", text: "skip" }, "search");
+      }}
+      onRefine={(text) => {
+        setDraft(text);
+        composerRef.current?.focus();
+      }}
+      onRetry={() => submitText(heldDraft.current, lastKind.current)}
+    />
+  );
 
   return (
     <LayoutGroup>
@@ -428,37 +450,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                   )}
                   {showLive ? (
                     <div className="planner-assistant">
-                      <div className="planner-assistant-bubble">
-                        {pending ? (
+                      {pending ? (
+                        <div className="planner-assistant-bubble">
                           <Pending kind={pendingKind ?? "read"} slow={slow} />
-                        ) : (
-                          <LiveCopy
-                            viewModel={viewModel}
-                            showFile={showResultsFile}
-                            concealFile={viewModel.openRow !== null}
-                            fileLabel={fileBriefLabel(viewModel.filed)}
-                            filePressable={filePressable}
-                            onFile={fileBrief}
-                            onConfirm={() => {
-                              pushTurn("Yes");
-                              lastKind.current = "search";
-                              setPendingTick((value) => value + 1);
-                              onEvent({ type: "briefConfirmed" }, "search");
-                            }}
-                            onSkip={() => {
-                              pushTurn("Skip");
-                              lastKind.current = "search";
-                              setPendingTick((value) => value + 1);
-                              onEvent({ type: "favoritesSubmitted", text: "skip" }, "search");
-                            }}
-                            onRefine={(text) => {
-                              setDraft(text);
-                              composerRef.current?.focus();
-                            }}
-                            onRetry={() => submitText(heldDraft.current, lastKind.current)}
-                          />
-                        )}
-                      </div>
+                        </div>
+                      ) : null}
                       {pending && pendingKind === "search" ? <SkeletonGroup /> : null}
                       {!pending && moreLine ? (
                         <p className="planner-more-update" role="status" data-more-update>
@@ -472,6 +468,20 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                           onOpen: (venueName) => onEvent({ type: "rowOpened", venueName }),
                           onShowMore: () => onEvent({ type: "showMore" }),
                         })
+                      ) : null}
+                      {!pending && showResultsFile ? (
+                        <div className="planner-file-suggestion">
+                          <div className="planner-assistant-bubble">{liveCopy}</div>
+                          <ResultsFile
+                            conceal={viewModel.openRow !== null}
+                            label={fileBriefLabel(viewModel.filed)}
+                            pressable={filePressable}
+                            onFile={fileBrief}
+                          />
+                        </div>
+                      ) : null}
+                      {!pending && !showResultsFile ? (
+                        <div className="planner-assistant-bubble">{liveCopy}</div>
                       ) : null}
                     </div>
                   ) : null}
@@ -637,24 +647,45 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   );
 }
 
+function ResultsFile({
+  conceal,
+  label,
+  pressable,
+  onFile,
+}: {
+  conceal: boolean;
+  label: string;
+  pressable: boolean;
+  onFile: () => void;
+}) {
+  return (
+    <div
+      className="planner-actions"
+      aria-hidden={conceal ? true : undefined}
+      style={conceal ? { visibility: "hidden" } : undefined}
+    >
+      <button
+        type="button"
+        className="planner-secondary"
+        disabled={!pressable || conceal}
+        tabIndex={conceal ? -1 : undefined}
+        {...lcvStay("file-brief", "chat:results")}
+        onClick={onFile}
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
 function LiveCopy({
   viewModel,
-  showFile,
-  concealFile,
-  fileLabel,
-  filePressable,
-  onFile,
   onConfirm,
   onSkip,
   onRefine,
   onRetry,
 }: {
   viewModel: ShellViewModel;
-  showFile: boolean;
-  concealFile: boolean;
-  fileLabel: string;
-  filePressable: boolean;
-  onFile: () => void;
   onConfirm: () => void;
   onSkip: () => void;
   onRefine: (text: string) => void;
@@ -729,24 +760,6 @@ function LiveCopy({
             onClick={onSkip}
           >
             Skip
-          </button>
-        </div>
-      ) : null}
-      {showFile ? (
-        <div
-          className="planner-actions"
-          aria-hidden={concealFile ? true : undefined}
-          style={concealFile ? { visibility: "hidden" } : undefined}
-        >
-          <button
-            type="button"
-            className="planner-secondary"
-            disabled={!filePressable || concealFile}
-            tabIndex={concealFile ? -1 : undefined}
-            {...lcvStay("file-brief", "chat:results")}
-            onClick={onFile}
-          >
-            {fileLabel}
           </button>
         </div>
       ) : null}

@@ -225,6 +225,23 @@ describe("offer detail", () => {
     expect(screen.getAllByRole("button", { name: "File this brief" })).toHaveLength(1);
   });
 
+  it("places File this brief on the best-match suggestion", () => {
+    installDomShims();
+    render(<PlannerShell viewModel={model()} onEvent={() => undefined} historyControl={null} />);
+    const summary = screen.getByRole("heading", { level: 2 });
+    const cards = document.querySelectorAll("[data-offer-card]");
+    const last = cards.item(cards.length - 1);
+    const file = screen.getByRole("button", { name: "File this brief" });
+    const row = file.closest(".planner-file-suggestion");
+    expect(cards.length).toBeGreaterThan(0);
+    if (!(last instanceof HTMLElement) || !(row instanceof HTMLElement)) {
+      throw new Error("Missing suggestion row");
+    }
+    expect(row.contains(summary)).toBe(true);
+    expect(last.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(file.getAttribute("data-lcv-event")).toBe("file-brief");
+  });
+
   it("shows a transport error in the open detail and keeps File pressable", async () => {
     installDomShims();
     const user = userEvent.setup();
