@@ -10,16 +10,23 @@ import {
   noteSpeechStartFailed,
   openSpeechRecognition,
   readSpeechResults,
+  recognitionIdle,
+  releaseSpeechRecognition,
   runSpeechStart,
   speechButtonState,
   speechEngine,
+  speechErrorCode,
   speechInputAvailable,
   speechResultCount,
+  copyForSpeechError,
   instantiateSpeechEngine,
   startSpeechCapture,
+  stepRecognition,
   stopSpeechCapture,
   toggleSpeechCapture,
   transcriptFromSpeechEvent,
+  type RecognitionSignal,
+  type RecognitionState,
   type SpeechListener,
   type SpeechRecognitionLike,
 } from "../src/views/speech-input";
@@ -29,76 +36,132 @@ afterEach(() => {
 });
 
 describe("speech button", () => {
-  it("hides the control and keeps the browser reason", () => {
+  it("hides the control and keeps the blocked reason", () => {
     expect(
       speechButtonState({
         supported: true,
-        listening: true,
-        unavailable: "Speech input could not start in this browser.",
+        phase: "blocked",
         busy: true,
         ready: true,
+        status: "Speech input could not start in this browser.",
       }),
-    ).toEqual({ shown: false, reason: "Speech input could not start in this browser." });
+    ).toEqual({
+      shown: false,
+      reason: "Speech input could not start in this browser.",
+      status: "Speech input could not start in this browser.",
+    });
+  });
+
+  it("hides a blocked control even when the constructor is missing", () => {
+    expect(
+      speechButtonState({
+        supported: false,
+        phase: "blocked",
+        busy: false,
+        ready: false,
+        status: "Speech input is unavailable in this browser.",
+      }),
+    ).toEqual({
+      shown: false,
+      reason: "Speech input is unavailable in this browser.",
+      status: "Speech input is unavailable in this browser.",
+    });
   });
 
   it("hides the control when the browser has no speech constructor", () => {
     expect(
       speechButtonState({
         supported: false,
-        listening: false,
-        unavailable: null,
+        phase: "idle",
         busy: false,
         ready: true,
+        status: "leftover",
       }),
-    ).toEqual({ shown: false, reason: null });
+    ).toEqual({ shown: false, reason: null, status: null });
   });
 
   it("shows a pressed Listening control that can stop", () => {
     expect(
       speechButtonState({
         supported: true,
-        listening: true,
-        unavailable: null,
+        phase: "listening",
         busy: true,
         ready: false,
+        status: "leftover",
       }),
-    ).toEqual({ shown: true, pressed: true, name: "Listening", disabled: false });
+    ).toEqual({ shown: true, pressed: true, name: "Listening", disabled: false, status: null });
   });
 
   it("shows Speak when the composer can accept text", () => {
     expect(
       speechButtonState({
         supported: true,
-        listening: false,
-        unavailable: null,
+        phase: "idle",
         busy: false,
         ready: true,
+        status: null,
       }),
-    ).toEqual({ shown: true, pressed: false, name: "Speak", disabled: false });
+    ).toEqual({ shown: true, pressed: false, name: "Speak", disabled: false, status: null });
+  });
+
+  it("keeps Speak usable beside a recovered status", () => {
+    expect(
+      speechButtonState({
+        supported: true,
+        phase: "idle",
+        busy: false,
+        ready: true,
+        status: "Microphone permission was denied in this browser. Press Speak to try again.",
+      }),
+    ).toEqual({
+      shown: true,
+      pressed: false,
+      name: "Speak",
+      disabled: false,
+      status: "Microphone permission was denied in this browser. Press Speak to try again.",
+    });
   });
 
   it("disables Speak while a turn is in flight", () => {
     expect(
       speechButtonState({
         supported: true,
-        listening: false,
-        unavailable: null,
+        phase: "idle",
         busy: true,
         ready: true,
+        status: null,
       }),
-    ).toEqual({ shown: true, pressed: false, name: "Speak", disabled: true });
+    ).toEqual({ shown: true, pressed: false, name: "Speak", disabled: true, status: null });
   });
 
   it("disables Speak before the planner is ready", () => {
     expect(
       speechButtonState({
         supported: true,
-        listening: false,
-        unavailable: null,
+        phase: "idle",
         busy: false,
         ready: false,
+        status: null,
       }),
-    ).toEqual({ shown: true, pressed: false, name: "Speak", disabled: true });
+    ).toEqual({ shown: true, pressed: false, name: "Speak", disabled: true, status: null });
+  });
+
+  it("disables Speak when a turn is in flight and the planner is not ready", () => {
+    expect(
+      speechButtonState({
+        supported: true,
+        phase: "idle",
+        busy: true,
+        ready: false,
+        status: "Speech stopped. Press Speak to try again.",
+      }),
+    ).toEqual({
+      shown: true,
+      pressed: false,
+      name: "Speak",
+      disabled: true,
+      status: "Speech stopped. Press Speak to try again.",
+    });
   });
 });
 
@@ -257,28 +320,126 @@ describe("speech listeners", () => {
   it("records end, error, start, start failure, and a missing engine", () => {
     const ended = heardListener();
     noteSpeechEnded(ended.handlers);
-    expect(ended.listening).toEqual([false]);
-    expect(ended.reasons).toEqual([]);
+    expect(ended.signals).toEqual([{ type: "ended" }]);
+    expect(fold(ended.signals)).toEqual({ phase: "idle", status: null });
 
     const errored = heardListener();
-    noteSpeechError(errored.handlers);
-    expect(errored.listening).toEqual([false]);
-    expect(errored.reasons).toEqual(["Speech input stopped because the browser reported an error."]);
+    noteSpeechError(errored.handlers, { error: "network" });
+    expect(errored.signals).toEqual([{ type: "errored", code: "network" }]);
+    expect(fold(errored.signals)).toEqual({
+      phase: "idle",
+      status: "Speech lost the network. Press Speak to try again.",
+    });
 
     const started = heardListener();
     noteSpeechStarted(started.handlers);
-    expect(started.listening).toEqual([true]);
-    expect(started.reasons).toEqual([]);
+    expect(started.signals).toEqual([{ type: "started" }]);
+    expect(fold(started.signals)).toEqual({ phase: "listening", status: null });
 
     const failed = heardListener();
     noteSpeechStartFailed(failed.handlers);
-    expect(failed.listening).toEqual([false]);
-    expect(failed.reasons).toEqual(["Speech input could not start in this browser."]);
+    expect(failed.signals).toEqual([{ type: "startFailed" }]);
+    expect(fold(failed.signals)).toEqual({
+      phase: "blocked",
+      status: "Speech input could not start in this browser.",
+    });
 
     const missing = heardListener();
     noteSpeechMissing(missing.handlers);
-    expect(missing.listening).toEqual([false]);
-    expect(missing.reasons).toEqual(["Speech input is unavailable in this browser."]);
+    expect(missing.signals).toEqual([{ type: "missing" }]);
+    expect(fold(missing.signals)).toEqual({
+      phase: "blocked",
+      status: "Speech input is unavailable in this browser.",
+    });
+  });
+});
+
+describe("recognition state", () => {
+  it("returns idle with a status for every recognition error", () => {
+    for (const [code, status] of speechErrorCases) {
+      const listening = stepRecognition(recognitionIdle, { type: "started" });
+      const errored = stepRecognition(listening, { type: "errored", code });
+      const ended = stepRecognition(errored, { type: "ended" });
+      expect(copyForSpeechError(code)).toBe(status);
+      expect(errored).toEqual({ phase: "idle", status });
+      expect(ended).toEqual({ phase: "idle", status });
+      expect(
+        speechButtonState({
+          supported: true,
+          phase: ended.phase,
+          busy: false,
+          ready: true,
+          status: ended.status,
+        }),
+      ).toEqual({ shown: true, pressed: false, name: "Speak", disabled: false, status });
+    }
+  });
+
+  it("keeps the error status when end arrives before the error", () => {
+    const listening = stepRecognition(recognitionIdle, { type: "started" });
+    const ended = stepRecognition(listening, { type: "ended" });
+    const errored = stepRecognition(ended, { type: "errored", code: "aborted" });
+    expect(ended).toEqual({ phase: "idle", status: null });
+    expect(errored).toEqual({ phase: "idle", status: "Speech was cancelled. Press Speak to try again." });
+  });
+
+  it("returns idle for an unknown recognition error", () => {
+    const next = stepRecognition(
+      { phase: "listening", status: null },
+      { type: "errored", code: "service-not-allowed" },
+    );
+    expect(copyForSpeechError("service-not-allowed")).toBe("Speech stopped. Press Speak to try again.");
+    expect(copyForSpeechError("")).toBe("Speech stopped. Press Speak to try again.");
+    expect(next).toEqual({ phase: "idle", status: "Speech stopped. Press Speak to try again." });
+    expect(stepRecognition(next, { type: "ended" })).toEqual(next);
+  });
+
+  it("clears the status when Speak is pressed again after permission was denied", () => {
+    const denied = stepRecognition(recognitionIdle, { type: "errored", code: "not-allowed" });
+    expect(denied).toEqual({
+      phase: "idle",
+      status: "Microphone permission was denied in this browser. Press Speak to try again.",
+    });
+    expect(stepRecognition(denied, { type: "started" })).toEqual({ phase: "listening", status: null });
+  });
+
+  it("stays blocked when a start failure is followed by end", () => {
+    const blocked = stepRecognition(recognitionIdle, { type: "startFailed" });
+    expect(blocked).toEqual({
+      phase: "blocked",
+      status: "Speech input could not start in this browser.",
+    });
+    expect(stepRecognition(blocked, { type: "ended" })).toBe(blocked);
+    const missing = stepRecognition({ phase: "listening", status: "leftover" }, { type: "missing" });
+    expect(missing).toEqual({
+      phase: "blocked",
+      status: "Speech input is unavailable in this browser.",
+    });
+    expect(stepRecognition(missing, { type: "ended" })).toEqual(missing);
+  });
+
+  it("reads an error code only from a string field", () => {
+    expect(speechErrorCode(null)).toBe("");
+    expect(speechErrorCode(4)).toBe("");
+    expect(speechErrorCode("not-allowed")).toBe("");
+    expect(speechErrorCode({})).toBe("");
+    expect(speechErrorCode({ error: 1 })).toBe("");
+    expect(speechErrorCode({ error: null })).toBe("");
+    expect(speechErrorCode({ error: "" })).toBe("");
+    expect(speechErrorCode({ error: "audio-capture" })).toBe("audio-capture");
+    const heard = heardListener();
+    noteSpeechError(heard.handlers, null);
+    noteSpeechError(heard.handlers, { error: "" });
+    noteSpeechError(heard.handlers, { error: "no-speech" });
+    expect(heard.signals).toEqual([
+      { type: "errored", code: "" },
+      { type: "errored", code: "" },
+      { type: "errored", code: "no-speech" },
+    ]);
+    expect(fold([{ type: "errored", code: "" }])).toEqual({
+      phase: "idle",
+      status: "Speech stopped. Press Speak to try again.",
+    });
   });
 });
 
@@ -290,41 +451,64 @@ describe("speech capture", () => {
     const session = startSpeechCapture(heard.handlers);
     expect(session).not.toBeNull();
     expect(session?.lang).toBe("en-US");
-    expect(heard.listening).toEqual([true]);
-    expect(heard.reasons).toEqual([]);
+    expect(fold(heard.signals)).toEqual({ phase: "listening", status: null });
     const results = listLike(["North wind"]);
     expect(Array.isArray(results)).toBe(false);
     session?.onresult?.({ results });
     session?.onresult?.({ results: { length: 1, 0: { length: 1, 0: { transcript: "" } } } });
     session?.onend?.();
     expect(heard.transcripts).toEqual(["North wind"]);
-    expect(heard.listening).toEqual([true, false]);
-    expect(heard.reasons).toEqual([]);
+    expect(fold(heard.signals)).toEqual({ phase: "idle", status: null });
   });
 
   it("reports a start failure and does not leave the session listening", () => {
     installEngines(failingStartEngine(), undefined);
     const heard = heardListener();
     expect(startSpeechCapture(heard.handlers)).toBeNull();
-    expect(heard.listening).toEqual([false]);
-    expect(heard.reasons).toEqual(["Speech input could not start in this browser."]);
+    expect(heard.signals).toEqual([{ type: "started" }, { type: "startFailed" }]);
+    expect(fold(heard.signals)).toEqual({
+      phase: "blocked",
+      status: "Speech input could not start in this browser.",
+    });
     expect(heard.transcripts).toEqual([]);
   });
 
-  it("reports an error from the session", () => {
+  it("returns to idle after a recognition error and a following end", () => {
     installEngines(markerEngine("standard"), undefined);
     const heard = heardListener();
     const session = startSpeechCapture(heard.handlers);
+    session?.onerror?.({ error: "audio-capture" });
+    session?.onend?.();
+    expect(fold(heard.signals)).toEqual({
+      phase: "idle",
+      status: "The microphone could not be opened. Press Speak to try again.",
+    });
     session?.onerror?.({});
-    expect(heard.listening).toEqual([true, false]);
-    expect(heard.reasons).toEqual(["Speech input stopped because the browser reported an error."]);
+    expect(fold(heard.signals)).toEqual({
+      phase: "idle",
+      status: "Speech stopped. Press Speak to try again.",
+    });
+  });
+
+  it("returns to idle when the error is reported inside start", () => {
+    installEngines(syncErrorEngine(), undefined);
+    const heard = heardListener();
+    const session = startSpeechCapture(heard.handlers);
+    expect(session).not.toBeNull();
+    expect(fold(heard.signals)).toEqual({
+      phase: "idle",
+      status: "No speech was heard. Press Speak to try again.",
+    });
   });
 
   it("explains a missing engine", () => {
     const heard = heardListener();
     expect(startSpeechCapture(heard.handlers)).toBeNull();
-    expect(heard.reasons).toEqual(["Speech input is unavailable in this browser."]);
-    expect(heard.listening).toEqual([false]);
+    expect(heard.signals).toEqual([{ type: "missing" }]);
+    expect(fold(heard.signals)).toEqual({
+      phase: "blocked",
+      status: "Speech input is unavailable in this browser.",
+    });
   });
 
   it("stops a listening session and recovers when stop throws", () => {
@@ -333,12 +517,12 @@ describe("speech capture", () => {
     bindSpeechRecognition(session, heard.handlers);
     stopSpeechCapture(session, heard.handlers);
     expect(session.stopped).toBe(1);
-    expect(heard.listening).toEqual([]);
+    expect(heard.signals).toEqual([]);
 
     session.failStop = true;
     stopSpeechCapture(session, heard.handlers);
-    expect(heard.listening).toEqual([false]);
-    expect(heard.reasons).toEqual([]);
+    expect(heard.signals).toEqual([{ type: "ended" }]);
+    expect(fold(heard.signals)).toEqual({ phase: "idle", status: null });
   });
 
   it("toggles between start and stop", () => {
@@ -346,13 +530,43 @@ describe("speech capture", () => {
     const heard = heardListener();
     const started = toggleSpeechCapture(null, false, heard.handlers);
     expect(started).not.toBeNull();
-    expect(heard.listening).toEqual([true]);
+    expect(fold(heard.signals)).toEqual({ phase: "listening", status: null });
     const stopped = toggleSpeechCapture(started, true, heard.handlers);
     expect(stopped).toBe(started);
     expect((started as FakeSession).stopped).toBe(1);
     expect(toggleSpeechCapture(null, true, heard.handlers)).toBeNull();
-    expect(heard.listening).toEqual([true]);
-    expect(heard.reasons).toEqual([]);
+    expect(fold(heard.signals)).toEqual({ phase: "listening", status: null });
+  });
+
+  it("drops events from the previous session when Speak is pressed again", () => {
+    installEngines(markerEngine("standard"), undefined);
+    const heard = heardListener();
+    const first = toggleSpeechCapture(null, false, heard.handlers);
+    expect(first).not.toBeNull();
+    first?.onerror?.({ error: "not-allowed" });
+    first?.onend?.();
+    expect(fold(heard.signals)).toEqual({
+      phase: "idle",
+      status: "Microphone permission was denied in this browser. Press Speak to try again.",
+    });
+    const second = toggleSpeechCapture(first, false, heard.handlers);
+    expect(second).not.toBe(first);
+    expect(first?.onresult).toBeNull();
+    expect(first?.onerror).toBeNull();
+    expect(first?.onend).toBeNull();
+    const beforeLate = heard.signals.length;
+    first?.onresult?.({ results: listLike(["late"]) });
+    first?.onerror?.({ error: "network" });
+    first?.onend?.();
+    expect(heard.signals).toHaveLength(beforeLate);
+    expect(heard.transcripts).toEqual([]);
+    expect(fold(heard.signals)).toEqual({ phase: "listening", status: null });
+    const loose = fakeSession();
+    bindSpeechRecognition(loose, heard.handlers);
+    releaseSpeechRecognition(loose);
+    expect(loose.onresult).toBeNull();
+    expect(loose.onerror).toBeNull();
+    expect(loose.onend).toBeNull();
   });
 
   it("runs start on an armed session", () => {
@@ -360,10 +574,13 @@ describe("speech capture", () => {
     const heard = heardListener();
     expect(runSpeechStart(session, heard.handlers)).toBe(session);
     expect(session.started).toBe(1);
-    expect(heard.listening).toEqual([true]);
+    expect(heard.signals).toEqual([{ type: "started" }]);
     session.failStart = true;
     expect(runSpeechStart(session, heard.handlers)).toBeNull();
-    expect(heard.reasons).toEqual(["Speech input could not start in this browser."]);
+    expect(fold(heard.signals)).toEqual({
+      phase: "blocked",
+      status: "Speech input could not start in this browser.",
+    });
   });
 
   it("binds result, error, and end handlers", () => {
@@ -371,11 +588,13 @@ describe("speech capture", () => {
     const heard = heardListener();
     bindSpeechRecognition(session, heard.handlers);
     session.onresult?.({ results: listLike(["bound"]) });
-    session.onerror?.({});
+    session.onerror?.({ error: "no-speech" });
     session.onend?.();
     expect(heard.transcripts).toEqual(["bound"]);
-    expect(heard.reasons).toEqual(["Speech input stopped because the browser reported an error."]);
-    expect(heard.listening).toEqual([false, false]);
+    expect(fold(heard.signals)).toEqual({
+      phase: "idle",
+      status: "No speech was heard. Press Speak to try again.",
+    });
   });
 });
 
@@ -434,6 +653,16 @@ function failingStartEngine(): MarkerEngine {
   };
 }
 
+function syncErrorEngine(): MarkerEngine {
+  return class extends FakeSession {
+    override start(): void {
+      this.started += 1;
+      this.onerror?.({ error: "no-speech" });
+      this.onend?.();
+    }
+  };
+}
+
 function fakeSession(): FakeSession {
   return new FakeSession();
 }
@@ -464,23 +693,30 @@ function alternative(transcript: string): object {
   return { length: 1, 0: { transcript } };
 }
 
-function heardListener(): { handlers: SpeechListener; transcripts: string[]; listening: boolean[]; reasons: string[] } {
+const speechErrorCases = [
+  ["no-speech", "No speech was heard. Press Speak to try again."],
+  ["network", "Speech lost the network. Press Speak to try again."],
+  ["aborted", "Speech was cancelled. Press Speak to try again."],
+  ["not-allowed", "Microphone permission was denied in this browser. Press Speak to try again."],
+  ["audio-capture", "The microphone could not be opened. Press Speak to try again."],
+] as const;
+
+function fold(signals: RecognitionSignal[], state: RecognitionState = recognitionIdle): RecognitionState {
+  return signals.reduce(stepRecognition, state);
+}
+
+function heardListener(): { handlers: SpeechListener; transcripts: string[]; signals: RecognitionSignal[] } {
   const transcripts: string[] = [];
-  const listening: boolean[] = [];
-  const reasons: string[] = [];
+  const signals: RecognitionSignal[] = [];
   return {
     transcripts,
-    listening,
-    reasons,
+    signals,
     handlers: {
       onTranscript: (transcript) => {
         transcripts.push(transcript);
       },
-      onListening: (value) => {
-        listening.push(value);
-      },
-      onUnavailable: (reason) => {
-        reasons.push(reason);
+      onSignal: (signal) => {
+        signals.push(signal);
       },
     },
   };

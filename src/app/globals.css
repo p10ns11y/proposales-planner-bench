@@ -390,19 +390,18 @@ h2.planner-text {
   left: 0;
   z-index: 2;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
   padding: 0 16px 16px;
   pointer-events: none;
   background: linear-gradient(to top, var(--bg-canvas) 62%, rgba(249, 249, 249, 0));
 }
 
 .planner-speech-status {
-  position: absolute;
-  right: 16px;
-  bottom: 84px;
-  left: 16px;
-  margin: 0 auto;
-  width: min(720px, calc(100% - 32px));
+  width: min(720px, 100%);
+  margin: 0;
   color: var(--text-secondary);
   font-size: 13px;
   line-height: 18px;
