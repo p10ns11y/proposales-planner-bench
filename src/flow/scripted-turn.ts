@@ -157,6 +157,8 @@ export async function runFixtureTurn(input: {
       sampleOffers: false,
       offerSource: input.snapshot.offerSource,
       filingAvailable,
+      activeQuery: input.snapshot.activeQuery,
+      resultCards: input.snapshot.resultCards,
     }),
   };
 }

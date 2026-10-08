@@ -296,6 +296,7 @@ function resultsModel(rows: ShellRow[]): ShellViewModel {
     showFacts: false,
     showConfirm: false,
     showFavorites: false,
+    cards: [],
     rows,
     hiddenCount: 0,
     openRow: null,

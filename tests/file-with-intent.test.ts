@@ -623,6 +623,48 @@ describe("chat actions do not file", () => {
       run: () => typedAffirmation("ok"),
     },
     {
+      name: "off-topic",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const held = await runViewportAction({
+          action: { type: "composerSubmitted", text: "What's the weather in Paris tomorrow?" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(held.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "follow-up",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const next = await runViewportAction({
+          action: { type: "composerSubmitted", text: "I need a place in Gothenburg for 12 people." },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(next.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "refine",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const narrowed = await runViewportAction({
+          action: { type: "composerSubmitted", text: "pick only two" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(narrowed.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
       name: "typed sure",
       run: async () => {
         const opened = await capture(withEmail);
