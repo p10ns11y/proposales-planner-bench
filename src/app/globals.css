@@ -661,6 +661,11 @@ h2.planner-text {
   animation-delay: 160ms;
 }
 
+.planner-result-card {
+  width: 100%;
+  min-width: 0;
+}
+
 .planner-offer-group {
   display: flex;
   width: 100%;

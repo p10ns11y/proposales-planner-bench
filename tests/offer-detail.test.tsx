@@ -76,6 +76,7 @@ function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
     showConfirm: false,
     showFavorites: false,
     rows: [canalLoft],
+    cards: [],
     hiddenCount: 0,
     openRow: null,
     more: emptyMore,

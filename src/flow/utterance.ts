@@ -1,4 +1,4 @@
-import { extractBriefPatch, turnIntent } from "./fixture-extractor";
+import { extractBriefPatch, singleFieldPatch, turnIntent } from "./fixture-extractor";
 import type { ViewportPhase } from "./planner-snapshot";
 
 export const holdLine = "This bench finds a place for an event.";
@@ -25,13 +25,16 @@ export function utteranceKind(text: string, phase: ViewportPhase): UtteranceKind
   if (phase === "favorites") {
     return "plan";
   }
-  if (isAffirmation(trimmed) && (phase === "confirm" || phase === "results")) {
+  if (phase === "confirm" && isAffirmation(trimmed)) {
     return "plan";
   }
   if (isPlannerText(trimmed)) {
     return "plan";
   }
-  if ((phase === "confirm" || phase === "results") && isFactAnswer(trimmed)) {
+  if (phase === "confirm" && isFactAnswer(trimmed)) {
+    return "plan";
+  }
+  if (phase === "results" && answersResultField(trimmed)) {
     return "plan";
   }
   return "hold";
@@ -67,6 +70,13 @@ function isPlannerText(text: string): boolean {
     return true;
   }
   return Object.keys(extractBriefPatch(text)).length > 0;
+}
+
+function answersResultField(text: string): boolean {
+  if (Object.keys(extractBriefPatch(text)).length > 0) {
+    return true;
+  }
+  return Object.keys(singleFieldPatch(text)).length > 0;
 }
 
 function isFactAnswer(text: string): boolean {

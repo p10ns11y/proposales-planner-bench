@@ -94,6 +94,7 @@ export type ShellViewModel = {
   showConfirm: boolean;
   showFavorites: boolean;
   rows: ShellRow[];
+  cards: { id: string; query: string }[];
   hiddenCount: number;
   openRow: ShellRow | null;
   more: MoreFieldValues;

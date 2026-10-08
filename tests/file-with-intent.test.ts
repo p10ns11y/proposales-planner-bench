@@ -623,6 +623,132 @@ describe("chat actions do not file", () => {
       run: () => typedAffirmation("ok"),
     },
     {
+      name: "off-topic",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const held = await runViewportAction({
+          action: { type: "composerSubmitted", text: "What's the weather in Paris tomorrow?" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(held.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "follow-up",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const next = await runViewportAction({
+          action: { type: "composerSubmitted", text: "I need a place in Gothenburg for 12 people." },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(next.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "refine",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const narrowed = await runViewportAction({
+          action: { type: "composerSubmitted", text: "pick only two" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(narrowed.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "greeting hi",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const held = await runViewportAction({
+          action: { type: "composerSubmitted", text: "hi" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(held.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "greeting hello",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const held = await runViewportAction({
+          action: { type: "composerSubmitted", text: "hello" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(held.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "greeting thanks",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const held = await runViewportAction({
+          action: { type: "composerSubmitted", text: "thanks" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(held.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "results ok",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const held = await runViewportAction({
+          action: { type: "composerSubmitted", text: "ok" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(held.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "results okay",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const held = await runViewportAction({
+          action: { type: "composerSubmitted", text: "okay" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(held.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "results yes",
+      run: async () => {
+        const ranked = await resultsWithoutFiling();
+        const held = await runViewportAction({
+          action: { type: "composerSubmitted", text: "yes" },
+          snapshot: ranked.snapshot,
+          client: ranked.client,
+          today,
+        });
+        expect(held.snapshot.filing).toBeNull();
+        expect(ranked.filings).toHaveLength(0);
+      },
+    },
+    {
       name: "typed sure",
       run: async () => {
         const opened = await capture(withEmail);
@@ -679,6 +805,48 @@ async function typedAffirmation(text: string): Promise<void> {
   expect(opened.filings).toHaveLength(0);
   expect(fileBriefLabel(viewOf(confirmed.snapshot).filed)).toBe("File this brief");
 }
+
+describe("a cleared file press", () => {
+  it.each(["hi", "pick only two"])("saves nothing after %s", async (text) => {
+    const opened = await capture(withoutEmail);
+    const confirmed = await runViewportAction({
+      action: { type: "briefConfirmed" },
+      snapshot: opened.snapshot,
+      client: opened.client,
+      today,
+    });
+    const ranked = await runViewportAction({
+      action: { type: "favoritesSubmitted", text: "skip" },
+      snapshot: confirmed.snapshot,
+      client: opened.client,
+      today,
+    });
+    const asked = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: ranked.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(asked.snapshot.fileAsked).toBe(true);
+    expect(opened.filings).toHaveLength(0);
+    const dropped = await runViewportAction({
+      action: { type: "composerSubmitted", text },
+      snapshot: asked.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(dropped.snapshot.fileAsked).toBe(false);
+    expect(opened.filings).toHaveLength(0);
+    const saved = await runViewportAction({
+      action: { type: "inlineAnswered", field: "contactEmail", value: "planner@northwind.example" },
+      snapshot: dropped.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(saved.snapshot.filing).toBeNull();
+    expect(opened.filings).toHaveLength(0);
+  });
+});
 
 describe("filing call sites", () => {
   it("keeps filing intent inside the file intent module", () => {

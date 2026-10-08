@@ -163,6 +163,7 @@ async function main() {
             "e2e/add-details-fold.spec.ts",
             "e2e/run-through.spec.ts",
             "e2e/no-unprompted-file.spec.ts",
+            "e2e/result-cards.spec.ts",
           ],
           env,
         ),

@@ -115,6 +115,7 @@ function resultsModel(email: string, fileGap: string | null): ShellViewModel {
     showConfirm: false,
     showFavorites: false,
     rows: [row],
+    cards: [],
     hiddenCount: 0,
     openRow: null,
     more: { ...emptyMore, contactEmail: email },

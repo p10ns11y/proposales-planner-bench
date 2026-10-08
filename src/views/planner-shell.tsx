@@ -11,9 +11,10 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { bestNonExpiredIndex } from "../contract/offer-group";
+import { bestNonExpiredIndex, type OfferGroupPart } from "../contract/offer-group";
 import { renderPart } from "../transport/render-part";
 import { toOfferDataPart } from "../transport/ai-sdk-offers";
+import { composerTurnKind, isPlannerChatReply } from "../view-models/selectors";
 import type { PlannerViewEvent, ShellViewModel } from "../view-models/view-model";
 import { offerGroupFromShell, offerPartFromRow } from "../view-models/offer-part";
 import { fileBriefChoice, fileBriefLabel, fileBriefPressable } from "./file-brief-state";
@@ -39,11 +40,10 @@ type PlannerShellProps = {
   pendingKind?: "read" | "search" | "more" | null;
 };
 
-type Line = {
-  id: number;
-  role: "user" | "assistant";
-  text: string;
-};
+type Line =
+  | { id: number; role: "user"; text: string }
+  | { id: number; role: "assistant"; text: string }
+  | { id: number; role: "card"; cardId: string; query: string; part: OfferGroupPart };
 
 const suggestions = [
   {
@@ -94,6 +94,10 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     (lines.length === 0 && !pending && viewModel.phase === "capture" && viewModel.errorText === null);
   const group = holdEmpty ? null : offerGroupFromShell(viewModel);
   const part = group === null ? null : toOfferDataPart(group);
+  const latestCard = viewModel.cards.at(-1);
+  const latestFrozen =
+    latestCard !== undefined && lines.some((line) => line.role === "card" && line.cardId === latestCard.id);
+  const showLiveCard = part !== null && !latestFrozen;
   const bestIndex = bestNonExpiredIndex(viewModel.rows);
   const openIndex = viewModel.openRow === null ? -1 : viewModel.rows.findIndex((row) => row.venueName === viewModel.openRow?.venueName);
   const openOffer = viewModel.openRow === null ? null : offerPartFromRow(viewModel.openRow, openIndex === bestIndex && bestIndex >= 0);
@@ -228,13 +232,38 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
     viewModel.draftConfirmation,
   ]);
 
+  function freezeLatest(current: Line[]): { lines: Line[]; added: boolean } {
+    const latest = viewModel.cards.at(-1);
+    if (latest === undefined) {
+      return { lines: current, added: false };
+    }
+    if (current.some((line) => line.role === "card" && line.cardId === latest.id)) {
+      return { lines: current, added: false };
+    }
+    const shown = offerGroupFromShell(viewModel);
+    if (shown === null) {
+      return { lines: current, added: false };
+    }
+    return {
+      added: true,
+      lines: [...current, { id: idRef.current++, role: "card", cardId: latest.id, query: latest.query, part: shown }],
+    };
+  }
+
+  function keepCurrentCard() {
+    setLines((current) => freezeLatest(current).lines);
+  }
+
   function pushTurn(userText: string) {
     const live = viewModel.ask;
     setLines((current) => {
-      const next = [...current];
-      const lastAssistant = [...next].reverse().find((line) => line.role === "assistant");
-      if (live !== "" && lastAssistant?.text !== live) {
-        next.push({ id: idRef.current++, role: "assistant", text: live });
+      const frozen = freezeLatest(current);
+      const next = [...frozen.lines];
+      if (!frozen.added) {
+        const lastAssistant = [...next].reverse().find((line) => line.role === "assistant");
+        if (live !== "" && lastAssistant?.text !== live) {
+          next.push({ id: idRef.current++, role: "assistant", text: live });
+        }
       }
       next.push({ id: idRef.current++, role: "user", text: userText });
       return next;
@@ -265,8 +294,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   }
 
   function submitDraft() {
-    const kind = viewModel.phase === "favorites" || viewModel.phase === "results" ? "search" : "read";
-    submitText(draft, kind);
+    submitText(draft, composerTurnKind(draft, viewModel.phase));
   }
 
   function onComposerKey(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -327,7 +355,8 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   }
 
   const showLive = !holdEmpty && (pending || (!empty && liveIsNew(lines, viewModel.ask, viewModel)));
-  const labelled = empty || (showLive && !pending && viewModel.askLabelsComposer);
+  const chatReply = isPlannerChatReply(viewModel.notice);
+  const labelled = !chatReply && (empty || (showLive && !pending && viewModel.askLabelsComposer));
   const speech = speechButtonState({
     supported: viewModel.speechAvailable,
     phase: recognition.phase,
@@ -379,7 +408,10 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       }}
       onRetry={() => submitText(heldDraft.current, lastKind.current)}
       onNewChat={newChat}
-      onInlineSave={(field, value) => onEvent({ type: "inlineAnswered", field, value }, "more")}
+      onInlineSave={(field, value) => {
+        keepCurrentCard();
+        onEvent({ type: "inlineAnswered", field, value }, "more");
+      }}
       onInlineSkip={() => {
         if (viewModel.phase === "favorites") {
           pushTurn("Skip");
@@ -473,7 +505,25 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
               ) : (
                 <div className="planner-log">
                   {lines.map((line) =>
-                    line.role === "user" ? (
+                    line.role === "card" ? (
+                      <div
+                        key={line.id}
+                        className="planner-result-card"
+                        data-result-card={line.cardId}
+                        data-result-query={line.query}
+                      >
+                        {renderPart(toOfferDataPart(shownCardPart(line, latestCard?.id, group)), {
+                          hiddenCount: line.cardId === latestCard?.id ? viewModel.hiddenCount : 0,
+                          openName: viewModel.openRow?.venueName ?? null,
+                          onOpen: (venueName) => onEvent({ type: "rowOpened", venueName }),
+                          onShowMore: () => {
+                            if (line.cardId === latestCard?.id) {
+                              onEvent({ type: "showMore" });
+                            }
+                          },
+                        })}
+                      </div>
+                    ) : line.role === "user" ? (
                       <div key={line.id} className="planner-user">
                         <div className="planner-user-bubble">
                           <p className="planner-text">{line.text}</p>
@@ -500,13 +550,19 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
                           {moreLine}
                         </p>
                       ) : null}
-                      {!pending && part ? (
-                        renderPart(part, {
-                          hiddenCount: viewModel.hiddenCount,
-                          openName: viewModel.openRow?.venueName ?? null,
-                          onOpen: (venueName) => onEvent({ type: "rowOpened", venueName }),
-                          onShowMore: () => onEvent({ type: "showMore" }),
-                        })
+                      {!pending && showLiveCard && part ? (
+                        <div
+                          className="planner-result-card"
+                          data-result-card={latestCard?.id ?? "current"}
+                          data-result-query={latestCard?.query ?? ""}
+                        >
+                          {renderPart(part, {
+                            hiddenCount: viewModel.hiddenCount,
+                            openName: viewModel.openRow?.venueName ?? null,
+                            onOpen: (venueName) => onEvent({ type: "rowOpened", venueName }),
+                            onShowMore: () => onEvent({ type: "showMore" }),
+                          })}
+                        </div>
                       ) : null}
                       {!pending && showResultsFile ? (
                         <div className="planner-file-suggestion">
@@ -645,6 +701,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
           }}
           onEvent={(event) => {
             if (event.type === "moreEdited") {
+              keepCurrentCard();
               onEvent(event, "more");
               return;
             }
@@ -677,6 +734,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             if (detailInline === null) {
               return;
             }
+            keepCurrentCard();
             onEvent({ type: "inlineAnswered", field: detailInline.field, value }, "more");
           }}
           onInlineSkip={() => onEvent({ type: "inlineSkipped" })}
@@ -750,10 +808,11 @@ function LiveCopy({
 }) {
   const factsMarked = viewModel.phase === "results" || viewModel.showFacts;
   const notice = viewModel.notice !== null && viewModel.notice !== viewModel.ask ? viewModel.notice : null;
+  const chatReply = isPlannerChatReply(notice);
   return (
     <>
       {notice ? (
-        <p className="planner-meta" role="status">
+        <p className={chatReply ? "planner-text" : "planner-meta"} role="status" data-planner-reply={chatReply ? "" : undefined}>
           {notice}
         </p>
       ) : null}
@@ -762,7 +821,7 @@ function LiveCopy({
           {viewModel.draftConfirmation}
         </p>
       ) : null}
-      {viewModel.ask !== "" ? (
+      {viewModel.ask !== "" && !chatReply ? (
         <h2
           className="planner-text"
           data-must-show={factsMarked ? "facts" : undefined}
@@ -897,6 +956,17 @@ function SkeletonGroup() {
       <div className="planner-skeleton" />
     </div>
   );
+}
+
+function shownCardPart(
+  line: Extract<Line, { role: "card" }>,
+  latestId: string | undefined,
+  live: OfferGroupPart | null,
+): OfferGroupPart {
+  if (line.cardId === latestId && live !== null) {
+    return live;
+  }
+  return line.part;
 }
 
 function liveIsNew(lines: Line[], live: string, viewModel: ShellViewModel): boolean {

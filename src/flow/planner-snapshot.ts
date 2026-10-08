@@ -4,6 +4,7 @@ import { plannerBriefSchema } from "../domain/planner-brief";
 import { venueOfferSchema } from "../domain/venue-offer";
 import type { BriefStage } from "./brief-flow";
 import { companiesForClient, companyRecordSchema, type ClientCompany } from "./client-company";
+import { resultCardSchema } from "./result-cards";
 
 export const viewportPhaseSchema = z.enum(["capture", "confirm", "favorites", "results"]);
 
@@ -43,6 +44,8 @@ export const plannerSnapshotSchema = z.object({
   sampleOffers: z.boolean().default(false),
   offerSource: z.enum(["fixture", "live", "sample"]).default("fixture"),
   filingAvailable: z.boolean().default(true),
+  activeQuery: z.string().default(""),
+  resultCards: z.array(resultCardSchema).default([]),
 });
 
 export type PlannerSnapshot = z.infer<typeof plannerSnapshotSchema>;
@@ -81,6 +84,8 @@ export function emptySnapshot(
     sampleOffers: false,
     offerSource: "fixture",
     filingAvailable: true,
+    activeQuery: "",
+    resultCards: [],
   };
 }
 

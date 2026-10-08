@@ -31,6 +31,7 @@ const scope = [
   { file: "src/view-models/facts-line.ts" },
   { file: "src/flow/client-company.ts" },
   { file: "src/flow/planner-snapshot.ts", functions: ["emptySnapshot", "snapshotForClient"] },
+  { file: "src/flow/result-cards.ts" },
 ];
 
 const branchKinds = new Set([

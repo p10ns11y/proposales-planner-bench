@@ -301,6 +301,10 @@ export function currencyForCity(city: string | undefined): string {
   return placeCurrency[key] ?? fallbackCurrency;
 }
 
+export function isKnownPlace(value: string): boolean {
+  return Object.hasOwn(placeCurrency, foldPlace(value));
+}
+
 export function namedBriefCurrency(brief: PlannerBrief): string | undefined {
   const fromBudget = codeOf(brief.budget?.currency);
   if (fromBudget !== "") {

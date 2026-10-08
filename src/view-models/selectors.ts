@@ -1,6 +1,8 @@
 import { questionForGap } from "../domain/fitness";
 import { firstFileableGap, releaseStaleFiling } from "../flow/filing-guard";
 import { inlineAskFor, leftUnfiledNote, type InlineField } from "../flow/inline-ask";
+import { asksForTwo, cannotNarrowLine, steerBackLine } from "../flow/result-cards";
+import { utteranceKind } from "../flow/utterance";
 import { formatBudgetMajor, type MinorUnits } from "../domain/minor-units";
 import { briefCurrency, type PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
@@ -25,6 +27,23 @@ const monthNames = [
 ];
 
 const composerPlaceholder = "Describe the event: place, people, date, time";
+
+export function isPlannerChatReply(notice: string | null): boolean {
+  return notice === steerBackLine || notice === cannotNarrowLine;
+}
+
+export function composerTurnKind(text: string, phase: ShellViewModel["phase"]): "read" | "search" {
+  if (phase === "favorites") {
+    return "search";
+  }
+  if (phase !== "results") {
+    return "read";
+  }
+  if (asksForTwo(text) || utteranceKind(text, phase) !== "plan") {
+    return "read";
+  }
+  return "search";
+}
 
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -84,6 +103,7 @@ export function shellViewModel(input: {
     showConfirm: readyToConfirm,
     showFavorites: phase === "favorites" && inlineField === null,
     rows: visibleRows,
+    cards: snapshot === null ? [] : snapshot.resultCards.map((card) => ({ id: card.id, query: card.query })),
     hiddenCount: phase === "results" ? Math.max(0, rows.length - visibleRows.length) : 0,
     openRow,
     more,

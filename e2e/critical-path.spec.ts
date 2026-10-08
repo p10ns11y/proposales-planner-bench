@@ -252,11 +252,13 @@ test("shows the updated headcount after More applies", async ({ page }) => {
   releaseTurn();
   await applying;
   await expect(page.locator("[data-more-update]")).toHaveText("Updated: 30 guests, 2 meeting rooms");
-  await expect(page.locator("[data-lcv-count=header]")).toContainText("30 guests");
+  await expect(page.locator("[data-lcv-count=header]").last()).toContainText("30 guests");
+  await expect(page.locator("[data-result-card]").first()).toContainText("25 guests");
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.locator("[data-more-update]")).toHaveText("Updated: 30 guests, 2 meeting rooms");
-  await expect(page.locator("[data-lcv-count=header]")).toContainText("30 guests");
+  await expect(page.locator("[data-lcv-count=header]").last()).toContainText("30 guests");
+  await expect(page.locator("[data-result-card]").first()).toContainText("25 guests");
 });
 
 async function fileEnglishBrief(page: Page, viewport: { width: number; height: number }) {

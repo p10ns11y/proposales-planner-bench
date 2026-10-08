@@ -19,6 +19,7 @@ import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
   isFileUtterance,
+  singleFieldPatch,
   matchFavoriteVenues,
   readBudgetScope,
   readClockRange,
@@ -27,7 +28,17 @@ import {
 } from "./fixture-extractor";
 import { applyMoreDetails, type MoreDetails } from "./more-details";
 import { defaultVisibleRowCount, type PlannerSnapshot } from "./planner-snapshot";
-import { explainLine, holdLine, isAffirmation, utteranceKind } from "./utterance";
+import {
+  asksForTwo,
+  cardSummary,
+  holdReply,
+  narrowToTwo,
+  nextResultCard,
+  rememberRank,
+  withResultCard,
+  type CardRecord,
+} from "./result-cards";
+import { explainLine, isAffirmation, utteranceKind } from "./utterance";
 
 export type BriefPatchReader = (text: string, brief: PlannerBrief) => Promise<PlannerBrief>;
 
@@ -105,11 +116,14 @@ async function ingestText(
   const kind = utteranceKind(text, snapshot.phase);
   const answersBudgetBasis =
     snapshot.phase === "confirm" && snapshot.gaps[0] === "budgetBasis" && readBudgetScope(text) !== undefined;
+  if (snapshot.phase === "results" && asksForTwo(text)) {
+    return narrowResults(snapshot, text);
+  }
   if (kind === "explain") {
     return withoutFileAsk({ ...snapshot, notice: explainLine });
   }
   if (kind === "hold" && !answersBudgetBasis) {
-    return withoutFileAsk({ ...snapshot, notice: holdLine });
+    return withoutFileAsk({ ...snapshot, notice: holdReply(snapshot.resultCards.length > 0) });
   }
   const cleared = withoutFileAsk({ ...snapshot, notice: null, newEvent: null, inlinePaused: false });
   if (isFileUtterance(text)) {
@@ -134,7 +148,7 @@ async function ingestText(
     };
   }
   if (cleared.phase === "capture") {
-    return withConfirmState(cleared, mergeBrief(cleared.brief, patch));
+    return withConfirmState({ ...cleared, activeQuery: text.trim() }, mergeBrief(cleared.brief, patch));
   }
   if (cleared.phase === "confirm") {
     if (cleared.gaps.length === 0 && isAffirmation(text)) {
@@ -148,7 +162,7 @@ async function ingestText(
     }
     return submitFavorites(cleared, text, client, today);
   }
-  return reviseDuringResults(cleared, patch, client, today);
+  return reviseDuringResults(cleared, patch, client, today, text.trim());
 }
 
 async function answerGap(
@@ -203,7 +217,10 @@ async function editMore(
   }
   const next = { ...snapshot, brief, notice: null };
   if (snapshot.phase === "results") {
-    const ranked = await rerank(next, client, today);
+    if (JSON.stringify(brief) === JSON.stringify(snapshot.brief)) {
+      return snapshot;
+    }
+    const ranked = await rerank(next, client, today, "append", moreQuery(details));
     return preserveOpenVenue(ranked, snapshot.openVenueName);
   }
   if (snapshot.phase === "confirm") {
@@ -317,20 +334,21 @@ async function answerInline(
     client,
     utterance: null,
   });
-  return storeInline(next, client, today);
+  return storeInline(next, client, today, value.trim());
 }
 
 async function storeInline(
   snapshot: PlannerSnapshot,
   client: ProposalesClient,
   today: string,
+  query: string,
 ): Promise<PlannerSnapshot> {
   const next = withoutFileAsk({ ...snapshot, newEvent: null, inlinePaused: false, notice: null });
   if (snapshot.phase === "results") {
     if (briefConfirmHold(next.brief) !== null) {
       return withConfirmState(next, next.brief);
     }
-    return rerank(next, client, today);
+    return rerank(next, client, today, "append", query);
   }
   if (snapshot.phase === "favorites") {
     const gap = findBriefGaps(fileableBrief(next.brief), "brief:fileable")[0];
@@ -447,7 +465,8 @@ async function submitFavorites(
     return withConfirmState(snapshot, snapshot.brief);
   }
   const favoriteVenueNames = matchFavoriteVenues(text);
-  return rankSnapshot({ ...snapshot, favoriteVenueNames }, client, today);
+  const record = snapshot.resultCards.length === 0 ? "seed" : "follow";
+  return rankSnapshot({ ...snapshot, favoriteVenueNames }, client, today, record, snapshot.activeQuery);
 }
 
 async function reviseDuringResults(
@@ -455,20 +474,57 @@ async function reviseDuringResults(
   patch: PlannerBrief,
   client: ProposalesClient,
   today: string,
+  query: string,
 ): Promise<PlannerSnapshot> {
-  const brief = mergeBrief(snapshot.brief, patch);
+  const brief = mergeBrief(mergeBrief(snapshot.brief, singleFieldPatch(query)), patch);
   if (briefConfirmHold(brief) !== null) {
     return withConfirmState(snapshot, brief);
   }
-  return rerank({ ...snapshot, brief }, client, today);
+  return rankSnapshot({ ...snapshot, brief, activeQuery: query }, client, today, "append", query);
 }
 
 async function rerank(
   snapshot: PlannerSnapshot,
   client: ProposalesClient,
   today: string,
+  record: CardRecord,
+  query: string,
 ): Promise<PlannerSnapshot> {
-  return rankSnapshot(snapshot, client, today);
+  return rankSnapshot(snapshot, client, today, record, query);
+}
+
+function moreQuery(details: MoreDetails): string {
+  const guests = details.attendeeCount?.trim() ?? "";
+  if (guests !== "") {
+    return `${guests} guests`;
+  }
+  const city = details.city?.trim() ?? "";
+  if (city !== "") {
+    return city;
+  }
+  return "updated brief";
+}
+
+function narrowResults(snapshot: PlannerSnapshot, text: string): PlannerSnapshot {
+  const latest = snapshot.resultCards.at(-1);
+  const source = latest !== undefined && latest.rows.length > 0 ? latest.rows : snapshot.grid;
+  const outcome = narrowToTwo(source);
+  if (outcome.kind === "reply") {
+    return { ...snapshot, notice: outcome.text };
+  }
+  const summary = cardSummary({
+    count: outcome.rows.length,
+    city: snapshot.brief.city,
+    attendees: snapshot.brief.attendeeCount,
+  });
+  const card = nextResultCard(snapshot.resultCards, text.trim(), outcome.rows, summary);
+  return {
+    ...snapshot,
+    notice: null,
+    grid: outcome.rows,
+    resultCards: withResultCard(snapshot.resultCards, card),
+    openVenueName: null,
+  };
 }
 
 function normaliseLoaded(proposals: unknown[]): {
@@ -489,6 +545,8 @@ async function rankSnapshot(
   snapshot: PlannerSnapshot,
   client: ProposalesClient,
   today: string,
+  record: CardRecord,
+  query: string,
 ): Promise<PlannerSnapshot> {
   if (briefConfirmHold(snapshot.brief) !== null) {
     return withConfirmState(snapshot, snapshot.brief);
@@ -510,29 +568,54 @@ async function rankSnapshot(
     filing: snapshot.filing,
     offers,
   });
-  return {
+  const visibleRowCount = snapshot.visibleRowCount || defaultVisibleRowCount;
+  const ranked = {
     ...snapshot,
     offers,
     stage: projected.stage,
     filing: projected.filing,
     gaps: briefGapsForStage(snapshot.brief, projected.stage),
     grid,
-    phase: "results",
+    phase: "results" as const,
     nextQuestion: "",
     notice: null,
     sampleOffers: sample,
     offerSource,
-    visibleRowCount: snapshot.visibleRowCount || defaultVisibleRowCount,
+    visibleRowCount,
     openVenueName: null,
     newEvent: null,
     inlinePaused: false,
   };
+  return {
+    ...ranked,
+    resultCards: rememberRank({
+      cards: ranked.resultCards,
+      rows: grid,
+      visibleRowCount,
+      record,
+      query,
+      activeQuery: ranked.activeQuery,
+      city: ranked.brief.city,
+      attendees: ranked.brief.attendeeCount,
+    }),
+  };
 }
 
 function showMoreRows(snapshot: PlannerSnapshot): PlannerSnapshot {
+  const visibleRowCount = snapshot.visibleRowCount + defaultVisibleRowCount;
+  const ranked = { ...snapshot, visibleRowCount };
   return {
-    ...snapshot,
-    visibleRowCount: snapshot.visibleRowCount + defaultVisibleRowCount,
+    ...ranked,
+    resultCards: rememberRank({
+      cards: ranked.resultCards,
+      rows: ranked.grid,
+      visibleRowCount,
+      record: "refresh",
+      query: "",
+      activeQuery: ranked.activeQuery,
+      city: ranked.brief.city,
+      attendees: ranked.brief.attendeeCount,
+    }),
   };
 }
 
