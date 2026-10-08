@@ -70,7 +70,7 @@ pnpm test
 
 ## Progress
 
-P1–P3 are in. A bare budget asks "Is that per person or total?" before Yes. Sticky composer, collapsed Add details, rows Harbour House, Canal Loft, Ridge Hall. A missing key, a model error, or the 40 second window falls back to the scripted extractor. Turn and chat set maxDuration to 60. Desktop and 390×844 passed. Deploy stays with the owner.
+P1–P3 are in. A bare budget asks "Is that per person or total?" before Yes. Sticky composer, collapsed Add details, rows Harbour House, Canal Loft, Ridge Hall. A missing key, a model error, or the 40 second window falls back to the scripted extractor. Turn and chat set maxDuration to 60. Desktop and 390×844 passed. Deploy stays with me.
 
 ## Open
 

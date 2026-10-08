@@ -1,8 +1,21 @@
 # Evidence
 
-Snapshot: `origin/main` at `182b6f4`, 8 Oct 2026. Days are Europe/Stockholm. `+0200` is the local offset on these dates.
+## Overview
 
-Session-span figures are the owner's estimate as supplied. They were not recomputed. Mon 5 Oct and Tue 6 Oct are labeled estimate. Wed 7 Oct and Thu 8 Oct are labeled session span, mostly agent build time with short human input. The number column is session span (estimate).
+Snapshot: `origin/main` at `d5f8657`, 8 Oct 2026. Days are Europe/Stockholm. `+0200` is the local offset on these dates.
+
+Session-span figures are my estimate as supplied. They were not recomputed. Mon 5 Oct and Tue 6 Oct are labeled estimate. Wed 7 Oct and Thu 8 Oct are labeled session span, mostly agent build time with short human input. The number column is session span (estimate).
+
+## Contents
+
+| Section | What it is |
+| --- | --- |
+| [Commands](#commands) | Counts and the commands that produced them |
+| [Notes removed or kept](#notes-removed-or-kept) | Where old pages went |
+| [Package source](#package-source) | `@adaptate/core` and `@adaptate/utils` |
+| [Reading path](#reading-path) | The six pages |
+
+Vitest and Playwright were run on checkout `ed3de3b`, which is `d5f8657` plus the steering restore. That restore does not change tests.
 
 ## Commands
 
@@ -11,23 +24,22 @@ Session-span figures are the owner's estimate as supplied. They were not recompu
 | Commits 5 Oct | `git rev-list --count origin/main --since='2026-10-05 00:00:00 +0200' --until='2026-10-06 00:00:00 +0200'` | 0 |
 | Commits 6 Oct | `git rev-list --count origin/main --since='2026-10-06 00:00:00 +0200' --until='2026-10-07 00:00:00 +0200'` | 16 |
 | Commits 7 Oct | `git rev-list --count origin/main --since='2026-10-07 00:00:00 +0200' --until='2026-10-08 00:00:00 +0200'` | 15 |
-| Commits 8 Oct | `git rev-list --count origin/main --since='2026-10-08 00:00:00 +0200' --until='2026-10-09 00:00:00 +0200'` | 20 |
-| Commits on main | `git rev-list --count origin/main` | 51 |
+| Commits 8 Oct | `git rev-list --count origin/main --since='2026-10-08 00:00:00 +0200' --until='2026-10-09 00:00:00 +0200'` | 26 |
+| Commits on main | `git rev-list --count origin/main` | 57 |
 | Author day vs committer day | Compare `%aI` and `%cI` after conversion to Europe/Stockholm, for every commit on `origin/main` | 0 mismatches, so the `rev-list` day is the author day |
 | Latest 8 Oct stamp | `git log origin/main --since='2026-10-08 00:00:00 +0200' --until='2026-10-09 00:00:00 +0200' --pretty=format:'%cI'` | latest `2026-10-08T18:45:59+02:00` |
-| Pull requests merged | `gh pr list --repo p10ns11y/proposales-planner-bench --state merged --limit 100 --json number,mergedAt` then bucket `mergedAt` in Europe/Stockholm | 5 Oct 0, 6 Oct 1, 7 Oct 14, 8 Oct 20, total 35 |
-| Branches with `cursor` | `gh pr list --repo p10ns11y/proposales-planner-bench --state merged --limit 100 --json headRefName`, then count names that contain `cursor` | 31 of 35 |
+| Pull requests merged | `gh pr list --repo p10ns11y/proposales-planner-bench --state merged --limit 100 --json number,mergedAt` then bucket `mergedAt` in Europe/Stockholm | 5 Oct 0, 6 Oct 1, 7 Oct 14, 8 Oct 26, total 41 |
+| Branches with `cursor` | `gh pr list --repo p10ns11y/proposales-planner-bench --state merged --limit 100 --json headRefName`, then count names that contain `cursor` | 34 of 41 |
 | Cursor trailer, 6 Oct | Count commits that day whose Co-authored-by name is `Cursor` | 6 |
 | Cursor Agent trailer, 7 Oct | Count commits that day whose Co-authored-by name is `Cursor Agent` | 10 |
 | Issues closed | `gh issue list --repo p10ns11y/proposales-planner-bench --state closed --limit 200 --json number` | 27 |
 | Issues open | `gh issue list --repo p10ns11y/proposales-planner-bench --state open --limit 200 --json number` | 11 |
 | ship-by-thursday | Same closed and open lists, label `ship-by-thursday` | 19 closed, 0 open |
 | Finding issues | Closed issues titled V1–V6, V8–V10, U1, or U3 | 11, all closed |
-| Vitest | `pnpm exec vitest run` on `182b6f4` | 329 passed, 36 files, 40.89 s. Start 20:07:25 Stockholm |
-| Playwright scenarios | `pnpm exec playwright test --list` | Total: 27 tests in 6 files |
-| Vitest plus Playwright | 329 + 27 | 356 |
-| Production deploys | `gh api repos/p10ns11y/proposales-planner-bench/deployments?environment=Production` | 32, all successful. Newest `182b6f4` at 18:46:32 Stockholm. The first page is 30 and links a next page of 2. |
-| Rollbacks | Production was rolled back to `4b99a6a` at 16:35 Stockholm on 8 Oct | 1 |
+| Vitest | `pnpm exec vitest run` on `ed3de3b` | 359 passed, 37 files, 45.79 s. Start 23:56:36 Stockholm |
+| Playwright scenarios | `pnpm exec playwright test --list` | Total: 31 tests in 7 files |
+| Vitest plus Playwright | 359 + 31 | 390 |
+| Production deploys | `gh api --paginate repos/p10ns11y/proposales-planner-bench/deployments?environment=Production&per_page=100` | 39. Newest `b4092e7` at 23:55:57 Stockholm |
 
 `docs/FINDINGS.md` is a note in the repo. It is not treated as the V-findings issue count.
 
@@ -53,7 +65,7 @@ Session-span figures are the owner's estimate as supplied. They were not recompu
 | `docs/evidence/filing-email-flow-317a.md` | Kept. Off the reading path. |
 | `docs/evidence/header-composer-copy-d705.md` | Kept. Off the reading path. |
 
-Living pages describe main at `182b6f4`. Yes does not file. Only a File press or an exact file phrase does. Add details opens prefilled and folded. Counts are this snapshot. Shot notes stay off the reading path.
+Living pages describe main at `d5f8657`. Yes does not file. Only a File press or an exact file phrase does. Add details opens prefilled and folded. Counts are this snapshot. Shot notes stay off the reading path.
 
 ## Package source
 

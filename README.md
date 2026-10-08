@@ -1,5 +1,7 @@
 # Planner bench
 
+## Overview
+
 One sentence in. Ranked venues back.
 
 Proposales API readers are validated with [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils), and brief gaps use [@adaptate/core](https://www.npmjs.com/package/@adaptate/core). Both are my published npm packages (Zod plus OpenAPI), so the app is built on my own open-source tooling. Source: [adaptate](https://github.com/p10ns11y/adaptate).
@@ -11,6 +13,14 @@ Live: [proposales-planner-bench.vercel.app](https://proposales-planner-bench.ver
 ![Desktop, 1280 by 736](docs/media/hero-desktop.png)
 
 ![Phone, 390 by 844](docs/media/hero-phone.png)
+
+## Contents
+
+| Section | What it is |
+| --- | --- |
+| [Map](#map) | Reading order |
+| [Run](#run) | Local commands |
+| [References](#references) | Packages and tools |
 
 ## Map
 
@@ -37,6 +47,7 @@ pnpm build && pnpm e2e
 ```
 
 Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the address the dev server prints.
+
 ## References
 
 - [@adaptate/core](https://www.npmjs.com/package/@adaptate/core) and [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils). Source: [adaptate](https://github.com/p10ns11y/adaptate)
@@ -48,5 +59,9 @@ Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the addre
 - [layout-content-view](https://github.com/p10ns11y/plugins/tree/31d93a0355838d8b24511966ae1ba0062c05f012/layout-content-view) at `31d93a0`
 - [Mermaid](https://mermaid.js.org)
 - [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans)
+- [Firecrawl](https://www.firecrawl.dev): the tool I used for research and filtering on the night of 5 Oct.
+- [Superdesign](https://superdesign.dev): the design agent behind the UI.
+
+Back: [start](#planner-bench)
 
 Read next: [Actualization](notes/actualization.md)

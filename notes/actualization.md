@@ -1,6 +1,20 @@
 # Actualization: from case build to a real planner
 
+## Overview
+
 What it takes for the planner to be real. What is built is in [control-card-productize.md](control-card-productize.md). Terms are in [ontology.md](ontology.md).
+
+## Contents
+
+| Section | What it is |
+| --- | --- |
+| [1. Who it serves](#1-who-it-serves) | Hotels, one line in |
+| [2. Data map](#2-data-map) | Brief, company, proposal |
+| [3. What the API offers](#3-what-the-api-offers) | Fourteen seller endpoints |
+| [4. After filing](#4-after-filing) | Hotel picks the brief up |
+| [5. Gaps to close, in order](#5-gaps-to-close-in-order) | Poll, then several hotels |
+| [6. AG-UI, the direction](#6-ag-ui-the-direction) | Not connected |
+| [References](#references) | Protocol link |
 
 ## 1. Who it serves
 
