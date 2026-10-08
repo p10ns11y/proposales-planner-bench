@@ -12,7 +12,9 @@ import {
 import { gapLabel, neutralChipAttrs, neutralChipName, neutralChipText } from "./offer-copy";
 import { GapIcon } from "./offer-group";
 import { detailStatusLine, fileBriefLabel } from "./file-brief-state";
+import { InlineAskCard } from "./inline-ask-card";
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
+import type { InlineAskView } from "../view-models/view-model";
 
 const detailSpring = { type: "spring" as const, stiffness: 380, damping: 34 };
 
@@ -34,6 +36,10 @@ type OfferDetailProps = {
   filed: boolean;
   active: boolean;
   pressable: boolean;
+  inlineAsk?: InlineAskView | null;
+  inlineBusy?: boolean;
+  onInlineSave?: (value: string) => void;
+  onInlineSkip?: () => void;
   onClose: () => void;
   onFile: () => void;
 };
@@ -48,6 +54,10 @@ export function OfferDetail({
   filed,
   active,
   pressable,
+  inlineAsk = null,
+  inlineBusy = false,
+  onInlineSave,
+  onInlineSkip,
   onClose,
   onFile,
 }: OfferDetailProps) {
@@ -237,11 +247,21 @@ export function OfferDetail({
               </div>
             </div>
             <div className="planner-detail-bar">
+              {inlineAsk ? (
+                <InlineAskCard
+                  key={inlineAsk.field}
+                  ask={inlineAsk}
+                  busy={inlineBusy}
+                  phase="detail:open"
+                  onSave={(value) => onInlineSave?.(value)}
+                  onSkip={() => onInlineSkip?.()}
+                />
+              ) : null}
               <button type="button" className="planner-text-button" {...closeDetailEdge()} onClick={onClose}>
                 Back to chat
               </button>
               <div className="planner-detail-file">
-                {statusLine ? (
+                {statusLine && (inlineAsk === null || errorText !== null) ? (
                   <p className="planner-meta" role="status">
                     {statusLine}
                   </p>

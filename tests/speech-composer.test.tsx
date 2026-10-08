@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MoreFieldValues, ShellViewModel } from "../src/view-models/view-model";
@@ -9,6 +9,7 @@ import { speechStartFailedCopy, speechUnavailableCopy } from "../src/views/speec
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   Reflect.deleteProperty(window, "SpeechRecognition");
   Reflect.deleteProperty(window, "webkitSpeechRecognition");
 });
@@ -35,7 +36,7 @@ const emptyMore: MoreFieldValues = {
 
 const recognitionErrors = [
   ["no-speech", "No speech was heard. Press Speak to try again."],
-  ["network", "Speech lost the network. Press Speak to try again."],
+  ["network", "Voice input paused. Tap the mic to try again."],
   ["aborted", "Speech was cancelled. Press Speak to try again."],
   ["not-allowed", "Microphone permission was denied in this browser. Press Speak to try again."],
   ["audio-capture", "The microphone could not be opened. Press Speak to try again."],
@@ -130,6 +131,47 @@ describe("composer microphone", () => {
     expect(screen.queryByRole("status")).toBeNull();
     expect(active.starts).toBe(2);
   });
+
+  it("clears the paused voice note when the visitor types", () => {
+    installDomShims();
+    const active = installRecognition(false);
+    render(<PlannerShell viewModel={model()} onEvent={() => undefined} historyControl={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Speak" }));
+    act(() => {
+      active.current?.onerror?.({ error: "network" });
+      active.current?.onend?.();
+    });
+    expect(document.querySelector(".planner-speech-status")?.textContent).toBe(
+      "Voice input paused. Tap the mic to try again.",
+    );
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "30 people" } });
+    expect(document.querySelector(".planner-speech-status")).toBeNull();
+  });
+
+  it("clears the paused voice note after about six seconds", () => {
+    vi.useFakeTimers();
+    installDomShims();
+    const active = installRecognition(false);
+    render(<PlannerShell viewModel={model()} onEvent={() => undefined} historyControl={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Speak" }));
+    act(() => {
+      active.current?.onerror?.({ error: "network" });
+      active.current?.onend?.();
+    });
+    expect(document.querySelector(".planner-speech-status")?.textContent).toBe(
+      "Voice input paused. Tap the mic to try again.",
+    );
+    act(() => {
+      vi.advanceTimersByTime(5999);
+    });
+    expect(document.querySelector(".planner-speech-status")?.textContent).toBe(
+      "Voice input paused. Tap the mic to try again.",
+    );
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(document.querySelector(".planner-speech-status")).toBeNull();
+  });
 });
 
 function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
@@ -145,6 +187,9 @@ function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
     notice: null,
     draftConfirmation: null,
     filingMessage: null,
+    inlineAsk: null,
+    newEventLabel: null,
+    fileGap: null,
     filed: false,
     offerLabel: null,
     factsSentence: "",

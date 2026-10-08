@@ -1,6 +1,12 @@
 import { makeConditionalSchemaTransformer } from "@adaptate/core";
 import type { ZodType } from "zod";
-import { budgetNeedsBasis, plannerBriefSchema, stayNeedsRooms, type PlannerBrief } from "./planner-brief";
+import {
+  budgetNeedsBasis,
+  plannerBriefSchema,
+  singleDayClockBrief,
+  stayNeedsRooms,
+  type PlannerBrief,
+} from "./planner-brief";
 import { venueOfferSchema } from "./venue-offer";
 
 export const briefFitnessConsumers = ["brief:fileable", "brief:comparable"] as const;
@@ -21,11 +27,15 @@ function needsClockEnd(data: unknown): boolean {
 export const briefFileableConfig = {
   contactEmail: true,
   startDate: true,
-  endDate: true,
+  endDate: { requiredIf: endDateStillNeeded },
   attendeeCount: true,
   language: true,
   roomCount: { requiredIf: roomsRequiredWhenTheStayContinues },
 } as const;
+
+function endDateStillNeeded(data: unknown): boolean {
+  return singleDayClockBrief(plannerBriefSchema.parse(data)) === false;
+}
 
 export const briefComparableConfig = {
   city: true,

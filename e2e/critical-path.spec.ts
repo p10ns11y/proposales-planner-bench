@@ -349,7 +349,11 @@ async function resizeTurn(route: Route, count: number) {
   const response = await route.fetch();
   const payload = (await response.json()) as { snapshot?: { grid?: GridRow[] } };
   const grid = payload.snapshot?.grid;
-  if (body.action?.type === "favoritesSubmitted" && grid !== undefined && payload.snapshot !== undefined) {
+  if (
+    (body.action?.type === "favoritesSubmitted" || body.action?.type === "inlineSkipped") &&
+    grid !== undefined &&
+    payload.snapshot !== undefined
+  ) {
     payload.snapshot.grid = sizedGrid(grid, count);
   }
   await route.fulfill({ response, json: payload });

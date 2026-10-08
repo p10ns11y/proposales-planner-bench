@@ -65,6 +65,9 @@ function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
     notice: null,
     draftConfirmation: null,
     filingMessage: null,
+    inlineAsk: null,
+    newEventLabel: null,
+    fileGap: null,
     filed: false,
     offerLabel: null,
     factsSentence: "Stockholm, 12 November 2026, 40 people",
@@ -273,8 +276,10 @@ describe("offer detail", () => {
     expect(events.at(-1)).toEqual({ type: "composerSubmitted", text: "file" });
   });
 
-  it("asks the missing email once and still offers Skip", () => {
+  it("asks the missing email once and still offers Skip", async () => {
     installDomShims();
+    const user = userEvent.setup();
+    const events: PlannerViewEvent[] = [];
     const ask = "Add an email under Add details so venues reply to this address.";
     render(
       <PlannerShell
@@ -282,17 +287,58 @@ describe("offer detail", () => {
           phase: "favorites",
           rows: [],
           offerSummary: null,
-          ask,
-          notice: ask,
-          showFavorites: true,
+          ask: "",
+          notice: null,
+          showFavorites: false,
+          showFacts: true,
+          factsSentence: "Stockholm, 12 November 2026, 20 people",
+          inlineAsk: { field: "contactEmail", inputType: "email", label: "Email" },
+        })}
+        onEvent={(event) => events.push(event)}
+        historyControl={null}
+      />,
+    );
+    expect(screen.queryByText(ask)).toBeNull();
+    expect(screen.getByLabelText("Email")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Skip" })).toHaveLength(1);
+    await user.type(screen.getByLabelText("Email"), "ada@northwind.example");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(events.at(-1)).toEqual({
+      type: "inlineAnswered",
+      field: "contactEmail",
+      value: "ada@northwind.example",
+    });
+  });
+
+  it("keeps File and the end-date hint on the same gap", () => {
+    installDomShims();
+    const open = render(
+      <PlannerShell
+        viewModel={model({ openRow: canalLoft, fileGap: null, filingMessage: null })}
+        onEvent={() => undefined}
+        historyControl={null}
+      />,
+    );
+    const ready = screen.getByRole("dialog", { name: "Canal Loft" });
+    expect(within(ready).queryByText(/YYYY-MM-DD/)).toBeNull();
+    expect(within(ready).queryByText(/end date/i)).toBeNull();
+    expect(within(ready).getByRole("button", { name: "File this brief" })).toHaveProperty("disabled", false);
+    open.rerender(
+      <PlannerShell
+        viewModel={model({
+          openRow: canalLoft,
+          fileGap: "endDate",
+          filingMessage: null,
+          inlineAsk: { field: "endDate", inputType: "date", label: "End date" },
         })}
         onEvent={() => undefined}
         historyControl={null}
       />,
     );
-    expect(screen.getAllByText(ask)).toHaveLength(1);
-    expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.getByRole("button", { name: "Skip" })).toBeTruthy();
+    const blocked = screen.getByRole("dialog", { name: "Canal Loft" });
+    expect(within(blocked).queryByText(/YYYY-MM-DD/)).toBeNull();
+    expect(within(blocked).getByLabelText("End date")).toBeTruthy();
+    expect(within(blocked).getByRole("button", { name: "File this brief" })).toHaveProperty("disabled", true);
   });
 
   it("confirms a filing in the chat when the sentence differs from the question", () => {

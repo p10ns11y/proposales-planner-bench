@@ -328,7 +328,7 @@ describe("speech listeners", () => {
     expect(errored.signals).toEqual([{ type: "errored", code: "network" }]);
     expect(fold(errored.signals)).toEqual({
       phase: "idle",
-      status: "Speech lost the network. Press Speak to try again.",
+      status: "Voice input paused. Tap the mic to try again.",
     });
 
     const started = heardListener();
@@ -695,7 +695,7 @@ function alternative(transcript: string): object {
 
 const speechErrorCases = [
   ["no-speech", "No speech was heard. Press Speak to try again."],
-  ["network", "Speech lost the network. Press Speak to try again."],
+  ["network", "Voice input paused. Tap the mic to try again."],
   ["aborted", "Speech was cancelled. Press Speak to try again."],
   ["not-allowed", "Microphone permission was denied in this browser. Press Speak to try again."],
   ["audio-capture", "The microphone could not be opened. Press Speak to try again."],

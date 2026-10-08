@@ -17,7 +17,7 @@ Feature: Filing and email
   Scenario: asks for one missing fileable field at Yes and confirms the filing in chat
     Given a searchable brief that is missing an email, on a phone and on a wide desktop
     When the visitor chooses Yes
-    Then one sentence names the email and Add details
+    Then the chat shows an email input with Save and Skip
     And Skip still reaches the ranked results
     Given a brief that has an email and no language
     When the visitor chooses Yes
@@ -29,7 +29,8 @@ Feature: Filing and email
   Scenario: a typed file without an email files nothing and an edit clears the filed brief
     Given the ranked results on a phone and on a wide desktop
     When the visitor types file
-    Then the chat asks for an email and the brief stays unfiled
+    Then the chat shows an email input with Save and Skip
+    And the brief stays unfiled
     When the visitor saves an email and chooses File this brief
     Then the brief is filed
     When the visitor changes the headcount to 30 people
