@@ -1,4 +1,5 @@
 import { questionForGap } from "../domain/fitness";
+import { releaseStaleFiling } from "../flow/filing-guard";
 import { formatBudgetMajor, type MinorUnits } from "../domain/minor-units";
 import { briefCurrency, type PlannerBrief } from "../domain/planner-brief";
 import type { PlannerSnapshot } from "../flow/planner-snapshot";
@@ -43,7 +44,7 @@ export function shellViewModel(input: {
   errorText: string | null;
   speechAvailable: boolean;
 }): ShellViewModel {
-  const snapshot = input.snapshot;
+  const snapshot = input.snapshot === null ? null : releaseStaleFiling(input.snapshot);
   const phase = snapshot?.phase ?? "capture";
   const brief = snapshot?.brief ?? {};
   const presented = briefPresentation(brief);

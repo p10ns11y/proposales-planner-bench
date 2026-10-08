@@ -27,7 +27,7 @@ Free text, clean, confirm, structured data, then the views. Then favorites, fetc
 | Confirm | Show it and ask. They can edit |
 | Favorites | Which places they already have in mind |
 | Fetch | `GET /v3/proposal-search?limit=25`. Keep a row when either city is blank or the cities match, and the headcount fits the offer |
-| Rank | A named currency leads. Otherwise fewest gaps, then currency A to Z, then the lower total. No conversion. A favorite mark leaves the order unchanged |
+| Rank | A named currency leads. Otherwise the event city's currency leads, the same rule as the budget currency. Inside a currency, open offers come before expired ones, then fewer gaps, then the lower total. Other currencies follow from A to Z, each sorted the same way. No conversion. A favorite mark leaves the order unchanged |
 | Show | Five rows, then five more |
 
 Required to match: city, start date, start time, attendees, and an end time. The end time can be absent when a duration is set, or when the end date is after the start. A budget with no basis stays on confirm and asks "Is that per person or total?" Yes stays hidden until the basis is set. The rest sits in Add details.

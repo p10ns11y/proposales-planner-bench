@@ -210,6 +210,27 @@ describe("proposal normaliser", () => {
     expect(offer.venueName).toBe("Untitled venue");
   });
 
+  it("keeps a proposal status on the offer", () => {
+    const expired = normaliseProposal({
+      uuid: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1",
+      status: "expired",
+      title: "Old Hall",
+      currency: "EUR",
+      expires_at: Math.trunc(Date.parse("2027-06-01T00:00:00.000Z") / 1000),
+      blocks: [],
+    });
+    expect(expired.status).toBe("expired");
+    const open = normaliseProposal({
+      uuid: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2",
+      status: "active",
+      title: "Open Hall",
+      currency: "EUR",
+      blocks: [],
+    });
+    expect(open.status).toBe("active");
+    expect(normaliseProposal({ uuid: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee3", status: null, blocks: [] }).status).toBeUndefined();
+  });
+
   it("prefers value_without_tax over value_with_tax", () => {
     const offer = normaliseProposal({
       uuid: "44444444-4444-4444-8444-444444444444",

@@ -237,6 +237,7 @@ export async function fileChatBrief(input: {
   const attempt = await attemptFiling({
     brief: input.snapshot.brief,
     filing: input.snapshot.filing,
+    filingKey: input.snapshot.filingKey,
     filingAvailable: input.snapshot.filingAvailable,
     selectedCompanyId,
     companies: input.snapshot.companies,
@@ -247,6 +248,7 @@ export async function fileChatBrief(input: {
     snapshot: {
       ...input.snapshot,
       filing: attempt.filing,
+      filingKey: attempt.filingKey,
       filingAvailable: attempt.filingAvailable,
       selectedCompanyId: attempt.selectedCompanyId,
       notice: attempt.notice,

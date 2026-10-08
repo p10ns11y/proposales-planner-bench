@@ -51,6 +51,7 @@ const companyQuestion = "Which company should receive the brief?";
 
 export type FilingAttempt = {
   filing: FileBriefResult | null;
+  filingKey: string | null;
   notice: string | null;
   filingAvailable: boolean;
   selectedCompanyId: number | null;
@@ -59,15 +60,94 @@ export type FilingAttempt = {
 type AttemptInput = {
   brief: PlannerBrief;
   filing: FileBriefResult | null;
+  filingKey?: string | null;
   filingAvailable: boolean;
   selectedCompanyId: number | null;
   companies: readonly { id: number }[];
   client: Pick<ProposalesClient, "fileBrief">;
 };
 
+function token(value: string | number | boolean | undefined): string {
+  if (value === undefined) {
+    return "";
+  }
+  return String(value);
+}
+
+export function filingFingerprint(brief: PlannerBrief): string {
+  return [
+    token(brief.contactEmail),
+    token(brief.eventTitle),
+    token(brief.organisationName),
+    token(brief.startDate),
+    token(brief.endDate),
+    token(brief.startTime),
+    token(brief.endTime),
+    token(brief.attendeeCount),
+    token(brief.roomCount),
+    token(brief.meetingRoomCount),
+    token(brief.foodRequired),
+    token(brief.city),
+    token(brief.notes),
+    token(brief.language),
+    token(brief.budgetMinor?.amount),
+    token(brief.budget?.amount),
+    token(brief.budget?.currency),
+    token(brief.budget?.scope),
+    token(brief.budget?.approximate),
+  ].join("\u001f");
+}
+
+export function fileableBrief(brief: PlannerBrief): PlannerBrief {
+  const email = brief.contactEmail;
+  if (email === undefined) {
+    return brief;
+  }
+  if (email.trim() !== "") {
+    return brief;
+  }
+  const next = { ...brief };
+  delete next.contactEmail;
+  return next;
+}
+
+function withoutFilingNotice(notice: string | null): string | null {
+  if (notice === draftCreatedNotice) {
+    return null;
+  }
+  if (notice === briefFiledNotice) {
+    return null;
+  }
+  return notice;
+}
+
+export function releaseStaleFiling<T extends {
+  brief: PlannerBrief;
+  filing: FileBriefResult | null;
+  filingKey: string | null;
+  notice: string | null;
+}>(snapshot: T): T {
+  if (snapshot.filing === null) {
+    if (snapshot.filingKey === null) {
+      return snapshot;
+    }
+    return { ...snapshot, filingKey: null };
+  }
+  if (snapshot.filingKey === filingFingerprint(snapshot.brief)) {
+    return snapshot;
+  }
+  return {
+    ...snapshot,
+    filing: null,
+    filingKey: null,
+    notice: withoutFilingNotice(snapshot.notice),
+  };
+}
+
 function held(input: AttemptInput, notice: string): FilingAttempt {
   return {
     filing: null,
+    filingKey: null,
     notice,
     filingAvailable: input.filingAvailable,
     selectedCompanyId: input.selectedCompanyId,
@@ -78,8 +158,16 @@ function storedFilingResult(input: AttemptInput): FilingAttempt | null {
   if (input.filing === null) {
     return null;
   }
+  const key = input.filingKey ?? null;
+  if (key === null) {
+    return null;
+  }
+  if (key !== filingFingerprint(input.brief)) {
+    return null;
+  }
   return {
     filing: input.filing,
+    filingKey: key,
     notice: noticeForFiling(input.filing.path),
     filingAvailable: true,
     selectedCompanyId: input.selectedCompanyId,
@@ -109,6 +197,7 @@ async function postFiling(input: AttemptInput, selectedCompanyId: number): Promi
     const filing = await input.client.fileBrief(briefDraftFromPlanner(input.brief, selectedCompanyId));
     return {
       filing,
+      filingKey: filingFingerprint(input.brief),
       notice: noticeForFiling(filing.path),
       filingAvailable: true,
       selectedCompanyId,
@@ -116,6 +205,7 @@ async function postFiling(input: AttemptInput, selectedCompanyId: number): Promi
   } catch {
     return {
       filing: null,
+      filingKey: null,
       notice: filingUnavailableNotice,
       filingAvailable: false,
       selectedCompanyId,
@@ -124,17 +214,18 @@ async function postFiling(input: AttemptInput, selectedCompanyId: number): Promi
 }
 
 export async function attemptFiling(input: AttemptInput): Promise<FilingAttempt> {
-  const stored = storedFilingResult(input);
+  const ready = { ...input, brief: fileableBrief(input.brief) };
+  const gap = noticeForFileableGap(null, findBriefGaps(ready.brief, "brief:fileable"));
+  if (gap !== null) {
+    return held(ready, gap);
+  }
+  const stored = storedFilingResult(ready);
   if (stored !== null) {
     return stored;
   }
-  const gap = noticeForFileableGap(null, findBriefGaps(input.brief, "brief:fileable"));
-  if (gap !== null) {
-    return held(input, gap);
-  }
-  const selectedCompanyId = chosenCompanyId(input);
+  const selectedCompanyId = chosenCompanyId(ready);
   if (selectedCompanyId === null) {
-    return held(input, missingCompanyNotice(input.filingAvailable));
+    return held(ready, missingCompanyNotice(ready.filingAvailable));
   }
-  return postFiling(input, selectedCompanyId);
+  return postFiling(ready, selectedCompanyId);
 }

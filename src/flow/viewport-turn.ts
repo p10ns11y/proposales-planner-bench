@@ -6,11 +6,11 @@ import {
 } from "../domain/compare-offers";
 import { briefConfirmHold, findBriefGaps, isFileableGap } from "../domain/fitness";
 import { minorUnits } from "../domain/minor-units";
-import { mergeBrief, namedBriefCurrency, type PlannerBrief } from "../domain/planner-brief";
+import { briefCurrency, mergeBrief, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import type { ProposalesClient } from "../proposales/types";
 import { addEnglishLanguage } from "./brief-language";
-import { attemptFiling, preserveOpenVenue } from "./filing-guard";
+import { attemptFiling, preserveOpenVenue, releaseStaleFiling } from "./filing-guard";
 import { loadComparableProposals, sampleProposalRecords } from "../proposales/comparable-proposals";
 import { projectBriefFlow } from "./brief-flow";
 import {
@@ -47,36 +47,41 @@ export async function runViewportAction(input: {
   today: string;
   readPatch?: BriefPatchReader;
 }): Promise<{ snapshot: PlannerSnapshot }> {
+  const acted = await applyViewportAction(input);
+  return { snapshot: releaseStaleFiling(acted) };
+}
+
+async function applyViewportAction(input: {
+  action: ViewportAction;
+  snapshot: PlannerSnapshot;
+  client: ProposalesClient;
+  today: string;
+  readPatch?: BriefPatchReader;
+}): Promise<PlannerSnapshot> {
   const readPatch = input.readPatch;
   switch (input.action.type) {
     case "captureSubmitted":
     case "composerSubmitted":
     case "gapAnswered":
-      return {
-        snapshot: await ingestText(input.snapshot, input.action.text, input.client, input.today, readPatch),
-      };
+      return ingestText(input.snapshot, input.action.text, input.client, input.today, readPatch);
     case "briefEdited":
-      return { snapshot: editBrief(input.snapshot, input.action.brief) };
+      return editBrief(input.snapshot, input.action.brief);
     case "briefConfirmed": {
       const confirmed = input.action;
       const base =
         confirmed.brief === undefined ? input.snapshot : editBrief(input.snapshot, confirmed.brief);
-      return { snapshot: await confirmBrief(base, input.client) };
+      return confirmBrief(base, input.client);
     }
     case "moreEdited":
-      return {
-        snapshot: await editMore(input.snapshot, input.action.details, input.client, input.today),
-      };
+      return editMore(input.snapshot, input.action.details, input.client, input.today);
     case "favoritesSubmitted":
-      return {
-        snapshot: await submitFavorites(input.snapshot, input.action.text, input.client, input.today),
-      };
+      return submitFavorites(input.snapshot, input.action.text, input.client, input.today);
     case "showMore":
-      return { snapshot: showMoreRows(input.snapshot) };
+      return showMoreRows(input.snapshot);
     case "rowOpened":
-      return { snapshot: { ...input.snapshot, openVenueName: input.action.venueName } };
+      return { ...input.snapshot, openVenueName: input.action.venueName };
     case "rowClosed":
-      return { snapshot: { ...input.snapshot, openVenueName: null } };
+      return { ...input.snapshot, openVenueName: null };
   }
 }
 
@@ -200,6 +205,7 @@ async function confirmBrief(
   const attempt = await attemptFiling({
     brief: snapshot.brief,
     filing: snapshot.filing,
+    filingKey: snapshot.filingKey,
     filingAvailable: snapshot.filingAvailable,
     selectedCompanyId: snapshot.selectedCompanyId,
     companies: snapshot.companies,
@@ -216,6 +222,7 @@ async function confirmBrief(
   return {
     ...snapshot,
     filing: projected.filing,
+    filingKey: projected.filing === null ? null : attempt.filingKey,
     stage: projected.stage,
     selectedCompanyId: attempt.selectedCompanyId,
     filingAvailable: attempt.filingAvailable,
@@ -231,6 +238,7 @@ async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Pro
   const attempt = await attemptFiling({
     brief: snapshot.brief,
     filing: snapshot.filing,
+    filingKey: snapshot.filingKey,
     filingAvailable: snapshot.filingAvailable,
     selectedCompanyId: snapshot.selectedCompanyId,
     companies: snapshot.companies,
@@ -245,6 +253,7 @@ async function tryFile(snapshot: PlannerSnapshot, client: ProposalesClient): Pro
   return {
     ...snapshot,
     filing: projected.filing,
+    filingKey: projected.filing === null ? null : attempt.filingKey,
     stage: projected.stage,
     selectedCompanyId: attempt.selectedCompanyId,
     filingAvailable: attempt.filingAvailable,
@@ -345,7 +354,7 @@ async function rankSnapshot(
       favoriteVenueNames: snapshot.favoriteVenueNames,
       companies: snapshot.companies,
     }),
-    namedBriefCurrency(snapshot.brief),
+    briefCurrency(snapshot.brief),
   );
   const projected = projectBriefFlow({
     brief: snapshot.brief,

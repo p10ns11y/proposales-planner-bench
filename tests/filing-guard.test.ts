@@ -2,15 +2,21 @@ import { describe, expect, it } from "vitest";
 import { questionForGap } from "../src/domain/fitness";
 import type { PlannerBrief } from "../src/domain/planner-brief";
 import { addEnglishLanguage, briefWrittenInEnglish, statesOtherLanguage } from "../src/flow/brief-language";
+import { isFileUtterance, turnIntent } from "../src/flow/fixture-extractor";
 import {
   attemptFiling,
+  filingFingerprint,
   noticeForFileableGap,
   noticeForFiling,
   preserveOpenVenue,
+  releaseStaleFiling,
   storedFilingSnapshot,
 } from "../src/flow/filing-guard";
+import { emptySnapshot } from "../src/flow/planner-snapshot";
+import { runViewportAction } from "../src/flow/viewport-turn";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../src/proposales/filing";
 import type { BriefDraft, FileBriefResult } from "../src/proposales/types";
+import { shellViewModel } from "../src/view-models/selectors";
 import {
   detailStatusLine,
   emailApplyDecision,
@@ -260,6 +266,7 @@ describe("attempt filing", () => {
     const attempt = await attemptFiling({
       brief: readyBrief,
       filing: stored,
+      filingKey: filingFingerprint(readyBrief),
       filingAvailable: false,
       selectedCompanyId: 1,
       companies: [{ id: 2 }],
@@ -267,20 +274,190 @@ describe("attempt filing", () => {
     });
     expect(watched.filings).toHaveLength(0);
     expect(attempt.filing).toEqual(stored);
+    expect(attempt.filingKey).toBe(filingFingerprint(readyBrief));
     expect(attempt.notice).toBe(briefFiledNotice);
     expect(attempt.filingAvailable).toBe(true);
     expect(attempt.selectedCompanyId).toBe(1);
-    const draft = await attemptFiling({
-      brief: omitField("contactEmail"),
-      filing: { path: "draft", uuid: "d-1" },
+  });
+
+  it("clears the filed state when the brief changes", async () => {
+    const key = filingFingerprint(readyBrief);
+    const filed = {
+      brief: readyBrief,
+      filing: { path: "inbox" as const, id: 100 },
+      filingKey: key,
+      notice: briefFiledNotice,
+    };
+    expect(releaseStaleFiling(filed)).toBe(filed);
+    const edited = releaseStaleFiling({
+      ...filed,
+      brief: { ...readyBrief, attendeeCount: 30 },
+    });
+    expect(filingFingerprint(edited.brief)).not.toBe(key);
+    expect(edited.filing).toBeNull();
+    expect(edited.filingKey).toBeNull();
+    expect(edited.notice).toBeNull();
+    const drafted = releaseStaleFiling({
+      ...filed,
+      brief: { ...readyBrief, city: "Gothenburg" },
+      filing: { path: "draft" as const, uuid: "d-1" },
+      notice: draftCreatedNotice,
+    });
+    expect(drafted.filing).toBeNull();
+    expect(drafted.notice).toBeNull();
+    const kept = releaseStaleFiling({ ...filed, filingKey: "other", notice: "Saved for later." });
+    expect(kept.filing).toBeNull();
+    expect(kept.notice).toBe("Saved for later.");
+    const orphan = { brief: readyBrief, filing: null, filingKey: "stale", notice: emailQuestion };
+    expect(releaseStaleFiling(orphan)).toEqual({ ...orphan, filingKey: null });
+    const clear = { brief: readyBrief, filing: null, filingKey: null, notice: null };
+    expect(releaseStaleFiling(clear)).toBe(clear);
+    const base = emptySnapshot([{ id: 1, name: "Harbour House" }], "", []);
+    const changed = shellViewModel({
+      snapshot: {
+        ...base,
+        brief: { ...readyBrief, attendeeCount: 30 },
+        phase: "results",
+        filing: { path: "inbox", id: 100 },
+        filingKey: key,
+        notice: briefFiledNotice,
+      },
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(changed.filed).toBe(false);
+    expect(changed.draftConfirmation).toBeNull();
+    expect(changed.filingMessage).toBeNull();
+    const legacy = shellViewModel({
+      snapshot: {
+        ...base,
+        brief: readyBrief,
+        phase: "results",
+        filing: { path: "draft", uuid: "d-1" },
+        filingKey: null,
+        notice: draftCreatedNotice,
+      },
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(legacy.filed).toBe(false);
+    expect(legacy.draftConfirmation).toBeNull();
+    const watched = countingFileClient("ok");
+    const posted = await attemptFiling({
+      brief: readyBrief,
+      filing: { path: "inbox", id: 4 },
       filingAvailable: true,
-      selectedCompanyId: null,
-      companies: [],
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: watched.client,
+    });
+    expect(watched.filings).toHaveLength(1);
+    expect(posted.filingKey).toBe(key);
+  });
+
+  it("refuses a file when the email is missing, including sample mode", async () => {
+    const watched = countingFileClient("ok");
+    const stored: FileBriefResult = { path: "draft", uuid: "d-1" };
+    const missing = await attemptFiling({
+      brief: omitField("contactEmail"),
+      filing: stored,
+      filingKey: filingFingerprint(readyBrief),
+      filingAvailable: true,
+      selectedCompanyId: 2,
+      companies: [{ id: 2 }],
+      client: watched.client,
+    });
+    const blank = await attemptFiling({
+      brief: { ...readyBrief, contactEmail: "   " },
+      filing: stored,
+      filingAvailable: true,
+      selectedCompanyId: 2,
+      companies: [{ id: 2 }],
       client: watched.client,
     });
     expect(watched.filings).toHaveLength(0);
-    expect(draft.filing).toEqual({ path: "draft", uuid: "d-1" });
-    expect(draft.notice).toBe(draftCreatedNotice);
+    expect(missing.filing).toBeNull();
+    expect(missing.filingKey).toBeNull();
+    expect(missing.notice).toBe(emailQuestion);
+    expect(blank.filing).toBeNull();
+    expect(blank.notice).toBe(emailQuestion);
+    expect(turnIntent("file")).toBe("file");
+    expect(turnIntent("file it")).toBe("file");
+    expect(isFileUtterance("file this")).toBe(true);
+    expect(isFileUtterance("file this brief")).toBe(true);
+    const sample = {
+      ...emptySnapshot([{ id: 2, name: "Northwind" }], "", []),
+      brief: omitField("contactEmail"),
+      filing: stored,
+      phase: "results" as const,
+      sampleOffers: true,
+      offerSource: "sample" as const,
+    };
+    const refused = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file it" },
+      snapshot: sample,
+      client: {
+        readsLiveProposals: false,
+        listCompanies: async () => [{ id: 2, name: "Northwind", inboxToken: null }],
+        getProposal: async () => ({}),
+        loadVenueProposals: async () => [],
+        fileBrief: (brief) => watched.client.fileBrief(brief),
+      },
+      today: "2026-10-06",
+    });
+    expect(watched.filings).toHaveLength(0);
+    expect(refused.snapshot.filing).toBeNull();
+    expect(refused.snapshot.notice).toBe(emailQuestion);
+    expect(refused.snapshot.sampleOffers).toBe(true);
+    const view = shellViewModel({
+      snapshot: refused.snapshot,
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(view.filed).toBe(false);
+    expect(view.filingMessage).toBe(emailQuestion);
+    expect(view.offerLabel).toBe("Sample offers");
+  });
+
+  it("files a changed brief once more and keeps a repeat of the same brief", async () => {
+    const watched = countingFileClient("ok");
+    const shared = {
+      filingAvailable: true,
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: watched.client,
+    };
+    const first = await attemptFiling({ brief: readyBrief, filing: null, ...shared });
+    expect(watched.filings).toHaveLength(1);
+    expect(first.filingKey).toBe(filingFingerprint(readyBrief));
+    const repeat = await attemptFiling({
+      brief: readyBrief,
+      filing: first.filing,
+      filingKey: first.filingKey,
+      ...shared,
+    });
+    expect(watched.filings).toHaveLength(1);
+    expect(repeat.filing).toEqual(first.filing);
+    const editedBrief = { ...readyBrief, attendeeCount: 30 };
+    const second = await attemptFiling({
+      brief: editedBrief,
+      filing: first.filing,
+      filingKey: first.filingKey,
+      ...shared,
+    });
+    expect(watched.filings).toHaveLength(2);
+    expect(second.filingKey).toBe(filingFingerprint(editedBrief));
+    const third = await attemptFiling({
+      brief: editedBrief,
+      filing: second.filing,
+      filingKey: second.filingKey,
+      ...shared,
+    });
+    expect(watched.filings).toHaveLength(2);
+    expect(third.filing).toEqual(second.filing);
   });
 
   it("asks for one missing field and does not call the client", async () => {

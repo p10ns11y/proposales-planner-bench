@@ -26,6 +26,17 @@ Feature: Filing and email
     When the visitor saves a language and files
     Then the chat confirms that the brief is filed
 
+  Scenario: a typed file without an email files nothing and an edit clears the filed brief
+    Given the ranked results on a phone and on a wide desktop
+    When the visitor types file
+    Then the chat asks for an email and the brief stays unfiled
+    When the visitor saves an email and chooses File this brief
+    Then the brief is filed
+    When the visitor changes the headcount to 30 people
+    Then the brief is unfiled
+    When the visitor chooses File this brief
+    Then the brief is filed
+
   Scenario: shows a transport error in the open detail and keeps File pressable
     Given the venue detail is open for a brief that has an email, on a phone and on a wide desktop
     When the next turn fails on the network

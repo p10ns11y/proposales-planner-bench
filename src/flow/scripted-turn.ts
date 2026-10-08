@@ -1,10 +1,10 @@
 import { briefGapsForStage, compareOffers, offersForBrief, rankComparisonRows } from "../domain/compare-offers";
 import { briefConfirmHold, questionForGap } from "../domain/fitness";
-import { mergeBrief, namedBriefCurrency } from "../domain/planner-brief";
+import { briefCurrency, mergeBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
-import { attemptFiling } from "./filing-guard";
+import { attemptFiling, releaseStaleFiling } from "./filing-guard";
 import { projectBriefFlow } from "./brief-flow";
 import { addEnglishLanguage } from "./brief-language";
 import { extractBriefPatch, extractPastedOffer, readBudgetScope, turnIntent } from "./fixture-extractor";
@@ -20,6 +20,7 @@ export async function runFixtureTurn(input: {
   const intent = turnIntent(input.text);
   const brief = briefWithAnsweredBasis(input.snapshot.brief, input.text);
   let filing = input.snapshot.filing;
+  let filingKey = input.snapshot.filingKey;
   let filingAvailable = input.snapshot.filingAvailable;
   let offers = input.snapshot.offers;
   const notes: string[] = [];
@@ -31,6 +32,7 @@ export async function runFixtureTurn(input: {
     const attempt = input.filingSettled
       ? {
           filing,
+          filingKey,
           notice: input.snapshot.notice,
           filingAvailable,
           selectedCompanyId,
@@ -38,12 +40,14 @@ export async function runFixtureTurn(input: {
       : await attemptFiling({
           brief,
           filing,
+          filingKey,
           filingAvailable,
           selectedCompanyId,
           companies: input.snapshot.companies,
           client: input.client,
         });
     filing = attempt.filing;
+    filingKey = attempt.filingKey;
     filingAvailable = attempt.filingAvailable;
     selectedCompanyId = attempt.selectedCompanyId;
     filingNotice = attempt.notice;
@@ -95,7 +99,7 @@ export async function runFixtureTurn(input: {
             favoriteVenueNames,
             companies: input.snapshot.companies,
           }),
-          namedBriefCurrency(brief),
+          briefCurrency(brief),
         );
   const nextQuestion =
     hold !== null
@@ -121,12 +125,13 @@ export async function runFixtureTurn(input: {
 
   return {
     reply: notes.join(" "),
-    snapshot: {
+    snapshot: releaseStaleFiling({
       brief,
       stage: projected.stage,
       phase,
       offers: projected.offers,
       filing: projected.filing,
+      filingKey: projected.filing === null ? null : filingKey,
       gaps,
       nextQuestion,
       companies: input.snapshot.companies,
@@ -139,7 +144,7 @@ export async function runFixtureTurn(input: {
       sampleOffers: false,
       offerSource: input.snapshot.offerSource,
       filingAvailable,
-    },
+    }),
   };
 }
 

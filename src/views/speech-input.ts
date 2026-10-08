@@ -2,7 +2,20 @@ export const speechListeningName = "Listening";
 export const speechReadyName = "Speak";
 export const speechUnavailableCopy = "Speech input is unavailable in this browser.";
 export const speechStartFailedCopy = "Speech input could not start in this browser.";
-export const speechErrorCopy = "Speech input stopped because the browser reported an error.";
+export const speechRecoveredCopy = "Speech stopped. Press Speak to try again.";
+export const speechNoSpeechCopy = "No speech was heard. Press Speak to try again.";
+export const speechNetworkCopy = "Speech lost the network. Press Speak to try again.";
+export const speechAbortedCopy = "Speech was cancelled. Press Speak to try again.";
+export const speechDeniedCopy = "Microphone permission was denied in this browser. Press Speak to try again.";
+export const speechAudioCopy = "The microphone could not be opened. Press Speak to try again.";
+
+const speechCopyByError: Record<string, string> = {
+  "no-speech": speechNoSpeechCopy,
+  network: speechNetworkCopy,
+  aborted: speechAbortedCopy,
+  "not-allowed": speechDeniedCopy,
+  "audio-capture": speechAudioCopy,
+};
 
 export type SpeechRecognitionLike = {
   lang: string;
@@ -13,40 +26,98 @@ export type SpeechRecognitionLike = {
   stop: () => void;
 };
 
+export type RecognitionPhase = "idle" | "listening" | "blocked";
+
+export type RecognitionState = {
+  phase: RecognitionPhase;
+  status: string | null;
+};
+
+export const recognitionIdle: RecognitionState = { phase: "idle", status: null };
+
+export type RecognitionSignal =
+  | { type: "started" }
+  | { type: "ended" }
+  | { type: "errored"; code: string }
+  | { type: "startFailed" }
+  | { type: "missing" };
+
 export type SpeechListener = {
   onTranscript: (transcript: string) => void;
-  onListening: (listening: boolean) => void;
-  onUnavailable: (reason: string) => void;
+  onSignal: (signal: RecognitionSignal) => void;
 };
 
 export type SpeechButtonState =
-  | { shown: false; reason: string | null }
-  | { shown: true; pressed: boolean; name: string; disabled: boolean };
+  | { shown: false; reason: string | null; status: string | null }
+  | { shown: true; pressed: boolean; name: string; disabled: boolean; status: string | null };
 
 export type SpeechEngine = "standard" | "prefixed";
 
+export function copyForSpeechError(code: string): string {
+  const copy = speechCopyByError[code];
+  if (typeof copy !== "string") {
+    return speechRecoveredCopy;
+  }
+  return copy;
+}
+
+export function speechErrorCode(event: unknown): string {
+  if (typeof event !== "object" || event === null) {
+    return "";
+  }
+  const error = Reflect.get(event, "error");
+  if (typeof error !== "string") {
+    return "";
+  }
+  return error;
+}
+
+export function stepRecognition(state: RecognitionState, signal: RecognitionSignal): RecognitionState {
+  if (signal.type === "started") {
+    return { phase: "listening", status: null };
+  }
+  if (signal.type === "ended") {
+    return endedRecognition(state);
+  }
+  if (signal.type === "errored") {
+    return { phase: "idle", status: copyForSpeechError(signal.code) };
+  }
+  if (signal.type === "startFailed") {
+    return { phase: "blocked", status: speechStartFailedCopy };
+  }
+  return { phase: "blocked", status: speechUnavailableCopy };
+}
+
 export function speechButtonState(input: {
   supported: boolean;
-  listening: boolean;
-  unavailable: string | null;
+  phase: RecognitionPhase;
   busy: boolean;
   ready: boolean;
+  status: string | null;
 }): SpeechButtonState {
-  if (input.unavailable !== null) {
-    return { shown: false, reason: input.unavailable };
+  if (input.phase === "blocked") {
+    return { shown: false, reason: input.status, status: input.status };
   }
   if (!input.supported) {
-    return { shown: false, reason: null };
+    return { shown: false, reason: null, status: null };
   }
-  if (input.listening) {
-    return { shown: true, pressed: true, name: speechListeningName, disabled: false };
+  if (input.phase === "listening") {
+    return { shown: true, pressed: true, name: speechListeningName, disabled: false, status: null };
   }
   return {
     shown: true,
     pressed: false,
     name: speechReadyName,
     disabled: input.busy || !input.ready,
+    status: input.status,
   };
+}
+
+function endedRecognition(state: RecognitionState): RecognitionState {
+  if (state.phase === "blocked") {
+    return state;
+  }
+  return { phase: "idle", status: state.status };
 }
 
 export function speechInputAvailable(): boolean {
@@ -121,48 +192,51 @@ export function deliverTranscript(listener: SpeechListener, transcript: string):
 }
 
 export function noteSpeechEnded(listener: SpeechListener): void {
-  listener.onListening(false);
+  listener.onSignal({ type: "ended" });
 }
 
-export function noteSpeechError(listener: SpeechListener): void {
-  listener.onListening(false);
-  listener.onUnavailable(speechErrorCopy);
+export function noteSpeechError(listener: SpeechListener, event: unknown): void {
+  listener.onSignal({ type: "errored", code: speechErrorCode(event) });
 }
 
 export function noteSpeechStarted(listener: SpeechListener): void {
-  listener.onListening(true);
+  listener.onSignal({ type: "started" });
 }
 
 export function noteSpeechStartFailed(listener: SpeechListener): void {
-  listener.onListening(false);
-  listener.onUnavailable(speechStartFailedCopy);
+  listener.onSignal({ type: "startFailed" });
 }
 
 export function noteSpeechMissing(listener: SpeechListener): void {
-  listener.onListening(false);
-  listener.onUnavailable(speechUnavailableCopy);
+  listener.onSignal({ type: "missing" });
 }
 
 export function bindSpeechRecognition(session: SpeechRecognitionLike, listener: SpeechListener): void {
   session.onresult = (event) => {
     deliverTranscript(listener, transcriptFromSpeechEvent(event));
   };
-  session.onerror = () => {
-    noteSpeechError(listener);
+  session.onerror = (event) => {
+    noteSpeechError(listener, event);
   };
   session.onend = () => {
     noteSpeechEnded(listener);
   };
 }
 
+export function releaseSpeechRecognition(session: SpeechRecognitionLike): void {
+  session.onresult = null;
+  session.onerror = null;
+  session.onend = null;
+}
+
 export function runSpeechStart(session: SpeechRecognitionLike, listener: SpeechListener): SpeechRecognitionLike | null {
+  noteSpeechStarted(listener);
   try {
     session.start();
   } catch {
     noteSpeechStartFailed(listener);
     return null;
   }
-  noteSpeechStarted(listener);
   return session;
 }
 
@@ -194,6 +268,9 @@ export function toggleSpeechCapture(
       stopSpeechCapture(current, listener);
     }
     return current;
+  }
+  if (current !== null) {
+    releaseSpeechRecognition(current);
   }
   return startSpeechCapture(listener);
 }

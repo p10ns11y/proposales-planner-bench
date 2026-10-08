@@ -28,7 +28,7 @@ export function compareOffers(
 }
 
 export function rankComparisonRows(rows: ComparisonRow[], referenceCurrency?: string): ComparisonRow[] {
-  const lead = leadCurrency(rows, referenceCurrency);
+  const lead = normaliseCurrency(referenceCurrency);
   return [...rows].sort((left, right) => compareRankedRows(left, right, lead));
 }
 
@@ -45,23 +45,12 @@ function compareRankedRows(left: ComparisonRow, right: ComparisonRow, lead: stri
   return compareWithinCurrency(left, right);
 }
 
-function leadCurrency(rows: ComparisonRow[], referenceCurrency: string | undefined): string {
-  const stated = normaliseCurrency(referenceCurrency);
-  if (stated !== "") {
-    return stated;
-  }
-  const top = [...rows].sort(compareForLead)[0];
-  return normaliseCurrency(top?.currency);
-}
-
-function compareForLead(left: ComparisonRow, right: ComparisonRow): number {
-  if (left.gaps.length !== right.gaps.length) {
-    return left.gaps.length - right.gaps.length;
-  }
-  return orderText(normaliseCurrency(left.currency), normaliseCurrency(right.currency));
-}
-
 function compareWithinCurrency(left: ComparisonRow, right: ComparisonRow): number {
+  const leftExpired = left.gaps.includes("expired");
+  const rightExpired = right.gaps.includes("expired");
+  if (leftExpired !== rightExpired) {
+    return leftExpired ? 1 : -1;
+  }
   if (left.gaps.length !== right.gaps.length) {
     return left.gaps.length - right.gaps.length;
   }
@@ -140,7 +129,7 @@ export function comparisonGaps(brief: PlannerBrief, offer: VenueOffer, today: st
   if ((brief.meetingRoomCount ?? 0) > 0 && (offer.spaceMinor?.amount ?? 0) === 0) {
     gaps.push("space");
   }
-  if (offer.expiresAt !== undefined && offer.expiresAt.slice(0, 10) < today) {
+  if (offerHasExpired(offer, today)) {
     gaps.push("expired");
   }
   const neededBreakout = brief.breakoutRoomCount ?? 0;
@@ -168,6 +157,13 @@ export function unstatedOfferMarks(brief: PlannerBrief): string[] {
     marks.push("diet");
   }
   return marks;
+}
+
+function offerHasExpired(offer: VenueOffer, today: string): boolean {
+  if (offer.status === "expired") {
+    return true;
+  }
+  return offer.expiresAt !== undefined && offer.expiresAt.slice(0, 10) < today;
 }
 
 function currencyMarks(brief: PlannerBrief, offer: VenueOffer): string[] {

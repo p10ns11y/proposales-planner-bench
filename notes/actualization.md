@@ -10,6 +10,20 @@ What it takes for the planner to be real. What is built is in [control-card-prod
 
 Proposales customers are hotels selling group and event business. The planner asks in one line instead of a form. The hotel gets a structured request instead of an email thread. Top: production, made-up brief. Bottom: filed in sample mode. Here the model only extracts the brief. Ranking and filing are plain code, so results repeat and nothing is filed by guesswork.
 
+```mermaid
+flowchart LR
+  offers[Offers for a brief] --> q{"Simple arithmetic? gaps, price, expiry, capacity"}
+  q -->|yes| sort[Plain sort]
+  q -->|"no, a trade-off"| dm["Decision model: JEV or CLEF"]
+  dm -.->|"until they exist"| llm[LLM stands in]
+  llm --> check{Code checks the output}
+  check -->|valid| ranked[Ranked venues]
+  check -->|invalid| sort
+  sort --> ranked
+```
+
+Ranking rule: simple arithmetic goes to the plain sort, trade-offs to a decision model. Until decision models such as JEV or CLEF exist, an LLM stands in, and code checks its output and falls back to the plain sort. Today every case uses the plain sort.
+
 ## 2. Data map
 
 ```mermaid
@@ -75,3 +89,20 @@ flowchart TD
 ```
 
 No webhook, so (a) polls. The web link is `url` in proposal-search results. An inbox filing returns only an id. Today history lives in one browser.
+
+## 6. AG-UI, the direction
+
+```mermaid
+flowchart LR
+  host["Planner page, Proposales embed or another agent"] -->|"AG-UI run"| agent[Planner agent]
+  agent -->|"STATE_SNAPSHOT, STATE_DELTA"| state["Per-brief state: brief, filed"]
+  agent -->|"TOOL_CALL events"| cards[Result cards]
+  agent -->|interrupt| ask[Question answered in the card]
+  ask -.->|resume| agent
+```
+
+Direction, not shipped: AG-UI is not connected today. Each brief keeps its own state through snapshot and delta events, so filed status stays on the brief, not the chat. The server's question pauses the run and is answered inside the card. Result cards come from standard tool-call events, and the same stream lets Proposales embed the planner or connect other agents.
+
+## References
+
+- [AG-UI](https://github.com/ag-ui-protocol/ag-ui), protocol 1.0

@@ -20,7 +20,15 @@ import { fileBriefChoice, fileBriefLabel, fileBriefPressable, moreOpenedForEmail
 import { lcvInteract, lcvMachine, lcvStay } from "./lcv";
 import { MoreDrawer } from "./more-drawer";
 import { OfferDetail } from "./offer-detail";
-import { speechButtonState, toggleSpeechCapture, type SpeechListener, type SpeechRecognitionLike } from "./speech-input";
+import {
+  recognitionIdle,
+  speechButtonState,
+  stepRecognition,
+  toggleSpeechCapture,
+  type RecognitionState,
+  type SpeechListener,
+  type SpeechRecognitionLike,
+} from "./speech-input";
 
 type PlannerShellProps = {
   viewModel: ShellViewModel;
@@ -68,8 +76,7 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const threadRef = useRef<HTMLDivElement>(null);
   const moreOpener = useRef<HTMLButtonElement | null>(null);
   const speechSession = useRef<SpeechRecognitionLike | null>(null);
-  const [listening, setListening] = useState(false);
-  const [speechReason, setSpeechReason] = useState<string | null>(null);
+  const [recognition, setRecognition] = useState<RecognitionState>(recognitionIdle);
   const stick = useRef(true);
   const scrollLock = useRef<number | null>(null);
   const previousOpen = useRef<string | null>(null);
@@ -299,19 +306,24 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
   const labelled = empty || (showLive && !pending && viewModel.askLabelsComposer);
   const speech = speechButtonState({
     supported: viewModel.speechAvailable,
-    listening,
-    unavailable: speechReason,
+    phase: recognition.phase,
     busy: viewModel.busy,
     ready: viewModel.ready,
+    status: recognition.status,
   });
   const speechListener: SpeechListener = {
     onTranscript: (transcript) => setDraft(transcript),
-    onListening: setListening,
-    onUnavailable: setSpeechReason,
+    onSignal: (signal) => {
+      setRecognition((current) => stepRecognition(current, signal));
+    },
   };
 
   function onSpeech() {
-    speechSession.current = toggleSpeechCapture(speechSession.current, listening, speechListener);
+    speechSession.current = toggleSpeechCapture(
+      speechSession.current,
+      recognition.phase === "listening",
+      speechListener,
+    );
   }
   const filePressable = fileBriefPressable({
     busy: viewModel.busy,
@@ -495,9 +507,14 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
             </button>
           ) : null}
           <div className="planner-dock">
-            {speech.shown === false && speech.reason !== null ? (
-              <p className="planner-speech-status" role="status" aria-label={speech.reason} data-speech-state="unavailable">
-                {speech.reason}
+            {speech.status !== null ? (
+              <p
+                className="planner-speech-status"
+                role="status"
+                aria-label={speech.status}
+                data-speech-state={speech.shown ? "idle" : "unavailable"}
+              >
+                {speech.status}
               </p>
             ) : null}
             <form

@@ -145,3 +145,14 @@ Feature: Planner critical path
     Then the facts line is "Stockholm, 3 December 2026, 09:00–17:00, 25 people. Assumed 09:00–17:00 for a full day. Budget EUR 300 total."
     And the budget fact is "EUR 300"
     And the budget-basis fact is "total"
+
+  Scenario: ranks the city currency before a cheaper other currency and keeps an expired offer behind
+    Given the planner is open at 390 by 844 and at 1280 by 800
+    When the visitor sends "I need a place in Stockholm for 40 people on 12 November 2026, from 09:00 to 17:00, with dinner and a meeting room."
+    Then Yes is visible
+    When the visitor chooses Yes
+    And the visitor chooses Skip
+    Then the offer cards are Ridge Hall, Harbour House, and Canal Loft
+    And Ridge Hall shows a SEK price and Best match
+    And Harbour House shows an EUR price and is not expired
+    And Canal Loft shows Expired and an EUR price
