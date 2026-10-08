@@ -2,7 +2,7 @@
 
 Scenarios in `e2e/features/filing-email.feature` match tests in `e2e/filing-email.spec.ts` one to one, by title.
 
-A missing email, end date, or end time is an input with Save and Skip. File with no email opens Add details. Another filing gap keeps File off.
+A missing email, end date, or end time is an input with Save and Skip. File with no email shows the email input, and Save on that card files. Another filing gap keeps File off. Yes does not file.
 
 ## Procedure
 
