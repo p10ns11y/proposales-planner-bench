@@ -44,6 +44,7 @@ Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the addre
 - [AG-UI](https://github.com/ag-ui-protocol/ag-ui)
 - [shadcn/ui](https://ui.shadcn.com)
 - [Playwright](https://playwright.dev)
+- [p10ns11y/plugins](https://github.com/p10ns11y/plugins): my plugin repo, loaded by Grok Build, cursor-agent, local and cloud Cursor, and Claude Code (marketplace)
 - [layout-content-view](https://github.com/p10ns11y/plugins/tree/31d93a0355838d8b24511966ae1ba0062c05f012/layout-content-view) at `31d93a0`
 - [Mermaid](https://mermaid.js.org)
 - [Instrument Sans](https://fonts.google.com/specimen/Instrument+Sans)
