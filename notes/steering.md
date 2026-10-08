@@ -49,7 +49,14 @@ One plugin repo, synced to every harness I use:
 
 ## Steering
 
-Short prompts set the standard, and the agents built to it. The chat shows result cards that open into a full-screen detail view. The docs lead with pictures. A brief is filed only when I press File.
+Calls I made in the chats, 7–8 Oct:
+
+- Write the docs as me. "My published npm packages", not "the owner's".
+- Keep the docs short. A diagram or a picture carries the page.
+- Result cards live in the chat and open to a full-screen detail. Add details is a drawer on the right.
+- File a brief only when I press File.
+- Show a price in its own currency. Do not convert it.
+- Skip the test run when a change is only markdown.
 
 ## Cloud
 
