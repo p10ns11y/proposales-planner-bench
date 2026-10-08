@@ -61,19 +61,7 @@ UTC+2. This is the log as written with the pages. It is not the session-span est
 | --- | --- | --- |
 | ~154 min | 24 | Cursor, Grok build, cloud agent |
 
-## Notes with shots
-
-| Page | What |
-| --- | --- |
-| [Prior cut](../docs/evidence.md) | Word counts and the walkthrough clip |
-| [Composer microphone](../docs/evidence/cursor-composer-mic-ffb9.md) | Speech results |
-| [Microphone recovery](../docs/evidence/cursor-mic-recovery-spacing-2015.md) | Status spacing |
-| [Currency](../docs/evidence/cursor-currency-display-b8d5.md) | Budget label |
-| [File control](../docs/evidence/cursor-file-button-order-f6d8.md) | File this brief |
-| [Add details layout](../docs/evidence/cursor-more-drawer-layout-a47d.md) | Drawer rows |
-| [Rank](../docs/evidence/cursor-rank-within-currency-97ac.md) | Currency groups |
-| [Filing](../docs/evidence/filing-email-flow-317a.md) | Email and file |
-| [Header copy](../docs/evidence/header-composer-copy-d705.md) | New chat and budget |
+Counts are `origin/main` at `4b99a6a`. Open pull requests are not in the totals.
 
 Back: [Architecture](../docs/ARCHITECTURE.md)
 

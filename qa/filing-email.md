@@ -2,6 +2,8 @@
 
 Scenarios in `e2e/features/filing-email.feature` match tests in `e2e/filing-email.spec.ts` one to one, by title.
 
+A missing email, end date, or end time is an input with Save and Skip. File with no email opens Add details. Another filing gap keeps File off.
+
 ## Procedure
 
 1. From the repository root, install with `pnpm install --frozen-lockfile`.

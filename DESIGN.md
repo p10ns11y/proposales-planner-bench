@@ -180,7 +180,7 @@ Scrim `rgba(10,10,10,.32)`. Motion is transform and opacity: drawer 320ms in and
 | Best match | One coral dot and the words, on the best non-expired offer |
 | Compare | Side-by-side, only through the toggle, only when the group qualifies. Lines come from the offer and sum to the total. A remainder is Other |
 | Footer | "Prices are totals for the day, excl. VAT" |
-| Add details | 400px, white, e3. Full width below 640px. Title "Add details" |
+| Add details | 400px, white, e3. Five folds, one open. Full width below 640px. Title "Add details" |
 | Detail | Desktop inset 12px, radius 20, e4. Phone is full screen. Overview shows the block, who holds it, and the total |
 
 Keep the composer on screen. Best match sits on the best non-expired offer. Lines come from the offer. Leave cream, a serif, photos, and ratings off the page. Coral is not a fill.

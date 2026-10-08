@@ -2,7 +2,9 @@
 
 One sentence in. Ranked venues back.
 
-[![Walkthrough: ranked venues for a Stockholm offsite, then File opens Add details](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
+Proposales API readers are validated with [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils), and brief gaps use [@adaptate/core](https://www.npmjs.com/package/@adaptate/core). Both are the owner's published npm packages (Zod plus OpenAPI), so the app is built on his open-source tooling. Source: [adaptate](https://github.com/p10ns11y/adaptate).
+
+[![Walkthrough: ranked venues for a Stockholm offsite](docs/media/walkthrough.gif)](docs/media/walkthrough.mp4)
 
 Live: [proposales-planner-bench.vercel.app](https://proposales-planner-bench.vercel.app)
 
@@ -34,7 +36,7 @@ pnpm build && pnpm e2e
 Copy `.env.example` to `.env.local`. Fixture mode is the default. Open the address the dev server prints.
 ## References
 
-- [@adaptate/core](https://www.npmjs.com/package/@adaptate/core) and [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils)
+- [@adaptate/core](https://www.npmjs.com/package/@adaptate/core) and [@adaptate/utils](https://www.npmjs.com/package/@adaptate/utils). Source: [adaptate](https://github.com/p10ns11y/adaptate)
 - [Vercel AI SDK](https://ai-sdk.dev) and [@ai-sdk/xai](https://www.npmjs.com/package/@ai-sdk/xai)
 - [AG-UI](https://github.com/ag-ui-protocol/ag-ui)
 - [shadcn/ui](https://ui.shadcn.com)

@@ -44,15 +44,26 @@ Session-span figures are the owner's estimate as supplied. They were not recompu
 | `qa/critical-path.md` | Kept. Linked from `docs/ARCHITECTURE.md` Checks. |
 | `qa/composer-mic.md` | Kept. Linked from `docs/ARCHITECTURE.md` Checks. |
 | `qa/filing-email.md` | Kept. Linked from `docs/ARCHITECTURE.md` Checks. |
-| `docs/evidence.md` | Kept. Linked from the work log and from this file. |
-| `docs/evidence/cursor-composer-mic-ffb9.md` | Kept. Listed on the work log. The shots stay in that file. |
-| `docs/evidence/cursor-mic-recovery-spacing-2015.md` | Kept. Listed on the work log. |
-| `docs/evidence/cursor-currency-display-b8d5.md` | Kept. Listed on the work log. |
-| `docs/evidence/cursor-file-button-order-f6d8.md` | Kept. Listed on the work log. |
-| `docs/evidence/cursor-more-drawer-layout-a47d.md` | Kept. Listed on the work log. |
-| `docs/evidence/cursor-rank-within-currency-97ac.md` | Kept. Listed on the work log. |
-| `docs/evidence/filing-email-flow-317a.md` | Kept. Listed on the work log. |
-| `docs/evidence/header-composer-copy-d705.md` | Kept. Listed on the work log. |
+| `docs/evidence.md` | Kept. Off the reading path. |
+| `docs/evidence/cursor-composer-mic-ffb9.md` | Kept. Off the reading path. |
+| `docs/evidence/cursor-mic-recovery-spacing-2015.md` | Kept. Off the reading path. |
+| `docs/evidence/cursor-currency-display-b8d5.md` | Kept. Off the reading path. |
+| `docs/evidence/cursor-file-button-order-f6d8.md` | Kept. Off the reading path. |
+| `docs/evidence/cursor-more-drawer-layout-a47d.md` | Kept. Off the reading path. |
+| `docs/evidence/cursor-rank-within-currency-97ac.md` | Kept. Off the reading path. |
+| `docs/evidence/filing-email-flow-317a.md` | Kept. Off the reading path. |
+| `docs/evidence/header-composer-copy-d705.md` | Kept. Off the reading path. |
+
+Living pages describe filing, history, voice, and Add details as in open pull requests #69 and #70. Counts stay at this snapshot. Shot notes stay off the reading path.
+
+## Package source
+
+| Figure | Command | Result |
+| --- | --- | --- |
+| `@adaptate/core` repository | `npm view @adaptate/core repository.url` | `git+https://github.com/p10ns11y/adaptate.git` |
+| `@adaptate/utils` repository | `npm view @adaptate/utils repository.url` | `git+https://github.com/p10ns11y/adaptate.git` |
+
+The pages link that repository as `https://github.com/p10ns11y/adaptate`. Imports: `@adaptate/core` in `src/domain/fitness.ts`, `@adaptate/utils/ssr` in `src/contract/proposales-schemas.ts`. The contract test is the only importer of `proposalesSchemas()`.
 
 `AGENTS.md` and `CLAUDE.md` are harness files. They were left in place.
 
