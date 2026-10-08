@@ -1,7 +1,7 @@
 "use client";
 
-import { Minus, Plus } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { ChevronDown, Minus, Plus } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Sheet } from "../design/ui/sheet";
 import type { MoreFieldValues, PlannerViewEvent } from "../view-models/view-model";
 import { emailApplyDecision, emailReplyHint } from "./file-brief-state";
@@ -21,17 +21,34 @@ type MoreDrawerProps = {
   onApplied: (line: string) => void;
 };
 
+export type DetailFold = "contact" | "event" | "people" | "budget" | "preferences";
+
+const foldTitle: Record<DetailFold, string> = {
+  contact: "Contact",
+  event: "Event and dates",
+  people: "People and rooms",
+  budget: "Budget",
+  preferences: "Preferences",
+};
+
 const fieldKeys: (keyof MoreFieldValues)[] = [
   "eventTitle",
   "organisationName",
   "contactEmail",
+  "city",
   "language",
+  "startDate",
+  "endDate",
+  "startTime",
+  "endTime",
   "attendeeCount",
   "roomCount",
   "meetingRoomCount",
   "foodRequired",
   "notes",
   "budget",
+  "budgetBasis",
+  "currency",
 ];
 
 export function MoreDrawer({
@@ -89,14 +106,29 @@ function MoreForm({
 }) {
   const [values, setValues] = useState(more);
   const [emailInvalid, setEmailInvalid] = useState(false);
+  const [openFold, setOpenFold] = useState<DetailFold>(() => openDetailSection(more));
+  const opened = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      opened.current = false;
+      return;
+    }
+    if (opened.current) {
+      return;
+    }
+    opened.current = true;
+    setOpenFold(openDetailSection(more));
+  }, [open, more]);
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (emailApplyDecision({ required: focusEmail, email: values.contactEmail }) === "need-email") {
       setEmailInvalid(true);
+      setOpenFold("contact");
       return;
     }
     onApply(changedDetails(more, values));
   }
+  const budgetName = budgetLabel(values.currency, currency);
   return (
     <Sheet
       open={open}
@@ -137,116 +169,247 @@ function MoreForm({
         </>
       }
     >
-      <div className="planner-fields">
-        <TextField
-          label="Event name"
-          name="eventTitle"
-          value={values.eventTitle}
-          onChange={(eventTitle) => setValues({ ...values, eventTitle })}
-        />
-        <TextField
-          label="Organisation"
-          name="organisationName"
-          value={values.organisationName}
-          onChange={(organisationName) => setValues({ ...values, organisationName })}
-        />
-        <TextField
-          label="Email"
-          name="contactEmail"
-          type="email"
-          autoComplete="email"
-          value={values.contactEmail}
-          required={focusEmail}
-          invalid={emailInvalid}
-          hint={focusEmail ? emailReplyHint : undefined}
-          onChange={(contactEmail) => {
-            setEmailInvalid(false);
-            setValues({ ...values, contactEmail });
-          }}
-        />
-        <div className="planner-field">
-          <span id="more-language-label">Language</span>
-          <div
-            className="planner-segment"
-            role="group"
-            aria-labelledby="more-language-label"
-            aria-describedby="more-language-hint"
-          >
+      <div className="planner-folds">
+        <Fold id="contact" open={openFold === "contact"} onOpen={setOpenFold}>
+          <TextField
+            label="Organisation"
+            name="organisationName"
+            value={values.organisationName}
+            onChange={(organisationName) => setValues({ ...values, organisationName })}
+          />
+          <TextField
+            label="Email"
+            name="contactEmail"
+            type="email"
+            autoComplete="email"
+            value={values.contactEmail}
+            required={focusEmail}
+            invalid={emailInvalid}
+            hint={focusEmail ? emailReplyHint : undefined}
+            onChange={(contactEmail) => {
+              setEmailInvalid(false);
+              setValues({ ...values, contactEmail });
+            }}
+          />
+        </Fold>
+        <Fold id="event" open={openFold === "event"} onOpen={setOpenFold}>
+          <TextField
+            label="Event name"
+            name="eventTitle"
+            value={values.eventTitle}
+            onChange={(eventTitle) => setValues({ ...values, eventTitle })}
+          />
+          <TextField label="City" name="city" value={values.city} onChange={(city) => setValues({ ...values, city })} />
+          <TextField
+            label="Start date"
+            name="startDate"
+            autoComplete="off"
+            value={values.startDate}
+            onChange={(startDate) => setValues({ ...values, startDate })}
+          />
+          <TextField
+            label="End date"
+            name="endDate"
+            autoComplete="off"
+            value={values.endDate}
+            onChange={(endDate) => setValues({ ...values, endDate })}
+          />
+          <TextField
+            label="Start time"
+            name="startTime"
+            autoComplete="off"
+            value={values.startTime}
+            onChange={(startTime) => setValues({ ...values, startTime })}
+          />
+          <TextField
+            label="End time"
+            name="endTime"
+            autoComplete="off"
+            value={values.endTime}
+            onChange={(endTime) => setValues({ ...values, endTime })}
+          />
+        </Fold>
+        <Fold id="people" open={openFold === "people"} onOpen={setOpenFold}>
+          <CountStepper
+            label="Guests"
+            value={values.attendeeCount}
+            onChange={(attendeeCount) => setValues({ ...values, attendeeCount })}
+          />
+          <CountStepper label="Rooms" value={values.roomCount} onChange={(roomCount) => setValues({ ...values, roomCount })} />
+          <CountStepper
+            label="Meeting rooms"
+            value={values.meetingRoomCount}
+            onChange={(meetingRoomCount) => setValues({ ...values, meetingRoomCount })}
+          />
+          <div className="planner-switch-row">
+            <span id="more-food-label">Food</span>
             <button
               type="button"
-              aria-pressed={values.language === "en"}
-              {...lcvStay("language-en", "more:open")}
-              onClick={() => setValues({ ...values, language: "en" })}
+              className="planner-switch"
+              role="switch"
+              aria-labelledby="more-food-label"
+              aria-checked={values.foodRequired === "yes"}
+              {...lcvStay("food", "more:open")}
+              onClick={() =>
+                setValues({
+                  ...values,
+                  foodRequired: values.foodRequired === "yes" ? "no" : "yes",
+                })
+              }
             >
-              English
-            </button>
-            <button
-              type="button"
-              aria-pressed={values.language === "sv"}
-              {...lcvStay("language-sv", "more:open")}
-              onClick={() => setValues({ ...values, language: "sv" })}
-            >
-              Svenska
+              <span />
             </button>
           </div>
-          <p id="more-language-hint" className="planner-field-hint">
-            Language of the request venues receive
-          </p>
-        </div>
-        <CountStepper
-          label="Guests"
-          value={values.attendeeCount}
-          onChange={(attendeeCount) => setValues({ ...values, attendeeCount })}
-        />
-        <CountStepper
-          label="Rooms"
-          value={values.roomCount}
-          onChange={(roomCount) => setValues({ ...values, roomCount })}
-        />
-        <CountStepper
-          label="Meeting rooms"
-          value={values.meetingRoomCount}
-          onChange={(meetingRoomCount) => setValues({ ...values, meetingRoomCount })}
-        />
-        <div className="planner-switch-row">
-          <span id="more-food-label">Food</span>
-          <button
-            type="button"
-            className="planner-switch"
-            role="switch"
-            aria-labelledby="more-food-label"
-            aria-checked={values.foodRequired === "yes"}
-            {...lcvStay("food", "more:open")}
-            onClick={() =>
-              setValues({
-                ...values,
-                foodRequired: values.foodRequired === "yes" ? "no" : "yes",
-              })
-            }
-          >
-            <span />
-          </button>
-        </div>
-        <TextField
-          label={`Budget (${currency})`}
-          name="budget"
-          inputMode="decimal"
-          value={values.budget}
-          onChange={(budget) => setValues({ ...values, budget })}
-        />
-        <label className="planner-field" htmlFor="more-notes">
-          Notes
-          <textarea
-            id="more-notes"
-            name="notes"
-            rows={3}
-            value={values.notes}
-            onChange={(event) => setValues({ ...values, notes: event.target.value })}
+        </Fold>
+        <Fold id="budget" open={openFold === "budget"} onOpen={setOpenFold}>
+          <TextField
+            label={budgetName}
+            name="budget"
+            inputMode="decimal"
+            value={values.budget}
+            onChange={(budget) => setValues({ ...values, budget })}
           />
-        </label>
+          <div className="planner-field">
+            <span id="more-basis-label">Budget basis</span>
+            <div className="planner-segment" role="group" aria-labelledby="more-basis-label">
+              <button
+                type="button"
+                aria-pressed={values.budgetBasis === "total"}
+                {...lcvStay("basis-total", "more:open")}
+                onClick={() => setValues({ ...values, budgetBasis: "total" })}
+              >
+                Total
+              </button>
+              <button
+                type="button"
+                aria-pressed={values.budgetBasis === "per-person"}
+                {...lcvStay("basis-per-person", "more:open")}
+                onClick={() => setValues({ ...values, budgetBasis: "per-person" })}
+              >
+                Per person
+              </button>
+            </div>
+          </div>
+          <TextField
+            label="Currency"
+            name="currency"
+            autoComplete="off"
+            value={values.currency}
+            onChange={(next) => setValues({ ...values, currency: next.toUpperCase() })}
+          />
+        </Fold>
+        <Fold id="preferences" open={openFold === "preferences"} onOpen={setOpenFold}>
+          <div className="planner-field">
+            <span id="more-language-label">Language</span>
+            <div
+              className="planner-segment"
+              role="group"
+              aria-labelledby="more-language-label"
+              aria-describedby="more-language-hint"
+            >
+              <button
+                type="button"
+                aria-pressed={values.language === "en"}
+                {...lcvStay("language-en", "more:open")}
+                onClick={() => setValues({ ...values, language: "en" })}
+              >
+                English
+              </button>
+              <button
+                type="button"
+                aria-pressed={values.language === "sv"}
+                {...lcvStay("language-sv", "more:open")}
+                onClick={() => setValues({ ...values, language: "sv" })}
+              >
+                Svenska
+              </button>
+            </div>
+            <p id="more-language-hint" className="planner-field-hint">
+              Language of the request venues receive
+            </p>
+          </div>
+          <label className="planner-field" htmlFor="more-notes">
+            Notes
+            <textarea
+              id="more-notes"
+              name="notes"
+              rows={3}
+              value={values.notes}
+              onChange={(event) => setValues({ ...values, notes: event.target.value })}
+            />
+          </label>
+        </Fold>
       </div>
     </Sheet>
   );
+}
+
+function Fold({
+  id,
+  open,
+  onOpen,
+  children,
+}: {
+  id: DetailFold;
+  open: boolean;
+  onOpen: (id: DetailFold) => void;
+  children: ReactNode;
+}) {
+  const buttonId = `more-fold-${id}`;
+  const panelId = `more-panel-${id}`;
+  return (
+    <div className="planner-fold">
+      <h3 className="planner-fold-heading">
+        <button
+          type="button"
+          id={buttonId}
+          className="planner-fold-toggle"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => onOpen(id)}
+        >
+          <span>{foldTitle[id]}</span>
+          <ChevronDown aria-hidden="true" />
+        </button>
+      </h3>
+      <div id={panelId} role="region" aria-labelledby={buttonId} hidden={!open} className="planner-fold-panel">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function openDetailSection(values: MoreFieldValues): DetailFold {
+  if (values.contactEmail.trim() === "") {
+    return "contact";
+  }
+  if (values.startDate.trim() === "" || values.endDate.trim() === "") {
+    return "event";
+  }
+  if (values.attendeeCount.trim() === "" || overnightRoomsMissing(values)) {
+    return "people";
+  }
+  if (values.budget.trim() !== "" && values.budgetBasis === "") {
+    return "budget";
+  }
+  if (values.language.trim() === "") {
+    return "preferences";
+  }
+  return "contact";
+}
+
+function overnightRoomsMissing(values: MoreFieldValues): boolean {
+  const start = values.startDate.trim();
+  const end = values.endDate.trim();
+  if (start === "" || end === "" || end <= start) {
+    return false;
+  }
+  return values.roomCount.trim() === "";
+}
+
+function budgetLabel(field: string, fallback: string): string {
+  const code = field.trim();
+  return `Budget (${code === "" ? fallback : code})`;
 }
 
 function CountStepper({
@@ -378,13 +541,17 @@ function assignDetail(details: Partial<MoreFieldValues>, key: keyof MoreFieldVal
     }
     return;
   }
-  if (key === "eventTitle") details.eventTitle = value;
-  if (key === "organisationName") details.organisationName = value;
-  if (key === "contactEmail") details.contactEmail = value;
-  if (key === "language") details.language = value;
-  if (key === "attendeeCount") details.attendeeCount = value;
-  if (key === "roomCount") details.roomCount = value;
-  if (key === "meetingRoomCount") details.meetingRoomCount = value;
-  if (key === "notes") details.notes = value;
-  if (key === "budget") details.budget = value;
+  if (key === "budgetBasis") {
+    if (value === "" || value === "total" || value === "per-person") {
+      details.budgetBasis = value;
+    }
+    return;
+  }
+  if (isTextKey(key)) {
+    details[key] = value;
+  }
+}
+
+function isTextKey(key: keyof MoreFieldValues): key is Exclude<keyof MoreFieldValues, "foodRequired" | "budgetBasis"> {
+  return key !== "foodRequired" && key !== "budgetBasis";
 }

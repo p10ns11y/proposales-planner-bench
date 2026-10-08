@@ -98,31 +98,39 @@ test("saves a single More field", async ({ page }) => {
   const labels = ["Event name", "Organisation", "Email", "Budget (EUR)", "Notes"] as const;
   const before = new Map<string, string>();
   for (const label of labels) {
+    await openFold(drawer, foldFor(label));
     before.set(label, await drawer.getByLabel(label).inputValue());
   }
+  await openFold(drawer, "Preferences");
   const english = await drawer.getByRole("button", { name: "English" }).getAttribute("aria-pressed");
   const svenska = await drawer.getByRole("button", { name: "Svenska" }).getAttribute("aria-pressed");
+  await openFold(drawer, "People and rooms");
   const rooms = drawer.getByRole("group", { name: "Rooms", exact: true }).locator(".planner-step-value");
   const meetings = drawer.getByRole("group", { name: "Meeting rooms" }).locator(".planner-step-value");
   const roomCount = await rooms.innerText();
   const meetingCount = await meetings.innerText();
   const food = await drawer.getByRole("switch", { name: "Food" }).getAttribute("aria-checked");
 
+  await openFold(drawer, "Event and dates");
   await drawer.getByLabel("Event name").fill("Harbour day");
   await drawer.locator("[data-lcv-event=save-more]").click();
   await expect(drawer).toBeHidden();
 
   await headerButton(page, "Add details").click();
   const again = page.getByRole("dialog", { name: "Add details" });
+  await openFold(again, "Event and dates");
   await expect(again.getByLabel("Event name")).toHaveValue("Harbour day");
   for (const label of labels) {
     if (label === "Event name") {
       continue;
     }
+    await openFold(again, foldFor(label));
     await expect(again.getByLabel(label)).toHaveValue(before.get(label) ?? "");
   }
+  await openFold(again, "Preferences");
   await expect(again.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", english ?? "false");
   await expect(again.getByRole("button", { name: "Svenska" })).toHaveAttribute("aria-pressed", svenska ?? "false");
+  await openFold(again, "People and rooms");
   await expect(again.getByRole("group", { name: "Rooms", exact: true }).locator(".planner-step-value")).toHaveText(roomCount);
   await expect(again.getByRole("group", { name: "Meeting rooms" }).locator(".planner-step-value")).toHaveText(meetingCount);
   await expect(again.getByRole("switch", { name: "Food" })).toHaveAttribute("aria-checked", food ?? "false");
@@ -166,6 +174,7 @@ async function expectStockholmBudget(page: Page, viewport: { width: number; heig
   await expect(page.locator("[data-lcv-fact=city]")).toHaveText("Stockholm");
   await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
   const drawer = page.getByRole("dialog", { name: "Add details" });
+  await openFold(drawer, "Budget");
   await expect(drawer.getByLabel("Budget (SEK)")).toBeVisible();
 }
 
@@ -183,6 +192,7 @@ test("shows the chosen language after an English brief", async ({ page }) => {
   await expect(page.locator("[data-lcv-marker=more]")).toHaveAttribute("data-lcv-ui-state", "more:closed");
   await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
   const drawer = page.getByRole("dialog", { name: "Add details" });
+  await openFold(drawer, "Preferences");
   const english = drawer.getByRole("button", { name: "English" });
   const svenska = drawer.getByRole("button", { name: "Svenska" });
   await expect(english).toHaveAttribute("aria-pressed", "false");
@@ -199,7 +209,9 @@ test("shows the chosen language after an English brief", async ({ page }) => {
   await reachResults(page);
   await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
   const open = page.getByRole("dialog", { name: "Add details" });
-  await expect(open.locator('[aria-pressed="true"]')).toHaveCount(1);
+  await openFold(open, "Preferences");
+  const language = open.getByRole("group", { name: "Language" });
+  await expect(language.locator('[aria-pressed="true"]')).toHaveCount(1);
   await expect(open.getByRole("button", { name: "English" })).toHaveAttribute("aria-pressed", "true");
   await expect(open.getByRole("button", { name: "Svenska" })).toHaveAttribute("aria-pressed", "false");
   const pressedBackground = await open.getByRole("button", { name: "English" }).evaluate((element) => getComputedStyle(element).backgroundColor);
@@ -207,7 +219,7 @@ test("shows the chosen language after an English brief", async ({ page }) => {
   expect(pressedBackground).not.toBe(openBackground);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(open.locator('[aria-pressed="true"]')).toHaveCount(1);
+  await expect(language.locator('[aria-pressed="true"]')).toHaveCount(1);
 });
 
 test("shows the updated headcount after More applies", async ({ page }) => {
@@ -221,6 +233,7 @@ test("shows the updated headcount after More applies", async ({ page }) => {
 
   await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
   drawer = page.getByRole("dialog", { name: "Add details" });
+  await openFold(drawer, "People and rooms");
   await stepTo(drawer.getByRole("group", { name: "Guests" }), "guests", 30);
   await stepTo(drawer.getByRole("group", { name: "Meeting rooms" }), "meeting rooms", 2);
   let releaseTurn: () => void = () => undefined;
@@ -385,6 +398,7 @@ async function expectDrawerFits(page: Page, viewport: { width: number; height: n
   await page.locator(".planner-header").getByRole("button", { name: "Add details", exact: true }).click();
   const drawer = page.getByRole("dialog", { name: "Add details" });
   await expect(drawer).toBeVisible();
+  await openFold(drawer, "People and rooms");
   const body = drawer.locator(".planner-drawer-body");
   expect(
     await body.evaluate((node) => {
@@ -600,6 +614,30 @@ test("ranks the city currency before a cheaper other currency and keeps an expir
     }
   }
 });
+
+function foldFor(label: string): string {
+  if (label === "Organisation" || label === "Email") {
+    return "Contact";
+  }
+  if (label === "Notes") {
+    return "Preferences";
+  }
+  if (label.startsWith("Budget") || label === "Currency") {
+    return "Budget";
+  }
+  if (label === "Guests" || label === "Rooms" || label === "Meeting rooms" || label === "Food") {
+    return "People and rooms";
+  }
+  return "Event and dates";
+}
+
+async function openFold(drawer: Locator, name: string) {
+  const toggle = drawer.getByRole("button", { name, exact: true });
+  if ((await toggle.getAttribute("aria-expanded")) === "true") {
+    return;
+  }
+  await toggle.click();
+}
 
 function headerButton(page: Page, name: string) {
   return page.locator(".planner-header").getByRole("button", { name, exact: true });

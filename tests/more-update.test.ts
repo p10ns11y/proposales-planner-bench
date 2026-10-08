@@ -48,4 +48,22 @@ describe("more update line", () => {
     expect(moreUpdateLine({ budget: "2500" })).toBe("Updated: budget 2500");
     expect(moreUpdateLine({ budget: "" })).toBe("Updated: budget cleared");
   });
+
+  it("names the city, dates, times, basis, and currency, or says they were cleared", () => {
+    expect(moreUpdateLine({ city: "Stockholm" })).toBe("Updated: Stockholm");
+    expect(moreUpdateLine({ city: "" })).toBe("Updated: city cleared");
+    expect(moreUpdateLine({ startDate: "2026-12-03" })).toBe("Updated: 2026-12-03");
+    expect(moreUpdateLine({ startDate: "" })).toBe("Updated: start date cleared");
+    expect(moreUpdateLine({ endDate: "2026-12-04" })).toBe("Updated: 2026-12-04");
+    expect(moreUpdateLine({ endDate: "" })).toBe("Updated: end date cleared");
+    expect(moreUpdateLine({ startTime: "09:00" })).toBe("Updated: 09:00");
+    expect(moreUpdateLine({ startTime: "" })).toBe("Updated: start time cleared");
+    expect(moreUpdateLine({ endTime: "17:00" })).toBe("Updated: 17:00");
+    expect(moreUpdateLine({ endTime: "" })).toBe("Updated: end time cleared");
+    expect(moreUpdateLine({ budgetBasis: "total" })).toBe("Updated: budget total");
+    expect(moreUpdateLine({ budgetBasis: "per-person" })).toBe("Updated: budget per person");
+    expect(moreUpdateLine({ budgetBasis: "" })).toBe("Updated: budget basis cleared");
+    expect(moreUpdateLine({ currency: "SEK" })).toBe("Updated: SEK");
+    expect(moreUpdateLine({ currency: "" })).toBe("Updated: currency cleared");
+  });
 });

@@ -36,13 +36,20 @@ const emptyMore: MoreFieldValues = {
   eventTitle: "",
   organisationName: "",
   contactEmail: "",
+  city: "",
   language: "",
+  startDate: "",
+  endDate: "",
+  startTime: "",
+  endTime: "",
   attendeeCount: "",
   roomCount: "",
   meetingRoomCount: "",
   foodRequired: "",
   notes: "",
   budget: "",
+  budgetBasis: "",
+  currency: "",
 };
 
 function model(overrides: Partial<ShellViewModel> = {}): ShellViewModel {
@@ -354,6 +361,7 @@ describe("More drawer", () => {
     render(<PlannerShell viewModel={model({ phase: "capture", rows: [], offerSummary: null })} onEvent={(event) => events.push(event)} historyControl={null} />);
     await openAddDetails(user);
     await user.type(screen.getByLabelText("Email"), "planner@northwind.example");
+    await openFold(user, "Preferences");
     await user.click(screen.getByRole("button", { name: "Svenska" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));
     expect(events.at(-1)).toEqual({
@@ -380,6 +388,7 @@ describe("More drawer", () => {
       />,
     );
     await openAddDetails(user);
+    await openFold(user, "People and rooms");
     await user.click(screen.getByRole("button", { name: "Fewer meeting rooms" }));
     await user.click(screen.getByRole("button", { name: "Fewer meeting rooms" }));
     await user.click(screen.getByRole("switch", { name: "Food" }));
@@ -408,6 +417,7 @@ describe("More drawer", () => {
       />,
     );
     await openAddDetails(user);
+    await openFold(user, "Budget");
     const budget = screen.getByLabelText("Budget (EUR)");
     expect(budget).toBeInstanceOf(HTMLInputElement);
     if (!(budget instanceof HTMLInputElement)) {
@@ -456,6 +466,7 @@ describe("More drawer", () => {
       />,
     );
     await user.click(within(headerRegion()).getByRole("button", { name: "Add details" }));
+    await openFold(user, "People and rooms");
     await user.click(screen.getByRole("button", { name: "More guests" }));
     await user.click(screen.getByRole("button", { name: "Apply" }));
     expect(events.at(-1)).toEqual({
@@ -484,6 +495,14 @@ function composerRegion(): HTMLElement {
 
 async function openAddDetails(user: UserEvent) {
   await user.click(within(headerRegion()).getByRole("button", { name: "Add details" }));
+}
+
+async function openFold(user: UserEvent, name: string) {
+  const toggle = screen.getByRole("button", { name: (accessibleName) => accessibleName === name });
+  if (toggle.getAttribute("aria-expanded") === "true") {
+    return;
+  }
+  await user.click(toggle);
 }
 
 function installDomShims() {

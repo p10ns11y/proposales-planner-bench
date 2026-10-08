@@ -95,4 +95,138 @@ describe("applyMoreDetails", () => {
     });
     expect(view.more.attendeeCount).toBe("40");
   });
+
+  it("fills More from the brief, including dates, times, basis, and currency", () => {
+    const snapshot = emptySnapshot([], "", []);
+    snapshot.brief = plannerBriefSchema.parse({
+      eventTitle: "Harbour day",
+      organisationName: "Northwind",
+      contactEmail: "planner@northwind.example",
+      city: "Stockholm",
+      startDate: "2026-12-03",
+      endDate: "2026-12-04",
+      startTime: "09:00",
+      endTime: "17:00",
+      attendeeCount: 25,
+      roomCount: 8,
+      meetingRoomCount: 2,
+      foodRequired: true,
+      language: "en",
+      notes: "Dinner in the hall",
+      budget: { amount: 300, currency: "EUR", scope: "total", approximate: true },
+    });
+    const view = shellViewModel({
+      snapshot,
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(view.more).toMatchObject({
+      eventTitle: "Harbour day",
+      organisationName: "Northwind",
+      contactEmail: "planner@northwind.example",
+      city: "Stockholm",
+      startDate: "2026-12-03",
+      endDate: "2026-12-04",
+      startTime: "09:00",
+      endTime: "17:00",
+      attendeeCount: "25",
+      roomCount: "8",
+      meetingRoomCount: "2",
+      foodRequired: "yes",
+      language: "en",
+      notes: "Dinner in the hall",
+      budget: "300",
+      budgetBasis: "total",
+      currency: "EUR",
+    });
+  });
+
+  it("prefers a stored minor budget and keeps a fractional major amount", () => {
+    const snapshot = emptySnapshot([], "", []);
+    snapshot.brief = plannerBriefSchema.parse({
+      city: "Stockholm",
+      budgetMinor: { unit: "minor", amount: 10_050 },
+      budget: { amount: 300, currency: "EUR", scope: "per-person" },
+    });
+    const view = shellViewModel({
+      snapshot,
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(view.more.budget).toBe("100.50");
+    expect(view.more.budgetBasis).toBe("per-person");
+    expect(view.more.currency).toBe("EUR");
+
+    const fractional = shellViewModel({
+      snapshot: {
+        ...snapshot,
+        brief: plannerBriefSchema.parse({
+          city: "Stockholm",
+          budget: { amount: 10.1, currency: "SEK" },
+        }),
+      },
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(fractional.more.budget).toBe("10.1");
+    expect(fractional.more.currency).toBe("SEK");
+  });
+
+  it("writes dates, times, city, basis, and currency back onto the brief", () => {
+    const saved = applyMoreDetails(
+      plannerBriefSchema.parse({
+        budget: { amount: 300, currency: "EUR", approximate: true },
+        startTime: "09:00",
+      }),
+      {
+        city: "Stockholm",
+        startDate: "2026-12-03",
+        endDate: "2026-12-04",
+        startTime: "10:00",
+        endTime: "17:00",
+        budgetBasis: "total",
+        currency: "sek",
+      },
+    );
+    expect(saved.city).toBe("Stockholm");
+    expect(saved.startDate).toBe("2026-12-03");
+    expect(saved.endDate).toBe("2026-12-04");
+    expect(saved.startTime).toBe("10:00");
+    expect(saved.endTime).toBe("17:00");
+    expect(saved.budget?.scope).toBe("total");
+    expect(saved.budget?.currency).toBe("SEK");
+    expect(saved.statedCurrency).toBe("SEK");
+
+    const cleared = applyMoreDetails(saved, {
+      city: "",
+      startDate: "",
+      endDate: "",
+      startTime: "",
+      endTime: "9:00",
+      budgetBasis: "",
+      currency: "",
+    });
+    expect(cleared.city).toBeUndefined();
+    expect(cleared.startDate).toBeUndefined();
+    expect(cleared.endDate).toBeUndefined();
+    expect(cleared.startTime).toBeUndefined();
+    expect(cleared.endTime).toBe("17:00");
+    expect(cleared.budget?.scope).toBeUndefined();
+    expect(cleared.statedCurrency).toBeUndefined();
+    expect(cleared.budget?.currency).toBe("SEK");
+    expect(cleared.budget?.amount).toBe(300);
+  });
+
+  it("leaves the basis alone when the brief has no budget amount", () => {
+    const next = applyMoreDetails(plannerBriefSchema.parse({ city: "Stockholm" }), {
+      budgetBasis: "total",
+      currency: "nope",
+    });
+    expect(next.budget).toBeUndefined();
+    expect(next.statedCurrency).toBeUndefined();
+    expect(next.city).toBe("Stockholm");
+  });
 });

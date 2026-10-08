@@ -5,6 +5,7 @@ import { addEnglishLanguage, briefWrittenInEnglish, statesOtherLanguage } from "
 import { isFileUtterance, turnIntent } from "../src/flow/fixture-extractor";
 import {
   attemptFiling,
+  fileableBrief,
   filingFingerprint,
   noticeForFileableGap,
   noticeForFiling,
@@ -458,6 +459,32 @@ describe("attempt filing", () => {
     });
     expect(watched.filings).toHaveLength(2);
     expect(third.filing).toEqual(second.filing);
+  });
+
+  it("treats a missing field as empty, keeps neighbouring fields apart, and files when a key has no result", async () => {
+    expect(filingFingerprint({ ...readyBrief, notes: undefined })).toBe(filingFingerprint({ ...readyBrief, notes: "" }));
+    expect(filingFingerprint({ ...readyBrief, eventTitle: "ab", organisationName: "c" })).not.toBe(
+      filingFingerprint({ ...readyBrief, eventTitle: "a", organisationName: "bc" }),
+    );
+    expect(fileableBrief({ ...readyBrief, contactEmail: "   " })).toEqual({
+      startDate: readyBrief.startDate,
+      endDate: readyBrief.endDate,
+      attendeeCount: readyBrief.attendeeCount,
+      language: readyBrief.language,
+    });
+    const watched = countingFileClient("ok");
+    const posted = await attemptFiling({
+      brief: readyBrief,
+      filing: null,
+      filingKey: filingFingerprint(readyBrief),
+      filingAvailable: true,
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: watched.client,
+    });
+    expect(watched.filings).toHaveLength(1);
+    expect(posted.filing).toEqual({ path: "inbox", id: 100 });
+    expect(posted.filingKey).toBe(filingFingerprint(readyBrief));
   });
 
   it("asks for one missing field and does not call the client", async () => {
