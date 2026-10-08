@@ -15,8 +15,8 @@ import { toOfferDataPart } from "../transport/ai-sdk-offers";
 import { offerGroupFromShell } from "../view-models/offer-part";
 import { shellViewModel } from "../view-models/selectors";
 import { modelAttemptSignal, modelIsUsable, plannerLanguageModel } from "./agent-mode";
+import { isFileUtterance } from "./fixture-extractor";
 import { attemptFiling } from "./filing-guard";
-import { askedToFile } from "../proposales/file-with-intent";
 import { latestUserText, readChatRequest, readSessionSnapshot, type ChatTurnMessage } from "./chat-request";
 import { snapshotForClient, type PlannerSnapshot } from "./planner-snapshot";
 import { runFixtureTurn } from "./scripted-turn";
@@ -131,8 +131,10 @@ async function scriptedChatTurn(input: {
   client: ProposalesClient;
   today: string;
 }): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
+  const text = latestUserText(input.messages);
   return runFixtureTurn({
-    text: latestUserText(input.messages),
+    text,
+    userText: text,
     snapshot: input.snapshot,
     client: input.client,
     today: input.today,
@@ -171,7 +173,13 @@ async function runLiveChat(
           text: z.string(),
         }),
         execute: async ({ text }) => {
-          const turn = await runFixtureTurn({ text, snapshot: state.snapshot, client, today });
+          const turn = await runFixtureTurn({
+            text,
+            userText: latestUserText(messages),
+            snapshot: state.snapshot,
+            client,
+            today,
+          });
           state.snapshot = turn.snapshot;
           return { reply: turn.reply, stage: turn.snapshot.stage };
         },
@@ -187,6 +195,7 @@ async function runLiveChat(
             client,
             today,
             companyId,
+            userText: latestUserText(messages),
           });
           state.snapshot = turn.snapshot;
           return { reply: turn.reply, filing: turn.snapshot.filing };
@@ -198,7 +207,13 @@ async function runLiveChat(
           text: z.string().default("add the venue proposals"),
         }),
         execute: async ({ text }) => {
-          const turn = await runFixtureTurn({ text, snapshot: state.snapshot, client, today });
+          const turn = await runFixtureTurn({
+            text,
+            userText: latestUserText(messages),
+            snapshot: state.snapshot,
+            client,
+            today,
+          });
           state.snapshot = turn.snapshot;
           return {
             reply: turn.reply,
@@ -214,6 +229,7 @@ async function runLiveChat(
         execute: async () => {
           const turn = await runFixtureTurn({
             text: "compare",
+            userText: latestUserText(messages),
             snapshot: state.snapshot,
             client,
             today,
@@ -233,7 +249,12 @@ export async function fileChatBrief(input: {
   client: ProposalesClient;
   today: string;
   companyId?: number;
+  userText?: string;
 }): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
+  const spoken = input.userText ?? "";
+  if (!isFileUtterance(spoken)) {
+    return { reply: input.snapshot.notice ?? "", snapshot: input.snapshot };
+  }
   const selectedCompanyId = input.companyId === undefined ? input.snapshot.selectedCompanyId : input.companyId;
   const attempt = await attemptFiling({
     brief: input.snapshot.brief,
@@ -243,10 +264,11 @@ export async function fileChatBrief(input: {
     selectedCompanyId,
     companies: input.snapshot.companies,
     client: input.client,
-    intent: askedToFile(),
+    utterance: spoken,
   });
   return runFixtureTurn({
-    text: "file the brief",
+    text: spoken,
+    userText: spoken,
     snapshot: {
       ...input.snapshot,
       filing: attempt.filing,

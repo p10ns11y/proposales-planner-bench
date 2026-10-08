@@ -16,7 +16,7 @@ import {
 } from "../src/flow/filing-guard";
 import { emptySnapshot } from "../src/flow/planner-snapshot";
 import { runViewportAction } from "../src/flow/viewport-turn";
-import { askedToFile, fileWithIntent } from "../src/proposales/file-with-intent";
+import { fileWithIntent } from "../src/proposales/file-with-intent";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../src/proposales/filing";
 import type { BriefDraft, FileBriefResult } from "../src/proposales/types";
 import { shellViewModel } from "../src/view-models/selectors";
@@ -28,16 +28,15 @@ import {
   fileBriefDisabled,
   fileBriefLabel,
   fileBriefPressable,
-  moreOpenedForEmail,
 } from "../src/views/file-brief-state";
 
 function attemptFiling(
-  input: Parameters<typeof attemptFilingWithIntent>[0],
+  input: Omit<Parameters<typeof attemptFilingWithIntent>[0], "utterance"> & { utterance?: string | null },
 ): ReturnType<typeof attemptFilingWithIntent> {
-  if (input.intent !== undefined) {
-    return attemptFilingWithIntent(input);
+  if (input.utterance !== undefined) {
+    return attemptFilingWithIntent({ ...input, utterance: input.utterance });
   }
-  return attemptFilingWithIntent({ ...input, intent: askedToFile() });
+  return attemptFilingWithIntent({ ...input, utterance: "file" });
 }
 
 const englishWords = [
@@ -182,15 +181,13 @@ describe("filing guard", () => {
 });
 
 describe("file brief control", () => {
-  it("ignores a second file, asks when the email is blank, and sends otherwise", () => {
-    const ready = { filed: false, busy: false, ready: true, email: "planner@northwind.example" };
+  it("ignores a second file and sends when the brief can be filed", () => {
+    const ready = { filed: false, busy: false, ready: true };
     expect(fileBriefChoice(ready)).toBe("send");
-    expect(fileBriefChoice({ ...ready, email: "  " })).toBe("ask-email");
-    expect(fileBriefChoice({ ...ready, email: "" })).toBe("ask-email");
     expect(fileBriefChoice({ ...ready, filed: true })).toBe("ignore");
     expect(fileBriefChoice({ ...ready, busy: true })).toBe("ignore");
     expect(fileBriefChoice({ ...ready, ready: false })).toBe("ignore");
-    expect(fileBriefChoice({ ...ready, filed: true, busy: true, ready: false, email: "" })).toBe("ignore");
+    expect(fileBriefChoice({ ...ready, filed: true, busy: true, ready: false })).toBe("ignore");
   });
 
   it("reads Filed and stays disabled once the brief is filed", () => {
@@ -202,9 +199,8 @@ describe("file brief control", () => {
     expect(fileBriefDisabled(true, true)).toBe(true);
   });
 
-  it("requires an email only when File opened More, and keeps File pressable after a transport error", () => {
+  it("keeps File pressable after a transport error", () => {
     expect(emailReplyHint).toBe("Venues reply to this address");
-    expect(moreOpenedForEmail).toBe("Add details opened so venues reply to this address.");
     expect(emailApplyDecision({ required: false, email: "" })).toBe("apply");
     expect(emailApplyDecision({ required: false, email: "  " })).toBe("apply");
     expect(emailApplyDecision({ required: true, email: "" })).toBe("need-email");
@@ -218,8 +214,8 @@ describe("file brief control", () => {
     const error = "Couldn't reach Proposales. Your brief is saved.";
     expect(detailStatusLine({ errorText: null, filingMessage: null, whyMore: null })).toBeNull();
     expect(detailStatusLine({ errorText: "  ", filingMessage: "  ", whyMore: "  " })).toBeNull();
-    expect(detailStatusLine({ errorText: `  ${error}  `, filingMessage: briefFiledNotice, whyMore: moreOpenedForEmail })).toBe(error);
-    expect(detailStatusLine({ errorText: null, filingMessage: briefFiledNotice, whyMore: `  ${moreOpenedForEmail}  ` })).toBe(moreOpenedForEmail);
+    expect(detailStatusLine({ errorText: `  ${error}  `, filingMessage: briefFiledNotice, whyMore: emailReplyHint })).toBe(error);
+    expect(detailStatusLine({ errorText: null, filingMessage: briefFiledNotice, whyMore: `  ${emailReplyHint}  ` })).toBe(emailReplyHint);
     expect(detailStatusLine({ errorText: "", filingMessage: `  ${briefFiledNotice}  `, whyMore: null })).toBe(briefFiledNotice);
   });
 });
@@ -281,7 +277,7 @@ describe("attempt filing", () => {
       selectedCompanyId: 1,
       companies: [{ id: 1 }],
       client: watched.client,
-      intent: null,
+      utterance: null,
     });
     expect(watched.filings).toHaveLength(0);
     expect(attempt.filing).toBeNull();
@@ -289,7 +285,7 @@ describe("attempt filing", () => {
     let sent = false;
     type SentFiling = { filing: { path: "inbox"; id: number } | null };
     const blocked = await fileWithIntent<SentFiling>({
-      intent: null,
+      utterance: null,
       refused: { filing: null },
       send: async () => {
         sent = true;
@@ -299,7 +295,7 @@ describe("attempt filing", () => {
     expect(sent).toBe(false);
     expect(blocked.filing).toBeNull();
     const allowed = await fileWithIntent<SentFiling>({
-      intent: askedToFile(),
+      utterance: "file",
       refused: { filing: null },
       send: async () => {
         sent = true;
@@ -437,6 +433,8 @@ describe("attempt filing", () => {
     expect(turnIntent("file it")).toBe("file");
     expect(isFileUtterance("file this")).toBe(true);
     expect(isFileUtterance("file this brief")).toBe(true);
+    expect(isFileUtterance("please don't file the brief yet")).toBe(false);
+    expect(turnIntent("please don't file the brief yet")).not.toBe("file");
     const sample = {
       ...emptySnapshot([{ id: 2, name: "Northwind" }], "", []),
       brief: omitField("contactEmail"),

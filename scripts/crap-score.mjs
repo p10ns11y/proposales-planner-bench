@@ -22,6 +22,7 @@ const scope = [
   { file: "src/flow/brief-flow.ts" },
   { file: "src/domain/day-part.ts" },
   { file: "src/proposales/http-client.ts" },
+  { file: "src/proposales/file-with-intent.ts" },
   { file: "src/flow/brief-language.ts" },
   { file: "src/flow/filing-guard.ts" },
   { file: "src/views/file-brief-state.ts" },

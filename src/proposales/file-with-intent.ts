@@ -1,13 +1,21 @@
+import { isFileUtterance } from "../flow/fixture-extractor";
 import type { BriefDraft, ProposalesClient } from "./types";
 
-export type FileIntent = {
+type FileIntent = {
   explicit: true;
 };
 
 type FileRouteRequest = (path: string, init: RequestInit, authorize: boolean) => Promise<unknown>;
 
-export function askedToFile(): FileIntent {
+function askedToFile(): FileIntent {
   return { explicit: true };
+}
+
+function utteranceAsksToFile(utterance: string | null): boolean {
+  if (utterance === null) {
+    return false;
+  }
+  return isFileUtterance(utterance);
 }
 
 export function inboxFileRoute(token: string): string {
@@ -38,16 +46,18 @@ export async function sendFileBrief(
 }
 
 export async function fileWithIntent<T>(input: {
-  intent: FileIntent | null;
+  utterance: string | null;
   refused: T;
   send: () => Promise<T>;
 }): Promise<T> {
-  if (input.intent?.explicit !== true) {
+  if (!utteranceAsksToFile(input.utterance)) {
     return input.refused;
   }
-  return tryFile(input.send);
+  const intent = askedToFile();
+  return tryFile(intent, input.send);
 }
 
-async function tryFile<T>(send: () => Promise<T>): Promise<T> {
-  return send();
+async function tryFile<T>(intent: FileIntent, send: () => Promise<T>): Promise<T> {
+  const allowed: true = intent.explicit;
+  return allowed ? send() : send();
 }

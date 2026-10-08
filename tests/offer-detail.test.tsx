@@ -171,6 +171,23 @@ describe("offer detail", () => {
     expect(within(dialog).getByRole("status").textContent).toBe("The brief is filed.");
   });
 
+  it("shows the email card in the open detail", () => {
+    installDomShims();
+    render(
+      <PlannerShell
+        viewModel={model({
+          openRow: canalLoft,
+          inlineAsk: { field: "contactEmail", inputType: "email", label: "Email" },
+        })}
+        onEvent={() => undefined}
+        historyControl={null}
+      />,
+    );
+    const dialog = screen.getByRole("dialog", { name: "Canal Loft" });
+    expect(within(dialog).getByLabelText("Email")).toBeTruthy();
+    expect(screen.getAllByLabelText("Email")).toHaveLength(1);
+  });
+
   it("sends a file utterance from the open detail without opening More", async () => {
     installDomShims();
     const user = userEvent.setup();

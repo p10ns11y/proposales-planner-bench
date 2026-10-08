@@ -5,10 +5,9 @@ import { normaliseProposal } from "../domain/normalise-proposal";
 import { filingUnavailableNotice } from "../proposales/filing";
 import type { ProposalesClient } from "../proposales/types";
 import { attemptFiling, fileableBrief, releaseStaleFiling } from "./filing-guard";
-import { askedToFile } from "../proposales/file-with-intent";
 import { projectBriefFlow } from "./brief-flow";
 import { addEnglishLanguage } from "./brief-language";
-import { extractBriefPatch, extractPastedOffer, readBudgetScope, turnIntent } from "./fixture-extractor";
+import { extractBriefPatch, extractPastedOffer, isFileUtterance, readBudgetScope, turnIntent } from "./fixture-extractor";
 import type { PlannerSnapshot } from "./planner-snapshot";
 
 export async function runFixtureTurn(input: {
@@ -17,12 +16,15 @@ export async function runFixtureTurn(input: {
   client: ProposalesClient;
   today: string;
   filingSettled?: boolean;
+  userText?: string;
 }): Promise<{ reply: string; snapshot: PlannerSnapshot }> {
-  const intent = turnIntent(input.text);
-  const brief =
-    intent === "file"
-      ? fileableBrief(briefWithAnsweredBasis(input.snapshot.brief, input.text))
-      : briefWithAnsweredBasis(input.snapshot.brief, input.text);
+  const spoken = input.userText ?? "";
+  const textIntent = turnIntent(input.text);
+  const intent = textIntent === "file" && !isFileUtterance(spoken) ? "update" : textIntent;
+  const userAsked = isFileUtterance(spoken);
+  const brief = userAsked
+    ? fileableBrief(briefWithAnsweredBasis(input.snapshot.brief, input.text))
+    : briefWithAnsweredBasis(input.snapshot.brief, input.text);
   let filing = input.snapshot.filing;
   let filingKey = input.snapshot.filingKey;
   let filingAvailable = input.snapshot.filingAvailable;
@@ -32,7 +34,7 @@ export async function runFixtureTurn(input: {
   const favoriteVenueNames = input.snapshot.favoriteVenueNames;
   let filingNotice: string | null = null;
 
-  if (intent === "file") {
+  if (userAsked) {
     const attempt = input.filingSettled
       ? {
           filing,
@@ -49,7 +51,7 @@ export async function runFixtureTurn(input: {
           selectedCompanyId,
           companies: input.snapshot.companies,
           client: input.client,
-          intent: askedToFile(),
+          utterance: spoken,
         });
     filing = attempt.filing;
     filingKey = attempt.filingKey;
@@ -136,6 +138,8 @@ export async function runFixtureTurn(input: {
       newEvent: null,
       inlinePaused: false,
       fileAsked: false,
+      fileAskedGap: null,
+      fileAskedUtterance: null,
       stage: projected.stage,
       phase,
       offers: projected.offers,
@@ -149,7 +153,7 @@ export async function runFixtureTurn(input: {
       favoriteVenueNames,
       visibleRowCount: input.snapshot.visibleRowCount,
       openVenueName: null,
-      notice: intent === "file" ? filingNotice : filingAvailable ? null : filingUnavailableNotice,
+      notice: userAsked ? filingNotice : filingAvailable ? null : filingUnavailableNotice,
       sampleOffers: false,
       offerSource: input.snapshot.offerSource,
       filingAvailable,

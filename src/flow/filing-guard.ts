@@ -2,7 +2,7 @@ import { findBriefGaps, questionForGap } from "../domain/fitness";
 import { singleDayClockBrief, type PlannerBrief } from "../domain/planner-brief";
 import { briefDraftFromPlanner } from "./brief-draft";
 import { briefFiledNotice, draftCreatedNotice, filingUnavailableNotice } from "../proposales/filing";
-import { fileWithIntent, sendFileBrief, type FileIntent } from "../proposales/file-with-intent";
+import { fileWithIntent, sendFileBrief } from "../proposales/file-with-intent";
 import type { FileBriefResult, ProposalesClient } from "../proposales/types";
 
 export function noticeForFiling(path: FileBriefResult["path"]): string {
@@ -66,7 +66,7 @@ type AttemptInput = {
   selectedCompanyId: number | null;
   companies: readonly { id: number }[];
   client: Pick<ProposalesClient, "fileBrief">;
-  intent?: FileIntent | null;
+  utterance: string | null;
 };
 
 function token(value: string | number | boolean | undefined): string {
@@ -249,7 +249,7 @@ export async function attemptFiling(input: AttemptInput): Promise<FilingAttempt>
     return held(ready, missingCompanyNotice(ready.filingAvailable));
   }
   return fileWithIntent({
-    intent: input.intent ?? null,
+    utterance: input.utterance,
     refused: {
       filing: null,
       filingKey: null,

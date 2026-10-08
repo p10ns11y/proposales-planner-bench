@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { filingFingerprint } from "../src/flow/filing-guard";
 import { openingSnapshot } from "../src/flow/chat-request";
 import { emptySnapshot } from "../src/flow/planner-snapshot";
 import { leftUnfiledNote } from "../src/flow/inline-ask";
@@ -10,14 +9,7 @@ import { createFixtureClient } from "../src/proposales/fixture-client";
 import type { BriefDraft, ProposalesClient } from "../src/proposales/types";
 import { shellViewModel } from "../src/view-models/selectors";
 import { fileBriefLabel } from "../src/views/file-brief-state";
-import {
-  recognitionIdle,
-  speechNetworkCopy,
-  startSpeechCapture,
-  stepRecognition,
-  stopSpeechCapture,
-  type SpeechListener,
-} from "../src/views/speech-input";
+import { speechListeningName, speechNetworkCopy } from "../src/views/speech-input";
 import type { PlannerSnapshot } from "../src/flow/planner-snapshot";
 
 const today = "2026-10-08";
@@ -78,10 +70,33 @@ function viewOf(snapshot: PlannerSnapshot) {
   return shellViewModel({ snapshot, busy: false, errorText: null, speechAvailable: false });
 }
 
-const quietListener: SpeechListener = {
-  onTranscript: () => undefined,
-  onSignal: () => undefined,
-};
+async function speechTurn(text: string): Promise<void> {
+  const opened = await capture(withoutEmail);
+  const asked = await runViewportAction({
+    action: { type: "composerSubmitted", text: "file" },
+    snapshot: opened.snapshot,
+    client: opened.client,
+    today,
+  });
+  expect(asked.snapshot.fileAsked).toBe(true);
+  expect(viewOf(asked.snapshot).inlineAsk?.field).toBe("contactEmail");
+  const heard = await runViewportAction({
+    action: { type: "composerSubmitted", text },
+    snapshot: asked.snapshot,
+    client: opened.client,
+    today,
+  });
+  expect(heard.snapshot.filing).toBeNull();
+  expect(heard.snapshot.fileAsked).toBe(false);
+  const saved = await runViewportAction({
+    action: { type: "inlineAnswered", field: "contactEmail", value: "planner@northwind.example" },
+    snapshot: heard.snapshot,
+    client: opened.client,
+    today,
+  });
+  expect(saved.snapshot.filing).toBeNull();
+  expect(opened.filings).toHaveLength(0);
+}
 
 describe("file intent", () => {
   it("files exactly once when File is pressed", async () => {
@@ -376,6 +391,110 @@ describe("chat actions do not file", () => {
       },
     },
     {
+      name: "File then drawer Apply then Save",
+      run: async () => {
+        const opened = await capture(withoutEmail);
+        const asked = await runViewportAction({
+          action: { type: "composerSubmitted", text: "file" },
+          snapshot: opened.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(asked.snapshot.fileAsked).toBe(true);
+        expect(opened.filings).toHaveLength(0);
+        const edited = await runViewportAction({
+          action: {
+            type: "moreEdited",
+            details: { eventTitle: "Harbour day", attendeeCount: "90" },
+          },
+          snapshot: asked.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(edited.snapshot.brief.eventTitle).toBe("Harbour day");
+        expect(edited.snapshot.brief.attendeeCount).toBe(90);
+        const saved = await runViewportAction({
+          action: { type: "inlineAnswered", field: "contactEmail", value: "planner@northwind.example" },
+          snapshot: edited.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(saved.snapshot.brief.contactEmail).toBe("planner@northwind.example");
+        expect(saved.snapshot.filing).toBeNull();
+        expect(opened.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "File then typed revision then Save",
+      run: async () => {
+        const opened = await capture(withoutEmail);
+        const asked = await runViewportAction({
+          action: { type: "composerSubmitted", text: "file" },
+          snapshot: opened.snapshot,
+          client: opened.client,
+          today,
+        });
+        const revised = await runViewportAction({
+          action: { type: "composerSubmitted", text: "Title Harbour day. Attendees 90." },
+          snapshot: asked.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(revised.snapshot.brief.eventTitle).toBe("Harbour day");
+        expect(revised.snapshot.brief.attendeeCount).toBe(90);
+        const saved = await runViewportAction({
+          action: { type: "inlineAnswered", field: "contactEmail", value: "planner@northwind.example" },
+          snapshot: revised.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(saved.snapshot.filing).toBeNull();
+        expect(opened.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "File then a new search then Save",
+      run: async () => {
+        const opened = await capture(withoutEmail);
+        const asked = await runViewportAction({
+          action: { type: "composerSubmitted", text: "file" },
+          snapshot: opened.snapshot,
+          client: opened.client,
+          today,
+        });
+        const searched = await runViewportAction({
+          action: { type: "composerSubmitted", text: "City Gothenburg. Attendees 12. Start 2026-06-02." },
+          snapshot: asked.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(searched.snapshot.brief.city).toBe("Gothenburg");
+        expect(searched.snapshot.brief.attendeeCount).toBe(12);
+        const saved = await runViewportAction({
+          action: { type: "inlineAnswered", field: "contactEmail", value: "planner@northwind.example" },
+          snapshot: searched.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(saved.snapshot.filing).toBeNull();
+        expect(opened.filings).toHaveLength(0);
+      },
+    },
+    {
+      name: "please don't file the brief yet",
+      run: async () => {
+        const opened = await capture(withEmail);
+        const refused = await runViewportAction({
+          action: { type: "composerSubmitted", text: "please don't file the brief yet" },
+          snapshot: opened.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(refused.snapshot.filing).toBeNull();
+        expect(opened.filings).toHaveLength(0);
+      },
+    },
+    {
       name: "drawer Apply",
       run: async () => {
         const ranked = await resultsWithoutFiling();
@@ -399,12 +518,14 @@ describe("chat actions do not file", () => {
       name: "new-event card",
       run: async () => {
         const opened = await capture(withEmail);
-        const armed = {
-          ...opened.snapshot,
-          filing: { path: "draft" as const, uuid: "00000000-0000-4000-8000-000000000009" },
-          filingKey: filingFingerprint(opened.snapshot.brief),
-          phase: "results" as const,
-        };
+        const filed = await runViewportAction({
+          action: { type: "composerSubmitted", text: "file" },
+          snapshot: opened.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(opened.filings).toHaveLength(1);
+        const armed = { ...filed.snapshot, fileAsked: true };
         const split = await runViewportAction({
           action: { type: "composerSubmitted", text: "City Gothenburg. Start 2026-06-01." },
           snapshot: armed,
@@ -412,40 +533,41 @@ describe("chat actions do not file", () => {
           today,
         });
         expect(split.snapshot.newEvent).not.toBeNull();
-        expect(opened.filings).toHaveLength(0);
-        const fresh = emptySnapshot(await opened.client.listCompanies(), "", []);
-        expect(fresh.filing).toBeNull();
-        expect(fresh.fileAsked).toBe(false);
-        expect(opened.filings).toHaveLength(0);
+        expect(split.snapshot.fileAsked).toBe(false);
+        expect(opened.filings).toHaveLength(1);
+        const fresh = emptySnapshot(split.snapshot.companies, "", []);
+        const searched = await runViewportAction({
+          action: {
+            type: "captureSubmitted",
+            text: "City Gothenburg. Attendees 12. Start 2026-06-01. End 2026-06-01. Start time 09:00. End time 17:00. Email ada@northwind.example. Language en.",
+          },
+          snapshot: fresh,
+          client: opened.client,
+          today,
+        });
+        expect(searched.snapshot.filing).toBeNull();
+        expect(searched.snapshot.fileAsked).toBe(false);
+        const saved = await runViewportAction({
+          action: { type: "inlineAnswered", field: "contactEmail", value: "ada@northwind.example" },
+          snapshot: searched.snapshot,
+          client: opened.client,
+          today,
+        });
+        expect(saved.snapshot.filing).toBeNull();
+        expect(opened.filings).toHaveLength(1);
       },
     },
     {
       name: "mic start",
-      run: async () => {
-        const watched = countingClient();
-        startSpeechCapture(quietListener);
-        expect(watched.filings).toHaveLength(0);
-      },
+      run: () => speechTurn(speechListeningName),
     },
     {
       name: "mic stop",
-      run: async () => {
-        const watched = countingClient();
-        stopSpeechCapture(
-          { lang: "en-US", onresult: null, onerror: null, onend: null, start() {}, stop() {} },
-          quietListener,
-        );
-        expect(watched.filings).toHaveLength(0);
-      },
+      run: () => speechTurn("not now"),
     },
     {
       name: "mic fallback",
-      run: async () => {
-        const watched = countingClient();
-        const next = stepRecognition(recognitionIdle, { type: "errored", code: "network" });
-        expect(next.status).toBe(speechNetworkCopy);
-        expect(watched.filings).toHaveLength(0);
-      },
+      run: () => speechTurn(speechNetworkCopy),
     },
     {
       name: "typed yes",
@@ -514,24 +636,30 @@ async function typedAffirmation(text: string): Promise<void> {
 }
 
 describe("filing call sites", () => {
-  it("keeps tryFile, the inbox client, and the file route inside the file intent module", () => {
+  it("keeps filing intent inside the file intent module", () => {
     const root = path.resolve("src");
-    const allowed = path.normalize(path.join(root, "proposales/file-with-intent.ts"));
-    const rules = [
-      { label: "tryFile", pattern: /\btryFile\s*\(/ },
-      { label: "fileBrief call", pattern: /\.fileBrief\s*\(/ },
-      { label: "inbox route", pattern: /\/v1\/inbox\// },
-      { label: "draft file route", pattern: /["'`]\/v3\/proposals["'`]/ },
+    const choke = "proposales/file-with-intent.ts";
+    const rules: { label: string; pattern: RegExp; allow: string[] }[] = [
+      { label: "tryFile", pattern: /\btryFile\s*\(/, allow: [choke] },
+      { label: "fileBrief call", pattern: /\.fileBrief\s*\(/, allow: [choke] },
+      { label: "inbox route", pattern: /\/v1\/inbox\//, allow: [choke] },
+      { label: "draft file route", pattern: /["'`]\/v3\/proposals["'`]/, allow: [choke] },
+      { label: "askedToFile", pattern: /\baskedToFile\s*\(/, allow: [choke] },
+      { label: "intent constructor", pattern: /explicit\s*:\s*true/, allow: [choke] },
+      {
+        label: "attemptFiling",
+        pattern: /\battemptFiling\s*\(/,
+        allow: ["flow/filing-guard.ts", "flow/viewport-turn.ts", "flow/scripted-turn.ts", "flow/planner-chat.ts"],
+      },
+      { label: "fileChatBrief", pattern: /\bfileChatBrief\s*\(/, allow: ["flow/planner-chat.ts"] },
     ];
     const hits: string[] = [];
     for (const file of walk(root)) {
-      if (path.normalize(file) === allowed) {
-        continue;
-      }
+      const rel = path.relative(root, file).split(path.sep).join("/");
       const source = readFileSync(file, "utf8");
       for (const rule of rules) {
-        if (rule.pattern.test(source)) {
-          hits.push(`${path.relative(root, file)}: ${rule.label}`);
+        if (rule.pattern.test(source) && !rule.allow.includes(rel)) {
+          hits.push(`${rel}: ${rule.label}`);
         }
       }
     }

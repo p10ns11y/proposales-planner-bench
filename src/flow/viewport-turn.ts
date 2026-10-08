@@ -8,23 +8,22 @@ import { briefConfirmHold, findBriefGaps, isFileableGap, questionForGap } from "
 import { minorUnits } from "../domain/minor-units";
 import { briefCurrency, mergeBrief, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
-import { askedToFile } from "../proposales/file-with-intent";
 import type { ProposalesClient } from "../proposales/types";
 import { addEnglishLanguage } from "./brief-language";
 import { describesDifferentEvent } from "./event-split";
 import { attemptFiling, fileableBrief, filingFingerprint, preserveOpenVenue, releaseStaleFiling } from "./filing-guard";
 import { historyTitle } from "./history-log";
-import { inlineValuePatch, leftUnfiledNote, type InlineField } from "./inline-ask";
+import { inlineAskFor, inlineValuePatch, isInlineField, leftUnfiledNote, type InlineField } from "./inline-ask";
 import { loadComparableProposals, sampleProposalRecords } from "../proposales/comparable-proposals";
 import { projectBriefFlow } from "./brief-flow";
 import {
   extractBriefPatch,
+  isFileUtterance,
   matchFavoriteVenues,
   readBudgetScope,
   readClockRange,
   readDurationMinutes,
   readSingleClock,
-  turnIntent,
 } from "./fixture-extractor";
 import { applyMoreDetails, type MoreDetails } from "./more-details";
 import { defaultVisibleRowCount, type PlannerSnapshot } from "./planner-snapshot";
@@ -54,7 +53,8 @@ export async function runViewportAction(input: {
   readPatch?: BriefPatchReader;
 }): Promise<{ snapshot: PlannerSnapshot }> {
   const acted = await applyViewportAction(input);
-  return { snapshot: releaseStaleFiling(acted) };
+  const kept = preservesFileAsk(input.snapshot, input.action) ? acted : withoutFileAsk(acted);
+  return { snapshot: releaseStaleFiling(kept) };
 }
 
 async function applyViewportAction(input: {
@@ -106,17 +106,28 @@ async function ingestText(
   const answersBudgetBasis =
     snapshot.phase === "confirm" && snapshot.gaps[0] === "budgetBasis" && readBudgetScope(text) !== undefined;
   if (kind === "explain") {
-    return { ...snapshot, notice: explainLine };
+    return withoutFileAsk({ ...snapshot, notice: explainLine });
   }
   if (kind === "hold" && !answersBudgetBasis) {
-    return { ...snapshot, notice: holdLine };
+    return withoutFileAsk({ ...snapshot, notice: holdLine });
   }
-  const cleared = { ...snapshot, notice: null, newEvent: null, inlinePaused: false };
-  if (turnIntent(text) === "file") {
-    return applyAskedFile(cleared, client);
+  const cleared = withoutFileAsk({ ...snapshot, notice: null, newEvent: null, inlinePaused: false });
+  if (isFileUtterance(text)) {
+    return applyAskedFile(cleared, client, text);
   }
   const patch = await readIncomingPatch(text, cleared.brief, readPatch);
   if (keepsFiledBrief(cleared) && describesDifferentEvent(cleared.brief, patch)) {
+    const brief = mergeBrief(cleared.brief, patch);
+    await attemptFiling({
+      brief,
+      filing: null,
+      filingKey: null,
+      filingAvailable: cleared.filingAvailable,
+      selectedCompanyId: cleared.selectedCompanyId,
+      companies: cleared.companies,
+      client,
+      utterance: text,
+    });
     return {
       ...cleared,
       newEvent: { label: historyTitle(patch) },
@@ -203,7 +214,7 @@ async function editMore(
 
 function confirmBrief(snapshot: PlannerSnapshot): PlannerSnapshot {
   if (briefConfirmHold(snapshot.brief) !== null) {
-    return withConfirmState({ ...snapshot, fileAsked: false }, snapshot.brief);
+    return withConfirmState(withoutFileAsk(snapshot), snapshot.brief);
   }
   const brief = fileableBrief(snapshot.brief);
   const firstGap = findBriefGaps(brief, "brief:fileable")[0];
@@ -221,6 +232,8 @@ function confirmBrief(snapshot: PlannerSnapshot): PlannerSnapshot {
     newEvent: null,
     inlinePaused: false,
     fileAsked: false,
+    fileAskedGap: null,
+    fileAskedUtterance: null,
     filing: projected.filing,
     filingKey: projected.filing === null ? null : snapshot.filingKey,
     stage: projected.stage,
@@ -232,7 +245,11 @@ function confirmBrief(snapshot: PlannerSnapshot): PlannerSnapshot {
   };
 }
 
-async function applyAskedFile(snapshot: PlannerSnapshot, client: ProposalesClient): Promise<PlannerSnapshot> {
+async function applyAskedFile(
+  snapshot: PlannerSnapshot,
+  client: ProposalesClient,
+  utterance: string,
+): Promise<PlannerSnapshot> {
   const brief = fileableBrief(snapshot.brief);
   const attempt = await attemptFiling({
     brief,
@@ -242,7 +259,7 @@ async function applyAskedFile(snapshot: PlannerSnapshot, client: ProposalesClien
     selectedCompanyId: snapshot.selectedCompanyId,
     companies: snapshot.companies,
     client,
-    intent: askedToFile(),
+    utterance,
   });
   const projected = projectBriefFlow({
     brief,
@@ -251,12 +268,17 @@ async function applyAskedFile(snapshot: PlannerSnapshot, client: ProposalesClien
   });
   const filed = projected.filing !== null;
   const gap = findBriefGaps(brief, "brief:fileable")[0];
+  const inlineGap = isInlineField(gap) ? gap : null;
+  const sameCard = snapshot.fileAskedGap === null || snapshot.fileAskedGap === inlineGap;
+  const arm = !filed && inlineGap !== null && sameCard && isFileUtterance(utterance);
   return {
     ...snapshot,
     brief,
     newEvent: null,
     inlinePaused: false,
-    fileAsked: !filed && gap !== undefined,
+    fileAsked: arm,
+    fileAskedGap: arm ? inlineGap : null,
+    fileAskedUtterance: arm ? utterance : null,
     filing: projected.filing,
     filingKey: projected.filing === null ? null : attempt.filingKey,
     stage: projected.stage,
@@ -281,9 +303,20 @@ async function answerInline(
   }
   const brief = mergeBrief(snapshot.brief, patch);
   const next = { ...snapshot, brief, newEvent: null, inlinePaused: false, notice: null };
-  if (snapshot.fileAsked) {
-    return applyAskedFile(next, client);
+  const utterance = snapshot.fileAskedUtterance;
+  if (keepsFileCard(snapshot, field) && utterance !== null) {
+    return applyAskedFile(next, client, utterance);
   }
+  await attemptFiling({
+    brief,
+    filing: null,
+    filingKey: null,
+    filingAvailable: snapshot.filingAvailable,
+    selectedCompanyId: snapshot.selectedCompanyId,
+    companies: snapshot.companies,
+    client,
+    utterance: null,
+  });
   return storeInline(next, client, today);
 }
 
@@ -292,7 +325,7 @@ async function storeInline(
   client: ProposalesClient,
   today: string,
 ): Promise<PlannerSnapshot> {
-  const next = { ...snapshot, fileAsked: false, newEvent: null, inlinePaused: false, notice: null };
+  const next = withoutFileAsk({ ...snapshot, newEvent: null, inlinePaused: false, notice: null });
   if (snapshot.phase === "results") {
     if (briefConfirmHold(next.brief) !== null) {
       return withConfirmState(next, next.brief);
@@ -317,9 +350,9 @@ async function skipInline(
   client: ProposalesClient,
   today: string,
 ): Promise<PlannerSnapshot> {
+  const keep = keepsFileCard(snapshot);
   const paused: PlannerSnapshot = {
-    ...snapshot,
-    fileAsked: false,
+    ...(keep ? snapshot : withoutFileAsk(snapshot)),
     inlinePaused: true,
     notice: leftUnfiledNote,
     newEvent: null,
@@ -336,6 +369,39 @@ async function skipInline(
   }
   const ranked = await submitFavorites(paused, "skip", client, today);
   return { ...ranked, notice: leftUnfiledNote, inlinePaused: true };
+}
+
+function withoutFileAsk(snapshot: PlannerSnapshot): PlannerSnapshot {
+  return { ...snapshot, fileAsked: false, fileAskedGap: null, fileAskedUtterance: null };
+}
+
+function keepsFileCard(snapshot: PlannerSnapshot, field?: InlineField): boolean {
+  if (!snapshot.fileAsked || snapshot.fileAskedGap === null || snapshot.fileAskedUtterance === null) {
+    return false;
+  }
+  if (!isFileUtterance(snapshot.fileAskedUtterance)) {
+    return false;
+  }
+  if (inlineAskFor(snapshot) !== snapshot.fileAskedGap) {
+    return false;
+  }
+  if (field !== undefined && field !== snapshot.fileAskedGap) {
+    return false;
+  }
+  return true;
+}
+
+function preservesFileAsk(snapshot: PlannerSnapshot, action: ViewportAction): boolean {
+  if (action.type === "inlineAnswered") {
+    return keepsFileCard(snapshot, action.field);
+  }
+  if (action.type === "inlineSkipped") {
+    return keepsFileCard(snapshot);
+  }
+  if (action.type === "captureSubmitted" || action.type === "composerSubmitted" || action.type === "gapAnswered") {
+    return isFileUtterance(action.text);
+  }
+  return false;
 }
 
 function keepsFiledBrief(snapshot: PlannerSnapshot): boolean {

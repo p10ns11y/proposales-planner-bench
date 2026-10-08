@@ -304,7 +304,6 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       filed: viewModel.filed,
       busy: viewModel.busy,
       ready: viewModel.ready,
-      email: viewModel.more.contactEmail,
     });
     if (choice === "ignore") {
       return;
@@ -357,12 +356,11 @@ export function PlannerShell({ viewModel, onEvent, historyControl, pendingKind =
       filed: viewModel.filed,
       ready: viewModel.ready,
     }) && !fileBlocked;
-  const detailInline =
-    viewModel.inlineAsk !== null && viewModel.inlineAsk.field !== "contactEmail" ? viewModel.inlineAsk : null;
+  const detailInline = openOffer === null ? null : viewModel.inlineAsk;
   const showResultsFile = viewModel.phase === "results" && viewModel.rows.length > 0;
   const liveCopy = (
     <LiveCopy
-      viewModel={viewModel}
+      viewModel={detailInline === null ? viewModel : { ...viewModel, inlineAsk: null }}
       onConfirm={() => {
         pushTurn("Yes");
         lastKind.current = "search";
