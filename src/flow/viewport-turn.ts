@@ -6,7 +6,7 @@ import {
 } from "../domain/compare-offers";
 import { briefConfirmHold, findBriefGaps, isFileableGap } from "../domain/fitness";
 import { minorUnits } from "../domain/minor-units";
-import { mergeBrief, namedBriefCurrency, type PlannerBrief } from "../domain/planner-brief";
+import { briefCurrency, mergeBrief, type PlannerBrief } from "../domain/planner-brief";
 import { normaliseProposal } from "../domain/normalise-proposal";
 import type { ProposalesClient } from "../proposales/types";
 import { addEnglishLanguage } from "./brief-language";
@@ -345,7 +345,7 @@ async function rankSnapshot(
       favoriteVenueNames: snapshot.favoriteVenueNames,
       companies: snapshot.companies,
     }),
-    namedBriefCurrency(snapshot.brief),
+    briefCurrency(snapshot.brief),
   );
   const projected = projectBriefFlow({
     brief: snapshot.brief,

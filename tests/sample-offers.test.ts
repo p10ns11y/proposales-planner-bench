@@ -107,9 +107,9 @@ describe("live proposals with a stubbed client", () => {
     });
     expect(ranked.snapshot.sampleOffers).toBe(true);
     expect(ranked.snapshot.grid.map((row) => row.venueName)).toEqual([
+      "Ridge Hall",
       "Harbour House",
       "Canal Loft",
-      "Ridge Hall",
     ]);
     expect(stub.filings).toHaveLength(0);
     const filed = await runViewportAction({

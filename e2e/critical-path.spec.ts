@@ -509,6 +509,38 @@ test("separates the budget on the confirm step", async ({ page }) => {
   }
 });
 
+const stockholmDay =
+  "I need a place in Stockholm for 40 people on 12 November 2026, from 09:00 to 17:00, with dinner and a meeting room.";
+
+test("ranks the city currency before a cheaper other currency and keeps an expired offer behind", async ({ page }) => {
+  for (const viewport of sizedViewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    await page.getByRole("textbox", { name: "What are you planning?" }).fill(stockholmDay);
+    await page.locator("[data-lcv-event=send]").click();
+    await page.getByRole("button", { name: "Yes" }).click();
+    await page.getByRole("button", { name: "Skip" }).click();
+    const cards = page.locator("[data-offer-card]");
+    await expect(cards).toHaveCount(3);
+    await expect(cards.nth(0)).toHaveAttribute("data-venue", "Ridge Hall");
+    await expect(cards.nth(1)).toHaveAttribute("data-venue", "Harbour House");
+    await expect(cards.nth(2)).toHaveAttribute("data-venue", "Canal Loft");
+    await expect(cards.nth(0)).toContainText("SEK 950");
+    await expect(cards.nth(1)).toContainText("EUR 365");
+    await expect(cards.nth(2)).toContainText("EUR 210");
+    await expect(cards.nth(0).locator("[data-lcv-chip=best-match]")).toBeVisible();
+    await expect(cards.nth(1).locator("[data-lcv-chip=expired]")).toHaveCount(0);
+    await expect(cards.nth(2).locator("[data-lcv-chip=expired]")).toBeVisible();
+    await expect(cards.nth(2).locator("[data-lcv-chip=best-match]")).toHaveCount(0);
+    if (process.env.EVIDENCE === "1") {
+      await page.screenshot({
+        path: `docs/evidence/cursor-rank-within-currency-97ac/results-${viewport.width}.png`,
+        fullPage: false,
+      });
+    }
+  }
+});
+
 function headerButton(page: Page, name: string) {
   return page.locator(".planner-header").getByRole("button", { name, exact: true });
 }

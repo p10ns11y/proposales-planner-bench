@@ -13,8 +13,6 @@ const scope = [
     functions: [
       "rankComparisonRows",
       "compareRankedRows",
-      "leadCurrency",
-      "compareForLead",
       "compareWithinCurrency",
       "currencyMatches",
       "normaliseCurrency",
