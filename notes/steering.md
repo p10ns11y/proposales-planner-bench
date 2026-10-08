@@ -43,6 +43,14 @@ One plugin repo, synced to every harness I use:
 | Checkout | Verify pins layout-content-view from [p10ns11y/plugins](https://github.com/p10ns11y/plugins) at `31d93a0`. |
 | Agent file | The file says `next dev` writes it again. No commit here removes a hand-written agent file. |
 
+## Superdesign
+
+My framing: [Superdesign](https://superdesign.dev) is the design agent behind the UI. It reads the codebase, drafts UI directions on an infinite canvas, and hands the chosen design back to the coding agent to implement. That is why the chat column looks considered instead of like a form.
+
+## Steering
+
+My framing: the quality of this app comes from my steering, not only from the agents. Short prompts set the standard and the agents built to it. Examples: pixel-level polish, chat-native result cards with a full-screen detail view, docs that lead with pictures, and filing only when I press File.
+
 ## Cloud
 
 My framing: Grok Bot plus Cursor cloud agents, until steering from a phone was easy.
