@@ -554,6 +554,30 @@ describe("attempt filing", () => {
     expect(firstFileableGap(omitField("endDate"))).toBe("endDate");
     expect(fileableBrief({ ...clocks, contactEmail: "   " }).contactEmail).toBeUndefined();
     expect(fileableBrief(clocks).contactEmail).toBe(clocks.contactEmail);
+    const stripped = fileableBrief({ ...clocks, city: "Stockholm", contactEmail: "   " });
+    expect(stripped.city).toBe("Stockholm");
+    expect(stripped.startDate).toBe("2026-11-12");
+    const parts = Array.from({ length: 19 }, () => "");
+    parts[11] = "Stockholm";
+    expect(filingFingerprint({ city: "Stockholm" })).toBe(parts.join("\u001f"));
+    expect(filingFingerprint({ contactEmail: "a", eventTitle: "bc" })).not.toBe(
+      filingFingerprint({ contactEmail: "ab", eventTitle: "c" }),
+    );
+  });
+
+  it("files when a key is stored but the filing itself is missing", async () => {
+    const watched = countingFileClient("ok");
+    const attempt = await attemptFiling({
+      brief: readyBrief,
+      filing: null,
+      filingKey: filingFingerprint(readyBrief),
+      filingAvailable: true,
+      selectedCompanyId: 1,
+      companies: [{ id: 1 }],
+      client: watched.client,
+    });
+    expect(watched.filings).toHaveLength(1);
+    expect(attempt.filing).toEqual({ path: "inbox", id: 100 });
   });
 
   it("files once for the chosen company and allows a retry after a transport failure", async () => {

@@ -82,7 +82,7 @@ export function shellViewModel(input: {
     confirmRuns: presented.runs,
     showFacts: presented.sentence !== "" && (askingGap || readyToConfirm || phase === "favorites"),
     showConfirm: readyToConfirm,
-    showFavorites: phase === "favorites",
+    showFavorites: phase === "favorites" && inlineField === null,
     rows: visibleRows,
     hiddenCount: phase === "results" ? Math.max(0, rows.length - visibleRows.length) : 0,
     openRow,

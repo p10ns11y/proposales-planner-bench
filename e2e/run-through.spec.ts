@@ -52,6 +52,9 @@ test("a single-day brief detail shows no end-date hint", async ({ page }) => {
 });
 
 test("history names the current brief once per chat", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.localStorage.removeItem("planner-bench.history");
+  });
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await reachResults(page);

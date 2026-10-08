@@ -202,6 +202,14 @@ describe("history and results view model", () => {
     expect(asked.snapshot.filing).toBeNull();
     expect(askedView.inlineAsk).toEqual({ field: "contactEmail", inputType: "email", label: "Email" });
     expect(askedView.filingMessage).toBeNull();
+    const favoritesEmail = shellViewModel({
+      snapshot: { ...asked.snapshot, phase: "favorites", gaps: ["contactEmail"] },
+      busy: false,
+      errorText: null,
+      speechAvailable: false,
+    });
+    expect(favoritesEmail.showFavorites).toBe(false);
+    expect(favoritesEmail.inlineAsk?.field).toBe("contactEmail");
     expect(askedView.notice).toBeNull();
     const skipped = await runViewportAction({
       action: { type: "inlineSkipped" },
