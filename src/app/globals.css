@@ -1675,19 +1675,11 @@ h2.planner-text {
   }
 
   .planner-header {
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
     height: auto;
     justify-content: flex-end;
     padding: 16px;
     background: transparent;
     pointer-events: none;
-  }
-
-  .planner-thread {
-    padding-top: 72px;
   }
 
   .planner-drawer {

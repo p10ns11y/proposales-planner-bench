@@ -806,6 +806,84 @@ async function typedAffirmation(text: string): Promise<void> {
   expect(fileBriefLabel(viewOf(confirmed.snapshot).filed)).toBe("File this brief");
 }
 
+describe("skip on an armed card", () => {
+  it.each([
+    {
+      label: "email",
+      field: "contactEmail" as const,
+      value: "planner@northwind.example",
+      open: () => capture(withoutEmail),
+    },
+    {
+      label: "end date",
+      field: "endDate" as const,
+      value: "2026-12-03",
+      open: () => stayWithoutEndDate(),
+    },
+  ])("Save after Skip on the $label card does not file", async ({ field, value, open }) => {
+    const opened = await open();
+    const asked = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: opened.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(asked.snapshot.fileAsked).toBe(true);
+    expect(viewOf(asked.snapshot).inlineAsk?.field).toBe(field);
+    expect(opened.filings).toHaveLength(0);
+    const skipped = await runViewportAction({
+      action: { type: "inlineSkipped" },
+      snapshot: asked.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(skipped.snapshot.fileAsked).toBe(false);
+    expect(skipped.snapshot.fileAskedGap).toBeNull();
+    expect(skipped.snapshot.fileAskedUtterance).toBeNull();
+    expect(opened.filings).toHaveLength(0);
+    const saved = await runViewportAction({
+      action: { type: "inlineAnswered", field, value },
+      snapshot: { ...skipped.snapshot, inlinePaused: false },
+      client: opened.client,
+      today,
+    });
+    expect(saved.snapshot.brief[field]).toBe(value);
+    expect(saved.snapshot.filing).toBeNull();
+    expect(opened.filings).toHaveLength(0);
+  });
+
+  it("files once when File is pressed again after Skip on the email card", async () => {
+    const opened = await capture(withoutEmail);
+    const asked = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: opened.snapshot,
+      client: opened.client,
+      today,
+    });
+    const skipped = await runViewportAction({
+      action: { type: "inlineSkipped" },
+      snapshot: asked.snapshot,
+      client: opened.client,
+      today,
+    });
+    const askedAgain = await runViewportAction({
+      action: { type: "composerSubmitted", text: "file" },
+      snapshot: { ...skipped.snapshot, inlinePaused: false },
+      client: opened.client,
+      today,
+    });
+    expect(askedAgain.snapshot.fileAsked).toBe(true);
+    const saved = await runViewportAction({
+      action: { type: "inlineAnswered", field: "contactEmail", value: "planner@northwind.example" },
+      snapshot: askedAgain.snapshot,
+      client: opened.client,
+      today,
+    });
+    expect(saved.snapshot.filing?.path).toBe("draft");
+    expect(opened.filings).toHaveLength(1);
+  });
+});
+
 describe("a cleared file press", () => {
   it.each(["hi", "pick only two"])("saves nothing after %s", async (text) => {
     const opened = await capture(withoutEmail);

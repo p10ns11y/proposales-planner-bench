@@ -131,17 +131,6 @@ async function ingestText(
   }
   const patch = await readIncomingPatch(text, cleared.brief, readPatch);
   if (keepsFiledBrief(cleared) && describesDifferentEvent(cleared.brief, patch)) {
-    const brief = mergeBrief(cleared.brief, patch);
-    await attemptFiling({
-      brief,
-      filing: null,
-      filingKey: null,
-      filingAvailable: cleared.filingAvailable,
-      selectedCompanyId: cleared.selectedCompanyId,
-      companies: cleared.companies,
-      client,
-      utterance: text,
-    });
     return {
       ...cleared,
       newEvent: { label: historyTitle(patch) },
@@ -324,16 +313,6 @@ async function answerInline(
   if (keepsFileCard(snapshot, field) && utterance !== null) {
     return applyAskedFile(next, client, utterance);
   }
-  await attemptFiling({
-    brief,
-    filing: null,
-    filingKey: null,
-    filingAvailable: snapshot.filingAvailable,
-    selectedCompanyId: snapshot.selectedCompanyId,
-    companies: snapshot.companies,
-    client,
-    utterance: null,
-  });
   return storeInline(next, client, today, value.trim());
 }
 
@@ -368,9 +347,8 @@ async function skipInline(
   client: ProposalesClient,
   today: string,
 ): Promise<PlannerSnapshot> {
-  const keep = keepsFileCard(snapshot);
   const paused: PlannerSnapshot = {
-    ...(keep ? snapshot : withoutFileAsk(snapshot)),
+    ...withoutFileAsk(snapshot),
     inlinePaused: true,
     notice: leftUnfiledNote,
     newEvent: null,
@@ -415,9 +393,6 @@ function preservesFileAsk(snapshot: PlannerSnapshot, action: ViewportAction): bo
   }
   if (action.type === "inlineAnswered") {
     return keepsFileCard(snapshot, action.field);
-  }
-  if (action.type === "inlineSkipped") {
-    return keepsFileCard(snapshot);
   }
   if (action.type === "captureSubmitted" || action.type === "composerSubmitted" || action.type === "gapAnswered") {
     return isFileUtterance(action.text);
