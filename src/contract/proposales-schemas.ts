@@ -38,7 +38,8 @@ async function loadProposalesSchemas(): Promise<ProposalesSchemas> {
     callSiteURL,
     relativePathToSpecFile,
   });
-  const componentSchemas = document.components?.schemas;
+  const { components } = document as { components?: { schemas?: Record<string, unknown> } };
+  const componentSchemas = components?.schemas;
   if (componentSchemas === undefined) {
     throw new Error("Dereferenced OpenAPI document has no component schemas.");
   }
