@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@adaptate/core':
-        specifier: ^2.2.2
-        version: 2.2.2(zod@4.6.5)
+        specifier: ^2.2.4
+        version: 2.2.4(zod@4.6.5)
       '@ai-sdk/react':
         specifier: ^4.0.131
         version: 4.0.131(react@19.2.8)(zod@4.6.5)
@@ -61,8 +61,8 @@ importers:
         version: 4.6.5
     devDependencies:
       '@adaptate/utils':
-        specifier: ^2.2.2
-        version: 2.2.2(@types/json-schema@7.0.15)(zod@4.6.5)
+        specifier: ^2.2.4
+        version: 2.2.4(@types/json-schema@7.0.15)(zod@4.6.5)
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.63.0
@@ -114,14 +114,14 @@ importers:
 
 packages:
 
-  '@adaptate/core@2.2.2':
-    resolution: {integrity: sha512-FqqrFZTXJwY3fQ8sDBIpfURK91g2RTSFA1uBgqxy/43cUybowPhqj8Y8ixijCf7aW8+uSvVYra0ub9Jf6xl0+w==}
+  '@adaptate/core@2.2.4':
+    resolution: {integrity: sha512-2SlieLbKtd7JXfGtlbUJ1ZBmmc0xbPurZ/qOIDvMcta6D8gPyrjE9zGvQnC0T59Ojr3xzcA5BkpXA60FMIbKMw==}
     engines: {node: '>=24.0.0'}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  '@adaptate/utils@2.2.2':
-    resolution: {integrity: sha512-GNTXOpdNkospJzL4mMiOK3ZzdE//FZzL1OtuSNrctnwNwyz1/Q1gDJP6aaYCVpUZef4tO1DywRQsHoOdmoj2ZQ==}
+  '@adaptate/utils@2.2.4':
+    resolution: {integrity: sha512-WgeLTgsc4ESr/NlOeCTddfpsVPU+Vwdrr3XJVmOaQmxGwpQSxlZK38UdBEyLUjAoAEPCbPpWuSzxruNycDRQMg==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -3571,11 +3571,11 @@ packages:
 
 snapshots:
 
-  '@adaptate/core@2.2.2(zod@4.6.5)':
+  '@adaptate/core@2.2.4(zod@4.6.5)':
     dependencies:
       zod: 4.6.5
 
-  '@adaptate/utils@2.2.2(@types/json-schema@7.0.15)(zod@4.6.5)':
+  '@adaptate/utils@2.2.4(@types/json-schema@7.0.15)(zod@4.6.5)':
     dependencies:
       '@apidevtools/json-schema-ref-parser': 15.5.2(@types/json-schema@7.0.15)
       js-yaml: 4.3.2
