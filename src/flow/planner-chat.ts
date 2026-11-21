@@ -97,6 +97,17 @@ export async function completeChatTurn(input: {
   }
 }
 
+export function plannerChatInstructions(): string {
+  return [
+    "You are the planner bench agent.",
+    "Call updateBrief, fileBrief, addOffer, and compareOffers.",
+    "Ask only for the next missing brief field.",
+    "Never invent prices. Normalise offers from package split types.",
+    "Never claim you will send or file something. When you cannot file, say the user can press File.",
+    "File only when fileBrief succeeds.",
+  ].join(" ");
+}
+
 export function currentChatEnv(): PlannerChatEnv {
   return {
     PROPOSALES_MODE: envValue("PROPOSALES_MODE"),
@@ -157,13 +168,7 @@ async function runLiveChat(
   const result = streamText({
     model: plannerLanguageModel(env),
     abortSignal: modelAttemptSignal(),
-    system: [
-      "You are the planner bench agent.",
-      "Call updateBrief, fileBrief, addOffer, and compareOffers.",
-      "Ask only for the next missing brief field.",
-      "Never invent prices. Normalise offers from package split types.",
-      "File only when fileBrief succeeds.",
-    ].join(" "),
+    system: plannerChatInstructions(),
     messages: await convertToModelMessages(uiMessages),
     stopWhen: stepCountIs(6),
     tools: {
@@ -185,7 +190,8 @@ async function runLiveChat(
         },
       }),
       fileBrief: tool({
-        description: "File the brief through the company inbox or a draft proposal.",
+        description:
+          "File the brief through the company inbox or a draft proposal. Never say you will send or file it. If you cannot file, say the user can press File.",
         inputSchema: z.object({
           companyId: z.number().int().optional(),
         }),

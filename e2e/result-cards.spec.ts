@@ -70,6 +70,115 @@ test("show more still reveals rows after an off-topic reply", async ({ page }) =
   }
 });
 
+test("keeps header buttons off a scrolled result card", async ({ page }) => {
+  test.setTimeout(120_000);
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await reachResults(page);
+    await send(page, followUp);
+    await expect(page.locator("[data-result-card]")).toHaveCount(2);
+    const placed = await page.evaluate(() => {
+      const thread = document.querySelector(".planner-thread");
+      const price = document.querySelector("[data-result-card] .planner-price");
+      const button = document.querySelector(".planner-header button");
+      if (!(thread instanceof HTMLElement) || !(price instanceof HTMLElement) || !(button instanceof HTMLElement)) {
+        return false;
+      }
+      const priceBox = price.getBoundingClientRect();
+      const buttonBox = button.getBoundingClientRect();
+      thread.scrollTop += priceBox.top - (buttonBox.top + 8);
+      return true;
+    });
+    expect(placed).toBe(true);
+    if (process.env.EVIDENCE === "before" || process.env.EVIDENCE === "after") {
+      const label = viewport.width >= 800 ? "desktop" : "phone";
+      await page.screenshot({
+        path: `docs/evidence/cursor-header-price-23d0/${process.env.EVIDENCE}-${label}.png`,
+        fullPage: false,
+      });
+    }
+    const overlap = await page.evaluate(() => {
+      const thread = document.querySelector(".planner-thread");
+      const header = document.querySelector(".planner-header");
+      const prices = [...document.querySelectorAll("[data-result-card] .planner-price")];
+      const buttons = [...document.querySelectorAll(".planner-header button")];
+      const cards = [...document.querySelectorAll("[data-result-card]")];
+      if (
+        !(thread instanceof HTMLElement) ||
+        !(header instanceof HTMLElement) ||
+        prices.length === 0 ||
+        buttons.length === 0
+      ) {
+        return null;
+      }
+      const threadBox = thread.getBoundingClientRect();
+      const headerBox = header.getBoundingClientRect();
+      const buttonBoxes = buttons.map((button) => button.getBoundingClientRect());
+      function hits(
+        a: { left: number; right: number; top: number; bottom: number },
+        b: { left: number; right: number; top: number; bottom: number },
+      ) {
+        return a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1;
+      }
+      function clip(box: DOMRect) {
+        return {
+          left: Math.max(box.left, threadBox.left),
+          right: Math.min(box.right, threadBox.right),
+          top: Math.max(box.top, threadBox.top),
+          bottom: Math.min(box.bottom, threadBox.bottom),
+        };
+      }
+      const coveredPrices = prices.flatMap((node) => {
+        const full = node.getBoundingClientRect();
+        const visible = clip(full);
+        if (visible.right - visible.left <= 1 || visible.bottom - visible.top <= 1) {
+          return [];
+        }
+        const covered = buttonBoxes.some((button) => hits(visible, button));
+        const y = Math.min(Math.max(full.top + full.height / 2, threadBox.top + 1), threadBox.bottom - 1);
+        const blocked = [full.left + 4, full.right - 4].some((x) => {
+          if (x < threadBox.left || x > threadBox.right || y < full.top || y > full.bottom) {
+            return false;
+          }
+          return document.elementFromPoint(x, y)?.closest(".planner-header") != null;
+        });
+        if (!covered && !blocked) {
+          return [];
+        }
+        return [node.textContent ?? ""];
+      });
+      const cardCovered = cards.some((card) => {
+        const visible = clip(card.getBoundingClientRect());
+        if (visible.right - visible.left <= 1 || visible.bottom - visible.top <= 1) {
+          return false;
+        }
+        return buttonBoxes.some((button) => hits(visible, button));
+      });
+      const buttonTop = Math.min(...buttonBoxes.map((box) => box.top));
+      const buttonBottom = Math.max(...buttonBoxes.map((box) => box.bottom));
+      const priceInButtonBand = prices.some((node) => {
+        const box = node.getBoundingClientRect();
+        return box.bottom > buttonTop + 1 && box.top < buttonBottom - 1 && box.bottom > threadBox.top && box.top < threadBox.bottom;
+      });
+      return {
+        headerOverlaysThread: headerBox.bottom > threadBox.top + 8 && headerBox.top < threadBox.bottom - 8,
+        priceInButtonBand,
+        cardCovered,
+        coveredPrices,
+      };
+    });
+    expect(overlap).not.toBeNull();
+    if (overlap === null) {
+      return;
+    }
+    if (overlap.headerOverlaysThread) {
+      expect(overlap.priceInButtonBand).toBe(true);
+    }
+    expect(overlap.cardCovered).toBe(false);
+    expect(overlap.coveredPrices).toEqual([]);
+  }
+});
+
 test("keeps earlier result cards when the chat continues", async ({ page }) => {
   test.setTimeout(120_000);
   for (const viewport of viewports) {

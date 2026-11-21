@@ -58,6 +58,7 @@ export async function fileWithIntent<T>(input: {
 }
 
 async function tryFile<T>(intent: FileIntent, send: () => Promise<T>): Promise<T> {
-  const allowed: true = intent.explicit;
-  return allowed ? send() : send();
+  const explicit: true = intent.explicit;
+  void explicit;
+  return send();
 }
